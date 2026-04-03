@@ -31,7 +31,7 @@ export default function Process() {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         {/* Section header */}
         <div className="text-center mb-14 animate-on-scroll">
-          <p className="text-gold/50 text-xs tracking-[0.3em] uppercase mb-3 font-light">The Craft</p>
+          <p className="text-gold/60 text-xs tracking-[0.3em] uppercase mb-3 font-light">The Craft</p>
           <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-light text-white">
             From Shore to Sea
           </h2>
@@ -40,12 +40,12 @@ export default function Process() {
 
         {/* Image + steps grid */}
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-start">
-          {/* Underwater crate image */}
-          <div className="animate-on-scroll overflow-hidden">
+          {/* Underwater crate image — taller on mobile */}
+          <div className="animate-on-scroll overflow-hidden rounded-sm">
             <img
               src="/assets/underwater-crate.jpg"
               alt="Bottles ageing on the ocean floor"
-              className="w-full h-[320px] lg:h-full lg:max-h-[480px] object-cover"
+              className="w-full h-[260px] sm:h-[320px] lg:h-full lg:max-h-[480px] object-cover"
             />
           </div>
 
@@ -56,14 +56,14 @@ export default function Process() {
                 key={step.number}
                 className={`animate-on-scroll animate-delay-${i + 1} flex gap-5 group`}
               >
-                <span className="font-serif text-2xl text-gold/15 font-light shrink-0 w-8 group-hover:text-gold/30 transition-colors duration-500">
+                <span className="font-serif text-2xl text-gold/20 font-light shrink-0 w-8 group-hover:text-gold/40 transition-colors duration-500">
                   {step.number}
                 </span>
-                <div className="border-l border-white/[0.06] pl-5 group-hover:border-gold/20 transition-colors duration-500">
-                  <h3 className="font-serif text-lg text-white/90 font-light tracking-wide mb-2">
+                <div className="border-l border-white/[0.08] pl-5 group-hover:border-gold/25 transition-colors duration-500">
+                  <h3 className="font-serif text-lg text-white font-light tracking-wide mb-2">
                     {step.title}
                   </h3>
-                  <p className="text-white/35 text-sm leading-relaxed font-light">
+                  <p className="text-white/50 text-sm leading-relaxed font-light">
                     {step.description}
                   </p>
                 </div>

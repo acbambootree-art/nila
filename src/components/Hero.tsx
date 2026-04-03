@@ -22,11 +22,11 @@ export default function Hero() {
         <source src="/assets/hero-video.mp4" type="video/mp4" />
       </video>
 
-      {/* Overlays */}
-      <div className="absolute inset-0 bg-black/50" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black-deep via-transparent to-black/30" />
+      {/* Lighter overlays */}
+      <div className="absolute inset-0 bg-black/35" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black-deep/80 via-transparent to-black/20" />
 
-      {/* Content — text only, no logo */}
+      {/* Content */}
       <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 text-center">
         <div className={`transition-all duration-[1.8s] ease-out ${
           loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
@@ -40,10 +40,10 @@ export default function Hero() {
           loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
         }`}>
           <div className="gold-line w-16 mx-auto mb-7" />
-          <p className="font-serif text-lg md:text-xl lg:text-2xl text-gold-light/70 tracking-[0.25em] font-light">
+          <p className="font-serif text-lg md:text-xl lg:text-2xl text-gold-light/90 tracking-[0.25em] font-light">
             Aged by the Sea. Refined by Time.
           </p>
-          <p className="mt-3 text-white/25 text-[11px] tracking-[0.25em] uppercase font-light">
+          <p className="mt-3 text-white/40 text-[11px] tracking-[0.25em] uppercase font-light">
             Sea-Aged Wine & Gin &mdash; Singapore
           </p>
         </div>
@@ -53,7 +53,7 @@ export default function Hero() {
         }`}>
           <a
             href="#story"
-            className="inline-flex items-center gap-2 text-[10px] tracking-[0.3em] uppercase text-gold/30 hover:text-gold/60 transition-colors duration-300"
+            className="inline-flex items-center gap-2 text-[10px] tracking-[0.3em] uppercase text-gold/50 hover:text-gold/80 transition-colors duration-300"
           >
             <span>Discover</span>
             <svg className="w-3 h-3 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
