@@ -13,7 +13,7 @@ const products = [
     description:
       'Crisp and luminous, with the ocean\'s mineral kiss. Honeyed citrus, white flowers, and a finish that lingers like a warm tide.',
     details: '750ml · 12.5% ABV',
-    image: '/assets/wine-blanc.jpg',
+    image: '/assets/wine-blanc.png',
   },
   {
     name: 'NILA Maritime Gin',
@@ -73,9 +73,9 @@ export default function Collection() {
                     <span className="text-white/35 text-[10px] tracking-[0.15em] uppercase">
                       {product.details}
                     </span>
-                    <span className="text-gold/30 text-[10px] tracking-[0.15em] uppercase group-hover:text-gold/60 transition-colors duration-500">
+                    <a href="#contact" className="text-gold/30 text-[10px] tracking-[0.15em] uppercase group-hover:text-gold/60 transition-colors duration-500">
                       Enquire &rarr;
-                    </span>
+                    </a>
                   </div>
                 </div>
               </div>

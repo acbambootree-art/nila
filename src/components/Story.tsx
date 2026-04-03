@@ -15,15 +15,15 @@ export default function Story() {
         <div className="animate-on-scroll mb-14 grid md:grid-cols-2 gap-3 md:gap-4">
           <div className="overflow-hidden rounded-sm">
             <img
-              src="/assets/bottle-ocean.jpeg"
-              alt="A bottle submerged in the ocean"
+              src="/assets/island-overview.jpg"
+              alt="Golden sunset over NILA's island waters"
               className="w-full h-[220px] sm:h-[280px] md:h-[340px] object-cover hover:scale-[1.02] transition-transform duration-700"
             />
           </div>
           <div className="overflow-hidden rounded-sm">
             <img
               src="/assets/barrel-coast.jpeg"
-              alt="Sea-aged barrel on a dramatic coastline at sunset"
+              alt="Sea-aged barrel on a tropical island coastline"
               className="w-full h-[220px] sm:h-[280px] md:h-[340px] object-cover hover:scale-[1.02] transition-transform duration-700"
             />
           </div>
