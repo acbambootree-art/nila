@@ -1,3 +1,6 @@
+import Kicker from './Kicker'
+import RevealText from './RevealText'
+
 const steps = [
   {
     number: '01',
@@ -27,49 +30,49 @@ const steps = [
 
 export default function Process() {
   return (
-    <section id="process" className="relative py-24 lg:py-32">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12">
-        {/* Section header */}
-        <div className="text-center mb-14 animate-on-scroll">
-          <p className="text-gold/60 text-xs tracking-[0.3em] uppercase mb-3 font-light">The Craft</p>
-          <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-light text-white">
-            From Shore to Sea
+    <section id="process" className="relative py-28 lg:py-40">
+      {/* Full-bleed video with overlay text */}
+      <div className="relative w-full h-[380px] sm:h-[480px] lg:h-[620px] overflow-hidden animate-on-scroll">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster="/assets/underwater-crate.jpg"
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/assets/sea.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-b from-black-deep/60 via-black-deep/20 to-black-deep" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+          <Kicker>The Craft</Kicker>
+          <h2 className="mt-6 font-serif text-4xl md:text-6xl lg:text-7xl font-light text-white tracking-wide">
+            <RevealText>From Shore to Sea</RevealText>
           </h2>
-          <div className="gold-line w-16 mx-auto mt-6" />
+          <p className="mt-6 text-white/60 max-w-xl text-[14px] leading-relaxed font-light italic">
+            Four chapters, one slow act of transformation.
+          </p>
         </div>
+      </div>
 
-        {/* Image + steps grid */}
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-start">
-          {/* Underwater crate image — taller on mobile */}
-          <div className="animate-on-scroll overflow-hidden rounded-sm">
-            <img
-              src="/assets/underwater-crate.jpg"
-              alt="Bottles ageing on the ocean floor"
-              className="w-full h-[260px] sm:h-[320px] lg:h-full lg:max-h-[480px] object-cover"
-            />
-          </div>
-
-          {/* Steps */}
-          <div className="space-y-8">
-            {steps.map((step, i) => (
-              <div
-                key={step.number}
-                className={`animate-on-scroll animate-delay-${i + 1} flex gap-5 group`}
-              >
-                <span className="font-serif text-2xl text-gold/20 font-light shrink-0 w-8 group-hover:text-gold/40 transition-colors duration-500">
-                  {step.number}
-                </span>
-                <div className="border-l border-white/[0.08] pl-5 group-hover:border-gold/25 transition-colors duration-500">
-                  <h3 className="font-serif text-lg text-white font-light tracking-wide mb-2">
-                    {step.title}
-                  </h3>
-                  <p className="text-white/50 text-sm leading-relaxed font-light">
-                    {step.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Steps row */}
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 mt-16 lg:mt-20">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
+          {steps.map((step, i) => (
+            <div
+              key={step.number}
+              className={`animate-on-scroll animate-delay-${i + 1}`}
+            >
+              <p className="font-serif text-gold/60 text-sm tracking-[0.3em] italic">N° {step.number}</p>
+              <div className="editorial-rule w-10 mt-4 mb-5" />
+              <h3 className="font-serif text-xl lg:text-2xl text-white font-light tracking-wide">
+                {step.title}
+              </h3>
+              <p className="mt-4 text-white/50 text-[14px] leading-[1.8] font-light">
+                {step.description}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

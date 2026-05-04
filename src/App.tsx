@@ -6,17 +6,19 @@ import Collection from './components/Collection'
 import Process from './components/Process'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
+import IntroOverlay from './components/IntroOverlay'
 
 function App() {
   useScrollAnimation()
 
   return (
     <>
+      <IntroOverlay />
       <Navbar />
       <Hero />
       <Story />
-      <Collection />
       <Process />
+      <Collection />
       <Contact />
       <Footer />
     </>
