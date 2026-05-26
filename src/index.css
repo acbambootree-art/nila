@@ -18,6 +18,25 @@ html {
   scroll-padding-top: 80px;
 }
 
+/* Lenis-managed scroll: disable the browser's stiff smooth-scroll so Lenis
+   can take over with its eased momentum. Snap behavior is preserved. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+
 section {
   scroll-snap-align: start;
   scroll-snap-stop: normal;

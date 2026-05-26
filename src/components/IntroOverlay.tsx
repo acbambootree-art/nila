@@ -1,22 +1,34 @@
 import { useEffect, useState } from 'react'
 
+const SESSION_KEY = 'nila-intro-played'
+
 /**
- * Black overlay shown on first render of the page. A single gold ✦ fades in
- * and grows, then the overlay dissolves to reveal the hero. Total ~2.2s.
+ * Black overlay shown on the first visit of a browser session. A single gold ✦
+ * fades in and grows, then the overlay dissolves to reveal the hero. Total ~2.2s.
+ * Subsequent navigations within the same tab session skip the intro.
  */
 export default function IntroOverlay() {
   // 0 = hidden (before mount), 1 = visible, 2 = exiting, 3 = unmounted
-  const [stage, setStage] = useState(0)
+  // If the intro has already played this session, start at 3 (skip entirely).
+  const [stage, setStage] = useState(() => {
+    if (typeof window === 'undefined') return 0
+    return sessionStorage.getItem(SESSION_KEY) === '1' ? 3 : 0
+  })
 
   useEffect(() => {
+    if (stage === 3) return // already played, nothing to schedule
     const t1 = setTimeout(() => setStage(1), 50)    // fade star in
     const t2 = setTimeout(() => setStage(2), 1400)  // begin overlay exit
-    const t3 = setTimeout(() => setStage(3), 2400)  // unmount
+    const t3 = setTimeout(() => {
+      setStage(3)
+      try { sessionStorage.setItem(SESSION_KEY, '1') } catch {}
+    }, 2400)
     return () => {
       clearTimeout(t1)
       clearTimeout(t2)
       clearTimeout(t3)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Lock body scroll while the overlay is up
