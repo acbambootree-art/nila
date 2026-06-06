@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a1420" />
+
+  <title>NILA — What the sea gives back.</title>
+  <meta name="description" content="Wine surrendered to the sea, named for a legend. A 150-bottle release. Join the waitlist for first claim." />
+
+  <!-- Open Graph / social cards -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="NILA — What the sea gives back." />
+  <meta property="og:description" content="Wine surrendered to the sea, named for a legend. 150 bottles. One release." />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <main>
+    <!-- ============================================================ -->
+    <!-- 1. HERO                                                       -->
+    <!-- ============================================================ -->
+    <section class="hero" aria-label="Nila — sea-aged wine">
+
+      <!-- HERO MEDIA SLOT
+           Drop a <video autoplay muted loop playsinline> or <img>
+           here. It will sit behind the dimming overlay below.
+           Example:
+             <video class="hero-media" autoplay muted loop playsinline
+                    poster="hero-poster.jpg" src="bottle-recovery.mp4"></video>
+      -->
+      <div class="hero-media-slot" aria-hidden="true">
+        <!-- Pure-CSS shimmer placeholder — delete when real media is dropped in. -->
+        <div class="shimmer shimmer-a"></div>
+        <div class="shimmer shimmer-b"></div>
+        <div class="shimmer shimmer-c"></div>
+      </div>
+
+      <!-- Dimming overlay sits above media, below content -->
+      <div class="hero-overlay" aria-hidden="true"></div>
+
+      <div class="hero-content">
+        <p class="kicker">
+          <span class="kicker-mark">✦</span>
+          <span class="kicker-rule"></span>
+          <span>Est. Singapore</span>
+          <span class="kicker-rule"></span>
+          <span class="kicker-mark">✦</span>
+        </p>
+
+        <h1 class="wordmark">N<span class="letter-space">&nbsp;</span>I<span class="letter-space">&nbsp;</span>L<span class="letter-space">&nbsp;</span>A</h1>
+
+        <p class="tagline">What the sea gives back.</p>
+        <p class="hero-sub">Wine surrendered to the sea. Named for a legend.</p>
+
+        <a href="#waitlist" class="btn-primary">
+          <span class="btn-mark">✦</span>
+          <span>Join the Waitlist</span>
+          <span class="btn-mark">✦</span>
+        </a>
+      </div>
+
+      <a href="#story" class="scroll-hint" aria-label="Scroll to story">
+        <span>Scroll</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 2. THE STORY                                                  -->
+    <!-- ============================================================ -->
+    <section class="story" id="story">
+      <p class="kicker kicker-center">
+        <span class="kicker-mark">✦</span>
+        <span class="kicker-rule"></span>
+        <span>The Legend</span>
+        <span class="kicker-rule"></span>
+        <span class="kicker-mark">✦</span>
+      </p>
+
+      <p class="narrative">
+        Eight centuries ago, a prince caught in a storm cast his crown into the sea to calm it. The waters stilled. He found land, and a lion, and named it Singapura.
+      </p>
+      <p class="narrative">
+        We took that story literally. Nila is wine we lower beneath the surface — into the cool dark, into pressure and motion no cellar can recreate — and leave to the sea's slow alchemy.
+      </p>
+      <p class="narrative narrative-italic">
+        What returns is rounder, deeper, carrying a maritime whisper you'll taste but never quite name.
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 3. SCARCITY                                                   -->
+    <!-- ============================================================ -->
+    <section class="scarcity" aria-label="Edition size">
+      <p class="scarcity-number" aria-hidden="true">150</p>
+      <p class="scarcity-line">Bottles. One release. Numbered.</p>
+      <p class="scarcity-sub">
+        Limited not by what we decided to bottle —<br />
+        but by what the sea returned.
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 4. WAITLIST FORM (the conversion section)                     -->
+    <!-- ============================================================ -->
+    <section class="waitlist" id="waitlist">
+      <div class="waitlist-inner">
+        <p class="kicker kicker-center">
+          <span class="kicker-mark">✦</span>
+          <span class="kicker-rule"></span>
+          <span>The Allocation</span>
+          <span class="kicker-rule"></span>
+          <span class="kicker-mark">✦</span>
+        </p>
+
+        <h2 class="waitlist-headline">
+          The waitlist is given first claim —<br />
+          and the lowest numbers.
+        </h2>
+
+        <!-- Form: replaces itself with the success state on submit -->
+        <form id="waitlist-form" class="waitlist-form" novalidate>
+          <div class="input-row">
+            <label class="visually-hidden" for="email">Email address</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              placeholder="your@email.com"
+              required
+              aria-describedby="form-micro form-error"
+            />
+            <button type="submit" id="submit-btn">
+              <span class="submit-text">Reserve My Place</span>
+            </button>
+          </div>
+          <p id="form-error" class="form-error" role="alert" aria-live="polite"></p>
+        </form>
+
+        <p id="form-micro" class="micro">
+          No payment now. First access when the allocation opens.
+        </p>
+
+        <!-- Success state — revealed by JS after submit -->
+        <div id="success" class="success-state" hidden>
+          <p class="success-mark" aria-hidden="true">✦</p>
+          <p class="success-line">
+            You're on the list. You'll hear from us before anyone else — and you'll have first claim on the lowest-numbered bottles in the batch.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 5. FOOTER                                                     -->
+    <!-- ============================================================ -->
+    <footer class="footer">
+      <p class="footer-wordmark">NILA</p>
+      <p class="footer-tagline">What the sea gives back.</p>
+
+      <!-- SOCIAL LINKS: replace href values with real URLs -->
+      <div class="socials" aria-label="Follow Nila">
+        <a href="#" rel="noopener" aria-label="Nila on Instagram">Instagram</a>
+        <span class="dot" aria-hidden="true">·</span>
+        <a href="#" rel="noopener" aria-label="Nila on Xiaohongshu">Xiaohongshu</a>
+      </div>
+
+      <p class="copyright">&copy; <span id="year">2026</span> &middot; NILA &middot; Singapore</p>
+    </footer>
+  </main>
+
+  <!-- ============================================================ -->
+  <!-- JS — form handling. Single, self-contained block.             -->
+  <!-- ============================================================ -->
+  <script>
+    // ─────────────────────────────────────────────────────────────
+    //  TODO: Replace this with your real signup endpoint.
+    //  Works out-of-the-box with Formspree, ConvertKit, Mailchimp,
+    //  Beehiiv, Buttondown, or your own /api route.
+    //  Until it's replaced, submissions just trigger the success UI
+    //  (good for previewing).
+    // ─────────────────────────────────────────────────────────────
+    const FORM_ENDPOINT = "REPLACE_ME";
+
+    // Year in footer
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Form refs
+    const form     = document.getElementById('waitlist-form');
+    const input    = document.getElementById('email');
+    const button   = document.getElementById('submit-btn');
+    const btnText  = button.querySelector('.submit-text');
+    const errorEl  = document.getElementById('form-error');
+    const microEl  = document.getElementById('form-micro');
+    const success  = document.getElementById('success');
+
+    // Simple, permissive email check — full RFC validation is overkill here.
+    const isValidEmail = (value) =>
+      /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
+
+    const showError = (msg) => {
+      errorEl.textContent = msg;
+      input.setAttribute('aria-invalid', 'true');
+    };
+    const clearError = () => {
+      errorEl.textContent = '';
+      input.removeAttribute('aria-invalid');
+    };
+
+    input.addEventListener('input', clearError);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = input.value.trim();
+
+      if (!isValidEmail(email)) {
+        showError('Please enter a valid email address.');
+        input.focus();
+        return;
+      }
+
+      // Loading state
+      button.disabled = true;
+      btnText.textContent = 'Reserving…';
+
+      try {
+        if (FORM_ENDPOINT && FORM_ENDPOINT !== 'REPLACE_ME') {
+          const response = await fetch(FORM_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({ email, source: 'waitlist-landing' }),
+          });
+          if (!response.ok) throw new Error('Network response was not ok');
+        }
+
+        // Reveal the success state (in place of the form + micro)
+        form.hidden = true;
+        microEl.hidden = true;
+        success.hidden = false;
+        // Smooth-scroll just enough to bring the success message into view on mobile
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (err) {
+        button.disabled = false;
+        btnText.textContent = 'Try Again';
+        showError("Couldn't reach the server. Please try again in a moment.");
+      }
+    });
+  </script>
+</body>
+</html>
