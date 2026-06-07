@@ -456,42 +456,117 @@ img.hero-media {
   color: var(--text);
 }
 
+/* ---- Quantity stepper ---- */
+.qty-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1.75rem;
+}
+.qty-label {
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.75;
+  font-weight: 300;
+}
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--gold-faint);
+  background: var(--ink-rise);
+}
+.qty-btn {
+  width: 3.25rem;
+  height: 3.25rem;
+  background: transparent;
+  border: none;
+  color: var(--gold-soft);
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 300;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.qty-btn:hover:not(:disabled),
+.qty-btn:focus-visible:not(:disabled) {
+  background: rgba(201, 169, 110, 0.1);
+  color: var(--gold-soft);
+  outline: none;
+}
+.qty-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+.qty-display {
+  min-width: 3.5rem;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  border-left: 1px solid var(--gold-faint);
+  border-right: 1px solid var(--gold-faint);
+  padding: 0.85rem 0;
+  user-select: none;
+}
+.qty-note {
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-top: 0.4rem;
+}
+
+@media (min-width: 840px) {
+  .qty-row { align-items: flex-start; }
+}
+
 /* ---- Price block ---- */
 .price-row {
   display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
   margin: 0 0 2rem;
   font-family: var(--font-serif);
   color: var(--gold-soft);
 }
 .price-currency {
-  font-size: 0.75rem;
-  letter-spacing: 0.3em;
+  font-size: 0.65rem;
+  letter-spacing: 0.35em;
   text-transform: uppercase;
   color: var(--gold);
   font-family: var(--font-sans);
   font-weight: 300;
-  align-self: center;
   opacity: 0.8;
 }
 .price-amount {
-  font-size: clamp(2.75rem, 7vw, 3.75rem);
+  font-size: clamp(2.5rem, 6.5vw, 3.5rem);
   font-weight: 300;
   line-height: 1;
   letter-spacing: 0.01em;
   color: var(--gold-soft);
+  font-family: var(--font-serif);
 }
 .price-unit {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-style: italic;
   color: var(--text-soft);
   letter-spacing: 0.02em;
+  margin-top: 0.25rem;
 }
 
 @media (min-width: 840px) {
-  .price-row { justify-content: flex-start; }
+  .price-row { align-items: flex-start; }
 }
 
 /* ---- Reserve / primary commerce button ---- */

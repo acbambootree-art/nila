@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a1420" />
+
+  <title>NILA — Allocation Secured</title>
+  <meta name="description" content="Your reservation is confirmed. Welcome to the founder's cellar." />
+
+  <!-- Don't index the thank-you page -->
+  <meta name="robots" content="noindex, nofollow" />
+
+  <!-- Preload the same hero poster so the bg paints instantly -->
+  <link rel="preload" as="image" href="/founder-cellar/assets/hero-bottle-poster.jpg" fetchpriority="high" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Reuse the main waitlist stylesheet, plus a small thank-you layer below -->
+  <link rel="stylesheet" href="/founder-cellar/styles.css" />
+  <link rel="stylesheet" href="/founder-cellar/thank-you/styles.css" />
+</head>
+
+<body>
+  <main>
+    <section class="ty">
+
+      <!-- Same hero video as the landing — establishes continuity -->
+      <video
+        class="hero-media"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+        poster="/founder-cellar/assets/hero-bottle-poster.jpg"
+        aria-hidden="true"
+      >
+        <source src="/founder-cellar/assets/hero-bottle.mp4" type="video/mp4" />
+      </video>
+      <div class="hero-overlay ty-overlay" aria-hidden="true"></div>
+
+      <div class="ty-inner">
+
+        <!-- Brand mark -->
+        <p class="ty-mark" aria-hidden="true">✦</p>
+
+        <!-- Tiny kicker -->
+        <p class="kicker ty-kicker">
+          <span class="kicker-mark">✦</span>
+          <span class="kicker-rule"></span>
+          <span>The Allocation</span>
+          <span class="kicker-rule"></span>
+          <span class="kicker-mark">✦</span>
+        </p>
+
+        <!-- Headline -->
+        <h1 class="ty-headline">
+          Your allocation<br />
+          is secured.
+        </h1>
+
+        <!-- Italic confirmation line -->
+        <p class="ty-confirm">
+          Welcome to the Founder&rsquo;s Cellar.
+        </p>
+
+        <!-- Gold rule -->
+        <div class="ty-rule" aria-hidden="true"></div>
+
+        <!-- Lead paragraph -->
+        <p class="ty-lead">
+          Your numbered bottle is now reserved. A confirmation receipt has been sent to your email, and we will be in touch personally with the next steps as the release approaches.
+        </p>
+
+        <!-- What happens next — three subtle numbered chapters -->
+        <ol class="ty-steps">
+          <li>
+            <span class="ty-step-num">N&deg;&nbsp;01</span>
+            <h3>Allocation</h3>
+            <p>Within seven days, you&rsquo;ll receive your reserved bottle number &mdash; lower numbers go to the earliest reservations.</p>
+          </li>
+          <li>
+            <span class="ty-step-num">N&deg;&nbsp;02</span>
+            <h3>Submersion</h3>
+            <p>Your bottle is lowered beneath the surface to rest with the rest of the release. Six months. Fifteen metres. Twenty-four degrees.</p>
+          </li>
+          <li>
+            <span class="ty-step-num">N&deg;&nbsp;03</span>
+            <h3>Delivery</h3>
+            <p>On retrieval, we&rsquo;ll arrange a private delivery in Singapore. The balance is settled at that moment &mdash; not a day sooner.</p>
+          </li>
+        </ol>
+
+        <!-- Closing italic line -->
+        <p class="ty-closing">
+          What returns is rounder, deeper, carrying a maritime whisper you&rsquo;ll taste but never quite name.
+        </p>
+
+        <!-- Quiet return link -->
+        <div class="ty-actions">
+          <a href="/founder-cellar/" class="ty-return">
+            <span aria-hidden="true">&larr;</span>
+            <span>Return to NILA</span>
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Minimal footer matching the brand -->
+    <footer class="footer">
+      <p class="footer-wordmark">NILA</p>
+      <p class="footer-tagline">What the sea gives back.</p>
+      <p class="copyright">&copy; <span id="year">2026</span> &middot; NILA &middot; Singapore</p>
+    </footer>
+  </main>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

@@ -72,7 +72,7 @@
 
         <a href="#waitlist" class="btn-primary">
           <span class="btn-mark">✦</span>
-          <span>Reserve Your Bottle</span>
+          <span>Secure Your Allocation</span>
           <span class="btn-mark">✦</span>
         </a>
       </div>
@@ -161,27 +161,37 @@
           </p>
 
           <h2 class="waitlist-headline">
-            Reserve your bottle.<br />
+            Secure your allocation.<br />
             Lowest numbers, first.
           </h2>
 
-          <!-- Price block -->
+          <!-- Quantity stepper (1-5 bottles per person) -->
+          <div class="qty-row">
+            <span class="qty-label">Bottles</span>
+            <div class="stepper" role="group" aria-label="Number of bottles">
+              <button type="button" id="qty-minus" class="qty-btn" aria-label="Decrease quantity">&minus;</button>
+              <span id="qty-display" class="qty-display" aria-live="polite">1</span>
+              <button type="button" id="qty-plus" class="qty-btn" aria-label="Increase quantity">+</button>
+            </div>
+            <span class="qty-note">Maximum 5 per person</span>
+          </div>
+
+          <!-- Deposit total — updates live -->
           <div class="price-row">
-            <span class="price-currency">SGD</span>
-            <span class="price-amount">$198</span>
-            <span class="price-unit">per bottle</span>
+            <span class="price-currency">Refundable Deposit</span>
+            <span class="price-amount">SGD&nbsp;<span id="price-total">$198</span></span>
+            <span class="price-unit"><span id="price-breakdown">$198 &times; 1 bottle</span></span>
           </div>
 
           <!-- Reserve button — opens age gate, then Stripe Checkout -->
           <a id="reserve-btn" href="#" class="btn-reserve" role="button">
             <span class="btn-mark">✦</span>
-            <span>Reserve My Bottle</span>
+            <span>Secure My Allocation</span>
             <span class="btn-mark">✦</span>
           </a>
 
           <p class="micro">
-            One bottle per reservation &middot; numbered allocation &middot; complimentary delivery in Singapore.<br />
-            By reserving, you confirm you are of legal drinking age.
+            A refundable deposit reserves your numbered bottle(s) from the 150-bottle release. The balance is settled on delivery, when each bottle returns from the sea. By proceeding, you confirm you are of legal drinking age.
           </p>
         </div>
 
@@ -248,14 +258,18 @@
     //  HOW TO SET UP (5 min):
     //  1. Sign in at https://dashboard.stripe.com (use Singapore mode)
     //  2. Products → Add a product:
-    //       Name:        Nila — Sea-Aged Wine (Reservation)
-    //       Description: One numbered bottle from the 150-bottle release.
+    //       Name:        Nila — Sea-Aged Wine (Allocation Deposit)
+    //       Description: Refundable deposit to reserve a numbered bottle
+    //                    from the 150-bottle release. Balance settled
+    //                    on delivery.
     //       Price:       SGD 198.00 (one-time, in Singapore Dollars)
     //  3. After creating, click "Create payment link"
-    //       Quantity:    Limit to 1 per checkout
-    //       Tax & shipping: configure if applicable
-    //       Confirmation page: redirect to /founder-cellar/thank-you (or
-    //                          stay on Stripe's default page for now)
+    //       Quantity:    ✅ Enable "Let customers adjust quantity"
+    //                    Min 1 · Max 5  (so the ?quantity=N URL param works)
+    //       Confirmation page: redirect to
+    //                    https://nila.wine/founder-cellar/thank-you
+    //                    (page is built and ready)
+    //       Stock limit: set to 150 if you want Stripe to auto-close sales
     //  4. Copy the link (looks like https://buy.stripe.com/abc123…)
     //  5. Paste it here ↓ replacing REPLACE_WITH_STRIPE_PAYMENT_LINK
     //
@@ -264,15 +278,41 @@
     //    `4242 4242 4242 4242` with any future expiry + any CVC = success.
     // ─────────────────────────────────────────────────────────────
     const STRIPE_PAYMENT_LINK = "REPLACE_WITH_STRIPE_PAYMENT_LINK";
+    const DEPOSIT_PER_BOTTLE  = 198;          // SGD
+    const MIN_BOTTLES         = 1;
+    const MAX_BOTTLES         = 5;
 
     // Year in footer
     document.getElementById('year').textContent = new Date().getFullYear();
 
     // ─────────────────────────────────────────────────────────────
-    //  Reservation flow
-    //    Click "Reserve" → show age gate (once per session) → Stripe
+    //  Quantity stepper
     // ─────────────────────────────────────────────────────────────
-    const AGE_OK_KEY = 'nila-age-ok';
+    let qty = 1;
+    const qtyDisplay   = document.getElementById('qty-display');
+    const qtyMinus     = document.getElementById('qty-minus');
+    const qtyPlus      = document.getElementById('qty-plus');
+    const priceTotal   = document.getElementById('price-total');
+    const priceBreak   = document.getElementById('price-breakdown');
+    const formatPrice  = (n) => '$' + n.toLocaleString('en-SG');
+
+    const refreshQty = () => {
+      qtyDisplay.textContent = qty;
+      const total = qty * DEPOSIT_PER_BOTTLE;
+      priceTotal.textContent = formatPrice(total);
+      priceBreak.textContent = `$${DEPOSIT_PER_BOTTLE} × ${qty} bottle${qty === 1 ? '' : 's'}`;
+      qtyMinus.disabled = qty <= MIN_BOTTLES;
+      qtyPlus.disabled  = qty >= MAX_BOTTLES;
+    };
+    qtyMinus.addEventListener('click', () => { if (qty > MIN_BOTTLES) { qty--; refreshQty(); } });
+    qtyPlus.addEventListener('click',  () => { if (qty < MAX_BOTTLES) { qty++; refreshQty(); } });
+    refreshQty();
+
+    // ─────────────────────────────────────────────────────────────
+    //  Reservation flow
+    //    Click "Secure" → age gate (once per session) → Stripe
+    // ─────────────────────────────────────────────────────────────
+    const AGE_OK_KEY   = 'nila-age-ok';
     const reserveBtn   = document.getElementById('reserve-btn');
     const ageGate      = document.getElementById('age-gate');
     const ageConfirm   = document.getElementById('age-confirm');
@@ -280,13 +320,17 @@
 
     const goToCheckout = () => {
       if (STRIPE_PAYMENT_LINK && STRIPE_PAYMENT_LINK !== 'REPLACE_WITH_STRIPE_PAYMENT_LINK') {
-        window.location.href = STRIPE_PAYMENT_LINK;
+        // Append ?quantity=N — Stripe respects this when "adjustable quantity"
+        // is enabled on the Payment Link.
+        const sep = STRIPE_PAYMENT_LINK.includes('?') ? '&' : '?';
+        window.location.href = STRIPE_PAYMENT_LINK + sep + 'quantity=' + qty;
       } else {
-        // Friendly message until the Stripe link is configured
         alert(
           "The Stripe Payment Link hasn't been wired up yet.\n\n" +
           "See the setup instructions in index.html (top of <script>) " +
-          "to create your Stripe Payment Link, then paste it in."
+          "to create your Stripe Payment Link, then paste it in.\n\n" +
+          "Would go to checkout for " + qty + " bottle(s), SGD $" +
+          (qty * DEPOSIT_PER_BOTTLE)
         );
       }
     };
@@ -294,7 +338,6 @@
     const openAgeGate = () => {
       ageGate.hidden = false;
       document.body.style.overflow = 'hidden';
-      // Focus the primary action for keyboard users
       setTimeout(() => ageConfirm.focus(), 50);
     };
     const closeAgeGate = () => {
@@ -304,7 +347,6 @@
 
     reserveBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      // If they've already confirmed this session, skip the gate
       if (sessionStorage.getItem(AGE_OK_KEY) === '1') {
         goToCheckout();
       } else {
@@ -323,7 +365,6 @@
       alert("You must be of legal drinking age to reserve a bottle of Nila.");
     });
 
-    // ESC closes the age gate
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !ageGate.hidden) closeAgeGate();
     });
