@@ -223,6 +223,7 @@
   <!-- ============================================================ -->
   <!-- JS — form handling + scroll reveals + count-up + magnetic CTA -->
   <!-- ============================================================ -->
+  <script>
     // ─────────────────────────────────────────────────────────────
     //  TODO: Replace this with your real signup endpoint.
     //  Works out-of-the-box with Formspree, ConvertKit, Mailchimp,
@@ -309,35 +310,43 @@
     // ─────────────────────────────────────────────────────────────
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    /* --- Lenis smooth scroll --- */
+    /* --- Lenis smooth scroll (desktop pointer only — leave native momentum on touch) --- */
     function initLenis() {
-      if (reducedMotion || typeof Lenis === 'undefined') return;
-      const lenis = new Lenis({
-        duration: 1.15,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smoothWheel: true,
-        wheelMultiplier: 1,
-        lerp: 0.1,
-      });
-      function raf(time) {
-        lenis.raf(time);
-        requestAnimationFrame(raf);
-      }
-      requestAnimationFrame(raf);
+      if (reducedMotion) return;
+      if (typeof Lenis === 'undefined' || typeof Lenis !== 'function') return;
+      // Touch / coarse pointer: native iOS/Android scroll feels better than Lenis on touch
+      if (window.matchMedia('(pointer: coarse)').matches) return;
 
-      // Hijack in-page anchors so they animate via Lenis
-      document.addEventListener('click', (e) => {
-        const a = e.target.closest('a[href^="#"]');
-        if (!a) return;
-        const id = a.getAttribute('href');
-        if (!id || id === '#' || id.length < 2) return;
-        const el = document.querySelector(id);
-        if (!el) return;
-        e.preventDefault();
-        lenis.scrollTo(el, { offset: 0, duration: 1.4 });
-      });
+      try {
+        const lenis = new Lenis({
+          duration: 1.15,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+          wheelMultiplier: 1,
+          lerp: 0.1,
+        });
+        function raf(time) {
+          lenis.raf(time);
+          requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+
+        // Hijack in-page anchors so they animate via Lenis
+        document.addEventListener('click', (e) => {
+          const a = e.target.closest('a[href^="#"]');
+          if (!a) return;
+          const id = a.getAttribute('href');
+          if (!id || id === '#' || id.length < 2) return;
+          const el = document.querySelector(id);
+          if (!el) return;
+          e.preventDefault();
+          lenis.scrollTo(el, { offset: 0, duration: 1.4 });
+        });
+      } catch (err) {
+        console.warn('Lenis init failed, falling back to native scroll', err);
+      }
     }
-    // Lenis script loads with `defer`, so wait for it
+    // Lenis script loads with `defer`, so wait for the parser to finish
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initLenis);
     } else {
@@ -400,10 +409,12 @@
       const magneticEls = document.querySelectorAll('.btn-primary, button[type="submit"]');
       magneticEls.forEach((el) => {
         const radius = 140;
-        const strength = 0.25;
+        const strength = 0.22;
         const reset = () => { el.style.transform = ''; };
         const onMove = (e) => {
+          // Skip if element isn't in viewport or has zero size
           const r = el.getBoundingClientRect();
+          if (!r.width || !r.height) { reset(); return; }
           const cx = r.left + r.width / 2;
           const cy = r.top + r.height / 2;
           const dx = e.clientX - cx;
@@ -412,12 +423,13 @@
           if (dist < radius) {
             const f = (1 - dist / radius) * strength;
             el.style.transform = `translate(${dx * f}px, ${dy * f}px)`;
-          } else {
+          } else if (el.style.transform) {
             reset();
           }
         };
         window.addEventListener('mousemove', onMove, { passive: true });
-        el.addEventListener('mouseleave', reset);
+        // Reset on window leave so the button always returns to rest position
+        document.addEventListener('mouseleave', reset);
       });
     }
   </script>
