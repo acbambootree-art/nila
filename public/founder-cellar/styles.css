@@ -826,6 +826,15 @@ button[type="submit"]:disabled {
   color: var(--text-faint);
 }
 
+/* Discreet registered-business address line — required for commerce trust */
+.footer-address {
+  margin: 0.75rem 0 0;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: rgba(245, 240, 232, 0.22);
+  font-weight: 300;
+}
+
 /* ============================================================ */
 /* PREMIUM ANIMATION SYSTEM                                     */
 /* ============================================================ */
