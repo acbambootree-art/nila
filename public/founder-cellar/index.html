@@ -12,11 +12,11 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="NILA — What the sea gives back." />
   <meta property="og:description" content="Wine surrendered to the sea, named for a legend. 150 bottles. One release." />
-  <meta property="og:image" content="/founder-cellar/assets/hero-bottle.jpg" />
+  <meta property="og:image" content="/founder-cellar/assets/hero-bottle-poster.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <!-- Preload the hero image so it appears with the typography, not after -->
-  <link rel="preload" as="image" href="/founder-cellar/assets/hero-bottle.jpg" fetchpriority="high" />
+  <!-- Preload the poster frame so the hero paints instantly while the video buffers -->
+  <link rel="preload" as="image" href="/founder-cellar/assets/hero-bottle-poster.jpg" fetchpriority="high" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -37,14 +37,19 @@
     <!-- ============================================================ -->
     <section class="hero" aria-label="Nila — sea-aged wine">
 
-      <!-- Hero background image -->
-      <img
+      <!-- Hero background video (autoplay, muted, looping) -->
+      <video
         class="hero-media"
-        src="/founder-cellar/assets/hero-bottle.jpg"
-        alt=""
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+        poster="/founder-cellar/assets/hero-bottle-poster.jpg"
         aria-hidden="true"
-        fetchpriority="high"
-      />
+      >
+        <source src="/founder-cellar/assets/hero-bottle.mp4" type="video/mp4" />
+      </video>
 
       <!-- Dimming overlay -->
       <div class="hero-overlay" aria-hidden="true"></div>

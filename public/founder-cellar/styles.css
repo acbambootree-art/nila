@@ -186,13 +186,15 @@ a {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- Hero image: subtle Ken Burns slow zoom for a cinematic feel ---- */
+/* ---- Hero image: subtle Ken Burns slow zoom for a cinematic feel ----
+   Only applied when the hero media is a still image (<img>). The video has
+   its own motion, so we let it play untouched. */
 @keyframes kenburns {
   0%   { transform: scale(1) translate(0, 0); }
   50%  { transform: scale(1.06) translate(-0.6%, -0.4%); }
   100% { transform: scale(1.03) translate(0.4%, 0.2%); }
 }
-.hero-media {
+img.hero-media {
   animation: kenburns 32s ease-in-out infinite alternate;
   will-change: transform;
 }
