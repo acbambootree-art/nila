@@ -167,12 +167,34 @@ a {
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
-  animation: rise 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* Staggered entrance: each direct child rises into place in sequence. */
+.hero-content > * {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: rise 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.hero-content > *:nth-child(1) { animation-delay: 0.15s; }
+.hero-content > *:nth-child(2) { animation-delay: 0.35s; }
+.hero-content > *:nth-child(3) { animation-delay: 0.95s; }  /* tagline waits for wordmark */
+.hero-content > *:nth-child(4) { animation-delay: 1.10s; }
+.hero-content > *:nth-child(5) { animation-delay: 1.30s; }
 
 @keyframes rise {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Hero image: subtle Ken Burns slow zoom for a cinematic feel ---- */
+@keyframes kenburns {
+  0%   { transform: scale(1) translate(0, 0); }
+  50%  { transform: scale(1.06) translate(-0.6%, -0.4%); }
+  100% { transform: scale(1.03) translate(0.4%, 0.2%); }
+}
+.hero-media {
+  animation: kenburns 32s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 .wordmark {
@@ -627,4 +649,79 @@ button[type="submit"]:disabled {
   letter-spacing: 0.35em;
   text-transform: uppercase;
   color: var(--text-faint);
+}
+
+/* ============================================================ */
+/* PREMIUM ANIMATION SYSTEM                                     */
+/* ============================================================ */
+
+/* ---- NILA wordmark: letter-by-letter rise after page settles ---- */
+.wordmark .letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(80%);
+  animation: letterRise 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+.wordmark .letter:nth-child(1) { animation-delay: 0.40s; }
+.wordmark .letter:nth-child(3) { animation-delay: 0.55s; }
+.wordmark .letter:nth-child(5) { animation-delay: 0.70s; }
+.wordmark .letter:nth-child(7) { animation-delay: 0.85s; }
+
+@keyframes letterRise {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Scroll-triggered fade-up reveals ---- */
+.reveal {
+  opacity: 0;
+  transform: translateY(36px);
+  transition:
+    opacity 1.2s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0s);
+  will-change: transform, opacity;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---- Image curtain reveal — masks open from bottom as image enters view ---- */
+.reveal-image {
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 1.6s cubic-bezier(0.65, 0, 0.35, 1);
+  will-change: clip-path;
+}
+.reveal-image.is-visible {
+  clip-path: inset(0 0 0 0);
+}
+
+/* ---- Magnetic CTA button — JS adds the translation; ensure transition is smooth ---- */
+.btn-primary,
+button[type="submit"] {
+  transition:
+    background 0.4s ease,
+    border-color 0.4s ease,
+    color 0.4s ease,
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* ---- Reduced motion: kill all motion, keep states ---- */
+@media (prefers-reduced-motion: reduce) {
+  .hero-media,
+  .hero-content > *,
+  .wordmark .letter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .reveal,
+  .reveal-image {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+    transition: none !important;
+  }
 }

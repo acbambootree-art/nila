@@ -58,7 +58,9 @@
           <span class="kicker-mark">✦</span>
         </p>
 
-        <h1 class="wordmark">N<span class="letter-space">&nbsp;</span>I<span class="letter-space">&nbsp;</span>L<span class="letter-space">&nbsp;</span>A</h1>
+        <h1 class="wordmark" aria-label="NILA">
+          <span class="letter" aria-hidden="true">N</span><span class="letter-space" aria-hidden="true">&nbsp;</span><span class="letter" aria-hidden="true">I</span><span class="letter-space" aria-hidden="true">&nbsp;</span><span class="letter" aria-hidden="true">L</span><span class="letter-space" aria-hidden="true">&nbsp;</span><span class="letter" aria-hidden="true">A</span>
+        </h1>
 
         <p class="tagline">What the sea gives back.</p>
         <p class="hero-sub">Wine surrendered to the sea. Named for a legend.</p>
@@ -84,7 +86,7 @@
     <section class="story" id="story">
       <div class="story-grid">
 
-        <div class="story-image">
+        <div class="story-image reveal-image">
           <img
             src="/founder-cellar/assets/story-map.jpg"
             alt="A bottle of Nila beside an antique NILA — Temasek · Singapura map and brass compass"
@@ -93,7 +95,7 @@
           />
         </div>
 
-        <div class="story-copy">
+        <div class="story-copy reveal" style="--reveal-delay: 0.15s">
           <p class="kicker">
             <span class="kicker-mark">✦</span>
             <span class="kicker-rule"></span>
@@ -120,9 +122,10 @@
     <!-- 3. SCARCITY — typographic                                     -->
     <!-- ============================================================ -->
     <section class="scarcity" aria-label="Edition size">
-      <p class="scarcity-number" aria-hidden="true">150</p>
-      <p class="scarcity-line">Bottles. One release. Numbered.</p>
-      <p class="scarcity-sub">
+      <!-- data-count drives the count-up animation when this enters the viewport -->
+      <p class="scarcity-number reveal" aria-hidden="true" data-count="150">0</p>
+      <p class="scarcity-line reveal" style="--reveal-delay: 0.2s">Bottles. One release. Numbered.</p>
+      <p class="scarcity-sub reveal" style="--reveal-delay: 0.35s">
         Limited not by what we decided to bottle —<br />
         but by what the sea returned.
       </p>
@@ -134,7 +137,7 @@
     <section class="waitlist" id="waitlist">
       <div class="waitlist-grid">
 
-        <div class="waitlist-image">
+        <div class="waitlist-image reveal-image">
           <img
             src="/founder-cellar/assets/form-silk.jpg"
             alt="A bottle of Nila resting on champagne silk, with a brass numbered allocation tag"
@@ -143,7 +146,7 @@
           />
         </div>
 
-        <div class="waitlist-copy">
+        <div class="waitlist-copy reveal" style="--reveal-delay: 0.15s">
           <p class="kicker">
             <span class="kicker-mark">✦</span>
             <span class="kicker-rule"></span>
@@ -213,9 +216,13 @@
   </main>
 
   <!-- ============================================================ -->
-  <!-- JS — form handling. Single, self-contained block.             -->
+  <!-- Lenis — buttery smooth scrolling. ~8KB, no build step needed. -->
   <!-- ============================================================ -->
-  <script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
+
+  <!-- ============================================================ -->
+  <!-- JS — form handling + scroll reveals + count-up + magnetic CTA -->
+  <!-- ============================================================ -->
     // ─────────────────────────────────────────────────────────────
     //  TODO: Replace this with your real signup endpoint.
     //  Works out-of-the-box with Formspree, ConvertKit, Mailchimp,
@@ -291,6 +298,128 @@
         showError("Couldn't reach the server. Please try again in a moment.");
       }
     });
+
+    // ─────────────────────────────────────────────────────────────
+    // PREMIUM ANIMATIONS
+    //   - Lenis smooth scroll (eased momentum)
+    //   - Scroll-triggered reveals (fade-up + image curtains)
+    //   - "150" count-up when scrolled into view
+    //   - Magnetic CTA buttons on fine-pointer devices
+    // All respect prefers-reduced-motion.
+    // ─────────────────────────────────────────────────────────────
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* --- Lenis smooth scroll --- */
+    function initLenis() {
+      if (reducedMotion || typeof Lenis === 'undefined') return;
+      const lenis = new Lenis({
+        duration: 1.15,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+        wheelMultiplier: 1,
+        lerp: 0.1,
+      });
+      function raf(time) {
+        lenis.raf(time);
+        requestAnimationFrame(raf);
+      }
+      requestAnimationFrame(raf);
+
+      // Hijack in-page anchors so they animate via Lenis
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest('a[href^="#"]');
+        if (!a) return;
+        const id = a.getAttribute('href');
+        if (!id || id === '#' || id.length < 2) return;
+        const el = document.querySelector(id);
+        if (!el) return;
+        e.preventDefault();
+        lenis.scrollTo(el, { offset: 0, duration: 1.4 });
+      });
+    }
+    // Lenis script loads with `defer`, so wait for it
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initLenis);
+    } else {
+      initLenis();
+    }
+
+    /* --- Scroll-triggered reveals --- */
+    const revealEls = document.querySelectorAll('.reveal, .reveal-image');
+    if ('IntersectionObserver' in window && !reducedMotion) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -80px 0px' });
+      revealEls.forEach((el) => io.observe(el));
+    } else {
+      // Fallback: just show them
+      revealEls.forEach((el) => el.classList.add('is-visible'));
+    }
+
+    /* --- 150 count-up when scrolled into view --- */
+    const numberEl = document.querySelector('.scarcity-number[data-count]');
+    if (numberEl && 'IntersectionObserver' in window && !reducedMotion) {
+      const target = parseInt(numberEl.dataset.count, 10) || 150;
+      const duration = 1600; // ms
+      const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+      let started = false;
+      const startCount = () => {
+        if (started) return;
+        started = true;
+        const t0 = performance.now();
+        const tick = (now) => {
+          const p = Math.min(1, (now - t0) / duration);
+          const value = Math.floor(easeOutCubic(p) * target);
+          numberEl.textContent = String(value);
+          if (p < 1) requestAnimationFrame(tick);
+          else numberEl.textContent = String(target);
+        };
+        requestAnimationFrame(tick);
+      };
+      const numObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            startCount();
+            numObserver.disconnect();
+          }
+        });
+      }, { threshold: 0.4 });
+      numObserver.observe(numberEl);
+    } else if (numberEl) {
+      numberEl.textContent = numberEl.dataset.count || '150';
+    }
+
+    /* --- Magnetic buttons (fine pointer only) --- */
+    const finePointer = window.matchMedia('(pointer: fine)').matches;
+    if (finePointer && !reducedMotion) {
+      const magneticEls = document.querySelectorAll('.btn-primary, button[type="submit"]');
+      magneticEls.forEach((el) => {
+        const radius = 140;
+        const strength = 0.25;
+        const reset = () => { el.style.transform = ''; };
+        const onMove = (e) => {
+          const r = el.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          const dx = e.clientX - cx;
+          const dy = e.clientY - cy;
+          const dist = Math.hypot(dx, dy);
+          if (dist < radius) {
+            const f = (1 - dist / radius) * strength;
+            el.style.transform = `translate(${dx * f}px, ${dy * f}px)`;
+          } else {
+            reset();
+          }
+        };
+        window.addEventListener('mousemove', onMove, { passive: true });
+        el.addEventListener('mouseleave', reset);
+      });
+    }
   </script>
 </body>
 </html>
