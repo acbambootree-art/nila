@@ -266,31 +266,22 @@
   <!-- ============================================================ -->
   <script>
     // ─────────────────────────────────────────────────────────────
-    //  STRIPE PAYMENT LINK
+    //  CHECKOUT
     //
-    //  HOW TO SET UP (5 min):
-    //  1. Sign in at https://dashboard.stripe.com (use Singapore mode)
-    //  2. Products → Add a product:
-    //       Name:        Nila — Sea-Aged Wine (Allocation Deposit)
-    //       Description: Refundable deposit to reserve a numbered bottle
-    //                    from the 150-bottle release. Balance settled
-    //                    on delivery.
-    //       Price:       SGD 198.00 (one-time, in Singapore Dollars)
-    //  3. After creating, click "Create payment link"
-    //       Quantity:    ✅ Enable "Let customers adjust quantity"
-    //                    Min 1 · Max 5  (so the ?quantity=N URL param works)
-    //       Confirmation page: redirect to
-    //                    https://nila.wine/founder-cellar/thank-you
-    //                    (page is built and ready)
-    //       Stock limit: set to 150 if you want Stripe to auto-close sales
-    //  4. Copy the link (looks like https://buy.stripe.com/abc123…)
-    //  5. Paste it here ↓ replacing REPLACE_WITH_STRIPE_PAYMENT_LINK
+    //  We POST to our own /api/checkout endpoint, which creates a
+    //  Stripe Checkout Session server-side with the requested
+    //  quantity baked in, then redirects the browser to Stripe.
     //
-    //  TIP — to test before going live:
-    //    Use Stripe test mode + paste the test-mode link here. Card
-    //    `4242 4242 4242 4242` with any future expiry + any CVC = success.
+    //  This is needed because Stripe Payment Links don't support
+    //  pre-setting quantity via URL parameters — they always open
+    //  with quantity 1. The serverless function uses the Stripe API
+    //  to create a Checkout Session with the quantity already set.
+    //
+    //  Env vars used by /api/checkout (set in Vercel):
+    //    STRIPE_SECRET_KEY  — sk_test_… or sk_live_…
+    //    STRIPE_PRICE_ID    — price_… for the SGD 198 deposit
     // ─────────────────────────────────────────────────────────────
-    const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/eVq28ke2a8sc2twepjbII00";
+    const CHECKOUT_ENDPOINT   = "/api/checkout";
     const DEPOSIT_PER_BOTTLE  = 198;          // SGD
     const MIN_BOTTLES         = 1;
     const MAX_BOTTLES         = 5;
@@ -332,20 +323,9 @@
     const ageDecline   = document.getElementById('age-decline');
 
     const goToCheckout = () => {
-      if (STRIPE_PAYMENT_LINK && STRIPE_PAYMENT_LINK !== 'REPLACE_WITH_STRIPE_PAYMENT_LINK') {
-        // Append ?quantity=N — Stripe respects this when "adjustable quantity"
-        // is enabled on the Payment Link.
-        const sep = STRIPE_PAYMENT_LINK.includes('?') ? '&' : '?';
-        window.location.href = STRIPE_PAYMENT_LINK + sep + 'quantity=' + qty;
-      } else {
-        alert(
-          "The Stripe Payment Link hasn't been wired up yet.\n\n" +
-          "See the setup instructions in index.html (top of <script>) " +
-          "to create your Stripe Payment Link, then paste it in.\n\n" +
-          "Would go to checkout for " + qty + " bottle(s), SGD $" +
-          (qty * DEPOSIT_PER_BOTTLE)
-        );
-      }
+      // The /api/checkout endpoint creates a Stripe Checkout Session
+      // with the quantity baked in and 303-redirects to Stripe.
+      window.location.href = CHECKOUT_ENDPOINT + '?qty=' + qty;
     };
 
     const openAgeGate = () => {
