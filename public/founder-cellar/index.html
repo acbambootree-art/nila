@@ -12,7 +12,11 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="NILA — What the sea gives back." />
   <meta property="og:description" content="Wine surrendered to the sea, named for a legend. 150 bottles. One release." />
+  <meta property="og:image" content="/founder-cellar/assets/hero-bottle.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Preload the hero image so it appears with the typography, not after -->
+  <link rel="preload" as="image" href="/founder-cellar/assets/hero-bottle.jpg" fetchpriority="high" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -29,25 +33,20 @@
 <body>
   <main>
     <!-- ============================================================ -->
-    <!-- 1. HERO                                                       -->
+    <!-- 1. HERO — Crown-silhouette underwater bottle                  -->
     <!-- ============================================================ -->
     <section class="hero" aria-label="Nila — sea-aged wine">
 
-      <!-- HERO MEDIA SLOT
-           Drop a <video autoplay muted loop playsinline> or <img>
-           here. It will sit behind the dimming overlay below.
-           Example:
-             <video class="hero-media" autoplay muted loop playsinline
-                    poster="hero-poster.jpg" src="bottle-recovery.mp4"></video>
-      -->
-      <div class="hero-media-slot" aria-hidden="true">
-        <!-- Pure-CSS shimmer placeholder — delete when real media is dropped in. -->
-        <div class="shimmer shimmer-a"></div>
-        <div class="shimmer shimmer-b"></div>
-        <div class="shimmer shimmer-c"></div>
-      </div>
+      <!-- Hero background image -->
+      <img
+        class="hero-media"
+        src="/founder-cellar/assets/hero-bottle.jpg"
+        alt=""
+        aria-hidden="true"
+        fetchpriority="high"
+      />
 
-      <!-- Dimming overlay sits above media, below content -->
+      <!-- Dimming overlay -->
       <div class="hero-overlay" aria-hidden="true"></div>
 
       <div class="hero-content">
@@ -80,30 +79,45 @@
     </section>
 
     <!-- ============================================================ -->
-    <!-- 2. THE STORY                                                  -->
+    <!-- 2. THE STORY — split layout: NILA map bottle + narrative      -->
     <!-- ============================================================ -->
     <section class="story" id="story">
-      <p class="kicker kicker-center">
-        <span class="kicker-mark">✦</span>
-        <span class="kicker-rule"></span>
-        <span>The Legend</span>
-        <span class="kicker-rule"></span>
-        <span class="kicker-mark">✦</span>
-      </p>
+      <div class="story-grid">
 
-      <p class="narrative">
-        Eight centuries ago, a prince caught in a storm cast his crown into the sea to calm it. The waters stilled. He found land, and a lion, and named it Singapura.
-      </p>
-      <p class="narrative">
-        We took that story literally. Nila is wine we lower beneath the surface — into the cool dark, into pressure and motion no cellar can recreate — and leave to the sea's slow alchemy.
-      </p>
-      <p class="narrative narrative-italic">
-        What returns is rounder, deeper, carrying a maritime whisper you'll taste but never quite name.
-      </p>
+        <div class="story-image">
+          <img
+            src="/founder-cellar/assets/story-map.jpg"
+            alt="A bottle of Nila beside an antique NILA — Temasek · Singapura map and brass compass"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+
+        <div class="story-copy">
+          <p class="kicker">
+            <span class="kicker-mark">✦</span>
+            <span class="kicker-rule"></span>
+            <span>The Legend</span>
+            <span class="kicker-rule"></span>
+            <span class="kicker-mark">✦</span>
+          </p>
+
+          <p class="narrative">
+            Eight centuries ago, a prince caught in a storm cast his crown into the sea to calm it. The waters stilled. He found land, and a lion, and named it Singapura.
+          </p>
+          <p class="narrative">
+            We took that story literally. Nila is wine we lower beneath the surface — into the cool dark, into pressure and motion no cellar can recreate — and leave to the sea's slow alchemy.
+          </p>
+          <p class="narrative narrative-italic">
+            What returns is rounder, deeper, carrying a maritime whisper you'll taste but never quite name.
+          </p>
+        </div>
+
+      </div>
     </section>
 
     <!-- ============================================================ -->
-    <!-- 3. SCARCITY                                                   -->
+    <!-- 3. SCARCITY — typographic                                     -->
     <!-- ============================================================ -->
     <section class="scarcity" aria-label="Edition size">
       <p class="scarcity-number" aria-hidden="true">150</p>
@@ -115,55 +129,68 @@
     </section>
 
     <!-- ============================================================ -->
-    <!-- 4. WAITLIST FORM (the conversion section)                     -->
+    <!-- 4. WAITLIST — silk-and-gold-tag image + form                  -->
     <!-- ============================================================ -->
     <section class="waitlist" id="waitlist">
-      <div class="waitlist-inner">
-        <p class="kicker kicker-center">
-          <span class="kicker-mark">✦</span>
-          <span class="kicker-rule"></span>
-          <span>The Allocation</span>
-          <span class="kicker-rule"></span>
-          <span class="kicker-mark">✦</span>
-        </p>
+      <div class="waitlist-grid">
 
-        <h2 class="waitlist-headline">
-          The waitlist is given first claim —<br />
-          and the lowest numbers.
-        </h2>
-
-        <!-- Form: replaces itself with the success state on submit -->
-        <form id="waitlist-form" class="waitlist-form" novalidate>
-          <div class="input-row">
-            <label class="visually-hidden" for="email">Email address</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autocomplete="email"
-              inputmode="email"
-              placeholder="your@email.com"
-              required
-              aria-describedby="form-micro form-error"
-            />
-            <button type="submit" id="submit-btn">
-              <span class="submit-text">Reserve My Place</span>
-            </button>
-          </div>
-          <p id="form-error" class="form-error" role="alert" aria-live="polite"></p>
-        </form>
-
-        <p id="form-micro" class="micro">
-          No payment now. First access when the allocation opens.
-        </p>
-
-        <!-- Success state — revealed by JS after submit -->
-        <div id="success" class="success-state" hidden>
-          <p class="success-mark" aria-hidden="true">✦</p>
-          <p class="success-line">
-            You're on the list. You'll hear from us before anyone else — and you'll have first claim on the lowest-numbered bottles in the batch.
-          </p>
+        <div class="waitlist-image">
+          <img
+            src="/founder-cellar/assets/form-silk.jpg"
+            alt="A bottle of Nila resting on champagne silk, with a brass numbered allocation tag"
+            loading="lazy"
+            decoding="async"
+          />
         </div>
+
+        <div class="waitlist-copy">
+          <p class="kicker">
+            <span class="kicker-mark">✦</span>
+            <span class="kicker-rule"></span>
+            <span>The Allocation</span>
+            <span class="kicker-rule"></span>
+            <span class="kicker-mark">✦</span>
+          </p>
+
+          <h2 class="waitlist-headline">
+            The waitlist is given first claim —<br />
+            and the lowest numbers.
+          </h2>
+
+          <!-- Form: replaces itself with the success state on submit -->
+          <form id="waitlist-form" class="waitlist-form" novalidate>
+            <div class="input-row">
+              <label class="visually-hidden" for="email">Email address</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                inputmode="email"
+                placeholder="your@email.com"
+                required
+                aria-describedby="form-micro form-error"
+              />
+              <button type="submit" id="submit-btn">
+                <span class="submit-text">Reserve My Place</span>
+              </button>
+            </div>
+            <p id="form-error" class="form-error" role="alert" aria-live="polite"></p>
+          </form>
+
+          <p id="form-micro" class="micro">
+            No payment now. First access when the allocation opens.
+          </p>
+
+          <!-- Success state — revealed by JS after submit -->
+          <div id="success" class="success-state" hidden>
+            <p class="success-mark" aria-hidden="true">✦</p>
+            <p class="success-line">
+              You're on the list. You'll hear from us before anyone else — and you'll have first claim on the lowest-numbered bottles in the batch.
+            </p>
+          </div>
+        </div>
+
       </div>
     </section>
 
