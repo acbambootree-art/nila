@@ -72,7 +72,7 @@
 
         <a href="#waitlist" class="btn-primary">
           <span class="btn-mark">✦</span>
-          <span>Join the Waitlist</span>
+          <span>Reserve Your Bottle</span>
           <span class="btn-mark">✦</span>
         </a>
       </div>
@@ -161,42 +161,28 @@
           </p>
 
           <h2 class="waitlist-headline">
-            The waitlist is given first claim —<br />
-            and the lowest numbers.
+            Reserve your bottle.<br />
+            Lowest numbers, first.
           </h2>
 
-          <!-- Form: replaces itself with the success state on submit -->
-          <form id="waitlist-form" class="waitlist-form" novalidate>
-            <div class="input-row">
-              <label class="visually-hidden" for="email">Email address</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autocomplete="email"
-                inputmode="email"
-                placeholder="your@email.com"
-                required
-                aria-describedby="form-micro form-error"
-              />
-              <button type="submit" id="submit-btn">
-                <span class="submit-text">Reserve My Place</span>
-              </button>
-            </div>
-            <p id="form-error" class="form-error" role="alert" aria-live="polite"></p>
-          </form>
-
-          <p id="form-micro" class="micro">
-            No payment now. First access when the allocation opens.
-          </p>
-
-          <!-- Success state — revealed by JS after submit -->
-          <div id="success" class="success-state" hidden>
-            <p class="success-mark" aria-hidden="true">✦</p>
-            <p class="success-line">
-              You're on the list. You'll hear from us before anyone else — and you'll have first claim on the lowest-numbered bottles in the batch.
-            </p>
+          <!-- Price block -->
+          <div class="price-row">
+            <span class="price-currency">SGD</span>
+            <span class="price-amount">$198</span>
+            <span class="price-unit">per bottle</span>
           </div>
+
+          <!-- Reserve button — opens age gate, then Stripe Checkout -->
+          <a id="reserve-btn" href="#" class="btn-reserve" role="button">
+            <span class="btn-mark">✦</span>
+            <span>Reserve My Bottle</span>
+            <span class="btn-mark">✦</span>
+          </a>
+
+          <p class="micro">
+            One bottle per reservation &middot; numbered allocation &middot; complimentary delivery in Singapore.<br />
+            By reserving, you confirm you are of legal drinking age.
+          </p>
         </div>
 
       </div>
@@ -221,6 +207,33 @@
   </main>
 
   <!-- ============================================================ -->
+  <!-- Age Gate Modal — appears once per session before reserving    -->
+  <!-- ============================================================ -->
+  <div id="age-gate" class="age-gate" hidden role="dialog" aria-modal="true" aria-labelledby="age-gate-title">
+    <div class="age-gate-card">
+      <p class="kicker">
+        <span class="kicker-mark">✦</span>
+        <span class="kicker-rule"></span>
+        <span>Age Verification</span>
+        <span class="kicker-rule"></span>
+        <span class="kicker-mark">✦</span>
+      </p>
+      <h3 id="age-gate-title" class="age-gate-title">Are you of legal drinking age?</h3>
+      <p class="age-gate-sub">
+        You must be at least 18 years old to reserve a bottle of Nila. By proceeding, you confirm that you are of legal drinking age in your country of residence.
+      </p>
+      <div class="age-gate-actions">
+        <button id="age-confirm" class="btn-reserve" type="button">
+          <span class="btn-mark">✦</span>
+          <span>I am 18 or older</span>
+          <span class="btn-mark">✦</span>
+        </button>
+        <button id="age-decline" class="btn-decline" type="button">I am under 18</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
   <!-- Lenis — buttery smooth scrolling. ~8KB, no build step needed. -->
   <!-- ============================================================ -->
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
@@ -230,79 +243,89 @@
   <!-- ============================================================ -->
   <script>
     // ─────────────────────────────────────────────────────────────
-    //  TODO: Replace this with your real signup endpoint.
-    //  Works out-of-the-box with Formspree, ConvertKit, Mailchimp,
-    //  Beehiiv, Buttondown, or your own /api route.
-    //  Until it's replaced, submissions just trigger the success UI
-    //  (good for previewing).
+    //  STRIPE PAYMENT LINK
+    //
+    //  HOW TO SET UP (5 min):
+    //  1. Sign in at https://dashboard.stripe.com (use Singapore mode)
+    //  2. Products → Add a product:
+    //       Name:        Nila — Sea-Aged Wine (Reservation)
+    //       Description: One numbered bottle from the 150-bottle release.
+    //       Price:       SGD 198.00 (one-time, in Singapore Dollars)
+    //  3. After creating, click "Create payment link"
+    //       Quantity:    Limit to 1 per checkout
+    //       Tax & shipping: configure if applicable
+    //       Confirmation page: redirect to /founder-cellar/thank-you (or
+    //                          stay on Stripe's default page for now)
+    //  4. Copy the link (looks like https://buy.stripe.com/abc123…)
+    //  5. Paste it here ↓ replacing REPLACE_WITH_STRIPE_PAYMENT_LINK
+    //
+    //  TIP — to test before going live:
+    //    Use Stripe test mode + paste the test-mode link here. Card
+    //    `4242 4242 4242 4242` with any future expiry + any CVC = success.
     // ─────────────────────────────────────────────────────────────
-    const FORM_ENDPOINT = "REPLACE_ME";
+    const STRIPE_PAYMENT_LINK = "REPLACE_WITH_STRIPE_PAYMENT_LINK";
 
     // Year in footer
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    // Form refs
-    const form     = document.getElementById('waitlist-form');
-    const input    = document.getElementById('email');
-    const button   = document.getElementById('submit-btn');
-    const btnText  = button.querySelector('.submit-text');
-    const errorEl  = document.getElementById('form-error');
-    const microEl  = document.getElementById('form-micro');
-    const success  = document.getElementById('success');
+    // ─────────────────────────────────────────────────────────────
+    //  Reservation flow
+    //    Click "Reserve" → show age gate (once per session) → Stripe
+    // ─────────────────────────────────────────────────────────────
+    const AGE_OK_KEY = 'nila-age-ok';
+    const reserveBtn   = document.getElementById('reserve-btn');
+    const ageGate      = document.getElementById('age-gate');
+    const ageConfirm   = document.getElementById('age-confirm');
+    const ageDecline   = document.getElementById('age-decline');
 
-    // Simple, permissive email check — full RFC validation is overkill here.
-    const isValidEmail = (value) =>
-      /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
-
-    const showError = (msg) => {
-      errorEl.textContent = msg;
-      input.setAttribute('aria-invalid', 'true');
+    const goToCheckout = () => {
+      if (STRIPE_PAYMENT_LINK && STRIPE_PAYMENT_LINK !== 'REPLACE_WITH_STRIPE_PAYMENT_LINK') {
+        window.location.href = STRIPE_PAYMENT_LINK;
+      } else {
+        // Friendly message until the Stripe link is configured
+        alert(
+          "The Stripe Payment Link hasn't been wired up yet.\n\n" +
+          "See the setup instructions in index.html (top of <script>) " +
+          "to create your Stripe Payment Link, then paste it in."
+        );
+      }
     };
-    const clearError = () => {
-      errorEl.textContent = '';
-      input.removeAttribute('aria-invalid');
+
+    const openAgeGate = () => {
+      ageGate.hidden = false;
+      document.body.style.overflow = 'hidden';
+      // Focus the primary action for keyboard users
+      setTimeout(() => ageConfirm.focus(), 50);
+    };
+    const closeAgeGate = () => {
+      ageGate.hidden = true;
+      document.body.style.overflow = '';
     };
 
-    input.addEventListener('input', clearError);
-
-    form.addEventListener('submit', async (e) => {
+    reserveBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      const email = input.value.trim();
-
-      if (!isValidEmail(email)) {
-        showError('Please enter a valid email address.');
-        input.focus();
-        return;
+      // If they've already confirmed this session, skip the gate
+      if (sessionStorage.getItem(AGE_OK_KEY) === '1') {
+        goToCheckout();
+      } else {
+        openAgeGate();
       }
+    });
 
-      // Loading state
-      button.disabled = true;
-      btnText.textContent = 'Reserving…';
+    ageConfirm.addEventListener('click', () => {
+      try { sessionStorage.setItem(AGE_OK_KEY, '1'); } catch {}
+      closeAgeGate();
+      goToCheckout();
+    });
 
-      try {
-        if (FORM_ENDPOINT && FORM_ENDPOINT !== 'REPLACE_ME') {
-          const response = await fetch(FORM_ENDPOINT, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({ email, source: 'waitlist-landing' }),
-          });
-          if (!response.ok) throw new Error('Network response was not ok');
-        }
+    ageDecline.addEventListener('click', () => {
+      closeAgeGate();
+      alert("You must be of legal drinking age to reserve a bottle of Nila.");
+    });
 
-        // Reveal the success state (in place of the form + micro)
-        form.hidden = true;
-        microEl.hidden = true;
-        success.hidden = false;
-        // Smooth-scroll just enough to bring the success message into view on mobile
-        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } catch (err) {
-        button.disabled = false;
-        btnText.textContent = 'Try Again';
-        showError("Couldn't reach the server. Please try again in a moment.");
-      }
+    // ESC closes the age gate
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !ageGate.hidden) closeAgeGate();
     });
 
     // ─────────────────────────────────────────────────────────────
