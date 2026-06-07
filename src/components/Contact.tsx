@@ -20,8 +20,8 @@ export default function Contact() {
         <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-7 sm:gap-10 animate-on-scroll animate-delay-1">
           <div>
             <p className="text-gold/50 text-[10px] tracking-[0.3em] uppercase mb-2">Email</p>
-            <a href="mailto:hello@nilaspirits.com" className="text-white/70 hover:text-gold text-sm transition-colors duration-300 font-light tracking-wide">
-              hello@nilaspirits.com
+            <a href="mailto:hello@nila.wine" className="text-white/70 hover:text-gold text-sm transition-colors duration-300 font-light tracking-wide">
+              hello@nila.wine
             </a>
           </div>
           <span className="hidden sm:inline text-gold/30 text-xs">✦</span>
