@@ -835,6 +835,15 @@ button[type="submit"]:disabled {
   font-weight: 300;
 }
 
+/* Subtler Terms · Privacy row */
+.footer-legal-links {
+  margin-top: 0.5rem;
+  font-size: 0.65rem;
+  opacity: 0.85;
+}
+.footer-legal-links a { color: var(--text-faint); }
+.footer-legal-links a:hover { color: var(--gold-soft); }
+
 /* ============================================================ */
 /* PREMIUM ANIMATION SYSTEM                                     */
 /* ============================================================ */

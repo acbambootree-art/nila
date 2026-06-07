@@ -1,0 +1,198 @@
+/* ==============================================================
+   NILA — Shared layout for Terms & Privacy
+   Long-form editorial: serif body, generous spacing, italic gold
+   N° numbering in the left margin (collapses on mobile).
+   ============================================================== */
+
+.legal {
+  max-width: 50rem;
+  margin: 0 auto;
+  padding: 5.5rem 1.5rem 5rem;
+  color: var(--text);
+}
+
+/* ---- Header block ---- */
+.legal-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.legal-header .kicker {
+  margin-bottom: 2rem;
+  display: inline-flex;
+}
+
+.legal-title {
+  margin: 0 0 1rem;
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-size: clamp(2.5rem, 6vw, 3.75rem);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  color: #f8f4ee;
+}
+
+.legal-meta {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.legal-meta time { font-style: normal; }
+.legal-meta a {
+  color: var(--gold-soft);
+  border-bottom: 1px solid var(--gold-faint);
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+.legal-meta a:hover,
+.legal-meta a:focus-visible {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+  outline: none;
+}
+
+.legal-rule {
+  width: 4rem;
+  height: 1px;
+  margin: 2rem auto;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.7;
+}
+
+.legal-intro {
+  margin: 0;
+  max-width: 36rem;
+  margin: 0 auto;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(1.05rem, 2.4vw, 1.25rem);
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+  color: var(--gold-soft);
+}
+
+/* ---- Numbered sections ---- */
+.legal-section {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin: 0 0 3rem;
+}
+
+.legal-num {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.9rem;
+  letter-spacing: 0.25em;
+  color: var(--gold);
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.legal-section h2 {
+  margin: 0 0 1rem;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(1.3rem, 3vw, 1.55rem);
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.legal-section p,
+.legal-section li {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(1rem, 2vw, 1.1rem);
+  line-height: 1.8;
+  color: var(--text-soft);
+  letter-spacing: 0.005em;
+}
+
+.legal-section p { margin: 0 0 1rem; }
+.legal-section p:last-child { margin-bottom: 0; }
+
+.legal-section strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.legal-section a {
+  color: var(--gold-soft);
+  border-bottom: 1px solid var(--gold-faint);
+  padding-bottom: 1px;
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+.legal-section a:hover,
+.legal-section a:focus-visible {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+  outline: none;
+}
+
+.legal-list {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+.legal-list li {
+  padding: 0.35rem 0 0.35rem 1.5rem;
+  position: relative;
+}
+.legal-list li::before {
+  content: "✦";
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+  font-size: 0.55rem;
+  opacity: 0.55;
+  top: 1.05rem;
+}
+
+.legal-address {
+  display: block;
+  margin: 0.75rem 0 0;
+  padding: 1.25rem 1.5rem;
+  border-left: 1px solid var(--gold-faint);
+  font-style: normal;
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--text);
+  background: rgba(15, 27, 43, 0.45);
+}
+.legal-address strong { color: var(--gold-soft); font-weight: 500; }
+
+/* ---- Actions ---- */
+.legal-actions {
+  margin: 4rem 0 0;
+  text-align: center;
+}
+
+/* ---- Desktop: N° numbers go in the left margin ---- */
+@media (min-width: 768px) {
+  .legal {
+    padding: 7rem 2rem 6rem;
+  }
+  .legal-section {
+    grid-template-columns: 7rem 1fr;
+    column-gap: 2rem;
+    margin-bottom: 3.5rem;
+  }
+  .legal-num {
+    padding-top: 0.45rem;
+    text-align: right;
+  }
+}
+
+/* ---- Footer overrides — wider links + thin rule above ---- */
+.legal + .footer {
+  border-top: 1px solid var(--gold-faint);
+}
+.legal + .footer .socials a {
+  color: var(--text-soft);
+}
+.legal + .footer .socials a:hover { color: var(--gold-soft); }
