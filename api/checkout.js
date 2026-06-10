@@ -34,11 +34,15 @@ export default async function handler(req, res) {
 
     const stripe = new Stripe(secret, { apiVersion: '2024-12-18.acacia' })
 
-    // Construct return URLs from the request's host so this works
-    // identically on preview deploys and the nila.wine production deploy.
+    // Return URLs. Prefer an explicit, trusted base URL so a spoofed
+    // Host / X-Forwarded-Host header can't steer Stripe's post-checkout
+    // redirect toward an attacker-controlled domain. Set PUBLIC_BASE_URL
+    // to https://nila.wine in Vercel. Falls back to the request host
+    // (handy for preview deploys), which is acceptable since a forged
+    // host only affects the attacker's own checkout session.
     const proto = (req.headers['x-forwarded-proto'] || 'https').toString()
     const host  = (req.headers['x-forwarded-host'] || req.headers.host).toString()
-    const base  = `${proto}://${host}`
+    const base  = process.env.PUBLIC_BASE_URL || `${proto}://${host}`
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',

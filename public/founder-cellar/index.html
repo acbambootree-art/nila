@@ -42,14 +42,17 @@
     <!-- ============================================================ -->
     <section class="hero" aria-label="Nila — sea-aged wine">
 
-      <!-- Hero background video (autoplay, muted, looping) -->
+      <!-- Hero background video (autoplay, muted, looping).
+           preload="auto" + the JS nudge below make autoplay reliable on
+           Safari/iOS, where preload="metadata" can stall the first frame. -->
       <video
+        id="hero-video"
         class="hero-media"
         autoplay
         muted
         loop
         playsinline
-        preload="metadata"
+        preload="auto"
         poster="/founder-cellar/assets/hero-bottle-poster.jpg"
         aria-hidden="true"
       >
@@ -293,6 +296,32 @@
 
     // Year in footer
     document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ─────────────────────────────────────────────────────────────
+    //  Hero video autoplay nudge
+    //  Safari/iOS (especially Low Power Mode) sometimes ignores the
+    //  autoplay attribute. Retry on readiness and again on the first
+    //  user interaction. If all retries are refused, the poster frame
+    //  stays — the page never looks broken.
+    // ─────────────────────────────────────────────────────────────
+    (() => {
+      const video = document.getElementById('hero-video');
+      if (!video) return;
+      const tryPlay = () => {
+        if (!video.paused) return;
+        video.muted = true; // required for programmatic autoplay
+        const p = video.play();
+        if (p && p.catch) p.catch(() => {/* blocked — wait for next trigger */});
+      };
+      tryPlay();
+      video.addEventListener('loadeddata', tryPlay, { once: true });
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) tryPlay();
+      });
+      ['pointerdown', 'touchstart', 'keydown'].forEach((evt) =>
+        document.addEventListener(evt, tryPlay, { once: true, passive: true })
+      );
+    })();
 
     // ─────────────────────────────────────────────────────────────
     //  Quantity stepper
