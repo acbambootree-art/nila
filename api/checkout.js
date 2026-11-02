@@ -14,14 +14,29 @@ import Stripe from 'stripe'
 
 const MIN_QTY = 1
 const MAX_QTY = 5
+// Bottles a buyer can name from /experience (?product=…). Anything else is ignored.
+const PRODUCTS = ['reserve', 'blanc', 'gin']
+
+// ?qty=N (clamped), ?product=<one of PRODUCTS>, ?from=experience.
+// No params = the original /founder-cellar behaviour.
+export function readQuery(query = {}) {
+  const raw = parseInt(query.qty, 10)
+  const qty = Number.isFinite(raw)
+    ? Math.min(MAX_QTY, Math.max(MIN_QTY, raw))
+    : MIN_QTY
+  const product = PRODUCTS.includes(query.product) ? query.product : null
+  const fromExperience = query.from === 'experience'
+  return {
+    qty,
+    product,
+    source: fromExperience ? 'experience' : 'founder-cellar',
+    cancelPath: fromExperience ? '/experience/#collection' : '/founder-cellar/',
+  }
+}
 
 export default async function handler(req, res) {
   try {
-    // Quantity from ?qty=N (clamped to allowed range)
-    const raw = parseInt(req.query?.qty, 10)
-    const qty = Number.isFinite(raw)
-      ? Math.min(MAX_QTY, Math.max(MIN_QTY, raw))
-      : MIN_QTY
+    const { qty, product, source, cancelPath } = readQuery(req.query)
 
     const secret  = process.env.STRIPE_SECRET_KEY
     const priceId = process.env.STRIPE_PRICE_ID
@@ -64,11 +79,12 @@ export default async function handler(req, res) {
       allow_promotion_codes: false,
       // Where Stripe sends them after
       success_url: `${base}/founder-cellar/thank-you/?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${base}/founder-cellar/`,
+      cancel_url:  `${base}${cancelPath}`,
       // Custom metadata so we can reconcile in the dashboard
       metadata: {
-        source: 'founder-cellar',
+        source,
         requested_quantity: String(qty),
+        ...(product && { product }),
       },
     })
 
