@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indigo Tides — cozy prototype</title>
+<style>
+  html, body { margin: 0; background: #0c0c0e; }
+  #wrap { max-width: 960px; margin: 0 auto; padding: 16px; }
+  canvas { width: 100%; image-rendering: pixelated; display: block; touch-action: manipulation; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="320" height="180"></canvas></div>
+<script>
+// ---- tuning knobs ----
+const T = {
+  growPerSec: 0.04, feedBoost: 0.18, price: 3, spotCost: 20, maxSpots: 6,
+  tubSeconds: 5, customerEvery: 9, customerWaits: 8, inspectorEvery: 35, fine: 10,
+  monthSeconds: 20, nilaMonths: 6, algaeEvery: 15,
+};
+const C = { sky: '#1b2838', sea: '#0f1724', sea2: '#131d2b', sand: '#f5f0e8', gold: '#c9a96e', gold2: '#d4bc8a', deep: '#a8884f', ink: '#0c0c0e', cheek: '#e8a0a0', green: '#5f9a6a', wood: '#6b4f3a', pink: '#f1c4cf' };
+
+const S = load() || {
+  cash: 10, t: 0, step: 0, // tutorial step
+  oysters: [{ size: 0.2, chomp: 0, x: 130, y: 130 }],
+  spots: [[130, 130], [170, 122], [205, 134], [150, 157], [190, 160], [230, 152]],
+  basket: 0, tub: { n: 0, left: 0 }, tray: 0,
+  customer: null, nextCustomer: 6, inspector: null, nextInspector: T.inspectorEvery, rawSold: 0, stamps: 0,
+  nila: { months: 0, acc: 0, algae: 0 }, won: false,
+  floaters: [], particles: [],
+};
+
+// save on every tap; visitors come and go, so they are not saved
+function load() { try { const s = JSON.parse(localStorage.getItem('indigo-tides-v2')); if (s) { s.customer = null; s.inspector = null; s.floaters = []; s.particles = []; } return s; } catch { return null; } }
+function save() { try { localStorage.setItem('indigo-tides-v2', JSON.stringify(S)); } catch {} }
+
+// ---- drawing helpers ----
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+g.imageSmoothingEnabled = false;
+const hits = [];
+const hit = (x, y, w, h, fn) => hits.push({ x, y, w, h, fn });
+function text(s, x, y, color = C.sand, size = 7, align = 'left') { g.fillStyle = color; g.font = `${size}px monospace`; g.textAlign = align; g.fillText(s, x, y); g.textAlign = 'left'; }
+function ell(x, y, rx, ry, color) { g.fillStyle = color; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill(); }
+function face(x, y, r, mood = 'happy', blink = false) {
+  // eyes
+  if (blink) { g.fillStyle = C.ink; g.fillRect(x - r * 0.45, y - r * 0.1, r * 0.3, 1); g.fillRect(x + r * 0.15, y - r * 0.1, r * 0.3, 1); }
+  else { ell(x - r * 0.3, y - r * 0.1, r * 0.13 + 0.6, r * 0.16 + 0.6, C.ink); ell(x + r * 0.3, y - r * 0.1, r * 0.13 + 0.6, r * 0.16 + 0.6, C.ink); }
+  ell(x - r * 0.45, y + r * 0.15, r * 0.14, r * 0.08, C.cheek); ell(x + r * 0.45, y + r * 0.15, r * 0.14, r * 0.08, C.cheek);
+  g.strokeStyle = C.ink; g.lineWidth = 1; g.beginPath();
+  if (mood === 'happy') g.arc(x, y + r * 0.15, r * 0.25, 0.15 * Math.PI, 0.85 * Math.PI);
+  else if (mood === 'open') { g.arc(x, y + r * 0.25, r * 0.22, 0, Math.PI * 2); }
+  else { g.arc(x, y + r * 0.45, r * 0.25, 1.15 * Math.PI, 1.85 * Math.PI); g.moveTo(x - r * 0.5, y - r * 0.4); g.lineTo(x - r * 0.15, y - r * 0.25); g.moveTo(x + r * 0.5, y - r * 0.4); g.lineTo(x + r * 0.15, y - r * 0.25); }
+  g.stroke();
+}
+// AI-generated sprites (game/sprites), hand-clean pass still to do; code-drawn shapes stay as the fallback until they load
+const IMG = {};
+for (const s of ['baby', 'medium', 'fat']) for (const e of ['idle', 'blink', 'chomp']) { const im = new Image(); im.src = `sprites/oyster-${s}-${e}.png`; IMG[`${s}-${e}`] = im; }
+for (const n of ['customer-coin', 'customer-happy', 'customer-wait', 'inspector-neutral', 'inspector-pleased', 'inspector-frown']) { const im = new Image(); im.src = `sprites/${n}.png`; IMG[n] = im; }
+// draw a sprite with its bottom-centre at (x, y); flip mirrors it to face left. Returns false if not loaded yet.
+function sprite(name, x, y, flip = false) {
+  const im = IMG[name]; if (!im || !im.complete || !im.naturalWidth) return false;
+  g.save(); g.translate(Math.round(x), Math.round(y)); if (flip) g.scale(-1, 1);
+  g.drawImage(im, -Math.round(im.width / 2), -im.height); g.restore(); return true;
+}
+function oysterSprite(x, y, size, chomp, blink, mood = 'happy') {
+  const im = IMG[`${size < 0.45 ? 'baby' : size < 1 ? 'medium' : 'fat'}-${chomp > 0.3 ? 'chomp' : blink ? 'blink' : 'idle'}`];
+  if (im && im.complete && im.naturalWidth) {
+    const sq = 1 + chomp * 0.15;
+    ell(x, y + im.height / 2, im.width * 0.5, 3, '#0a0f18');
+    g.drawImage(im, Math.round(x - im.width * sq / 2), Math.round(y - im.height / sq / 2), Math.round(im.width * sq), Math.round(im.height / sq));
+    return;
+  }
+  const r = 5 + size * 7, sq = 1 + chomp * 0.25;
+  ell(x, y + 2, r * 1.1, r * 0.45, '#0a0f18'); // shadow
+  ell(x, y, r * sq, r * 0.8 / sq, C.deep);
+  ell(x, y - 1, r * 0.95 * sq, r * 0.7 / sq, C.gold2);
+  g.strokeStyle = C.deep; g.lineWidth = 0.8; for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(x + i * r * 0.3, y - r * 0.6); g.lineTo(x + i * r * 0.45, y + r * 0.3); g.stroke(); }
+  face(x, y, r * 0.9, chomp > 0.3 ? 'open' : mood, blink);
+}
+function boat(x, y, color) { g.fillStyle = C.wood; g.beginPath(); g.moveTo(x - 16, y); g.lineTo(x + 16, y); g.lineTo(x + 11, y + 7); g.lineTo(x - 11, y + 7); g.closePath(); g.fill(); ell(x, y - 7, 7, 8, color); }
+function arrow(x, y) { const b = Math.sin(S.t * 6) * 2; g.fillStyle = C.sand; g.beginPath(); g.moveTo(x, y - 6 + b); g.lineTo(x - 5, y - 14 + b); g.lineTo(x + 5, y - 14 + b); g.closePath(); g.fill(); text('tap', x, y - 17 + b, C.sand, 7, 'center'); }
+function float(s, x, y, color = C.gold2) { S.floaters.push({ s, x, y, life: 1, color }); }
+function pop(x, y, color, n = 8) { for (let i = 0; i < n; i++) S.particles.push({ x, y, vx: (Math.random() - 0.5) * 60, vy: -Math.random() * 60, life: 0.6, color }); }
+
+// ---- actions ----
+function tapOyster(o, i) {
+  if (o.size >= 1) { S.basket++; S.oysters.splice(i, 1); pop(o.x, o.y, C.gold2); float('+1', o.x, o.y - 10); if (S.step === 0) S.step = 1; }
+  else { o.size = Math.min(1, o.size + T.feedBoost); o.chomp = 1; pop(o.x, o.y - 8, C.green, 4); }
+}
+function tapTub() {
+  if (S.basket === 0 || S.tub.n) return;
+  S.tub.n = S.basket; S.basket = 0; S.tub.left = T.tubSeconds; pop(46, 112, '#9ad0e0'); if (S.step === 1) S.step = 2;
+}
+function sellFrom(source) {
+  if (!S.customer || S.customer.leaving) return;
+  if (source === 'tray' && S.tray) { S.tray--; }
+  else if (source === 'basket' && S.basket) { S.basket--; S.rawSold++; float('?!', S.customer.x, S.customer.y - 20, C.pink); }
+  else return;
+  S.cash += T.price; float(`+S$${T.price}`, S.customer.x, S.customer.y - 14); pop(S.customer.x, S.customer.y - 8, C.gold);
+  S.customer.leaving = true; S.customer.sold = true; if (S.step === 2) S.step = 3;
+}
+function tapHut() {
+  if (S.oysters.length + S.tub.n >= T.maxSpots && S.oysters.length >= T.maxSpots) return float('full', 30, 60, C.pink);
+  if (S.cash < T.spotCost) return float(`need S$${T.spotCost}`, 30, 60, C.pink);
+  const used = new Set(S.oysters.map(o => o.x + ',' + o.y));
+  const spot = S.spots.find(p => !used.has(p[0] + ',' + p[1])); if (!spot) return;
+  S.cash -= T.spotCost; S.oysters.push({ size: 0.1, chomp: 0, x: spot[0], y: spot[1] }); pop(spot[0], spot[1], C.gold2); float('baby!', spot[0], spot[1] - 12);
+}
+function tapNila() { if (S.nila.algae > 0.5) { S.nila.algae = 0; pop(275, 150, C.green); float('shiny', 275, 130); } }
+
+// ---- update ----
+function update(dt) {
+  S.t += dt;
+  for (const o of S.oysters) { o.size = Math.min(1, o.size + T.growPerSec * dt); o.chomp = Math.max(0, o.chomp - dt * 3); }
+  if (S.tub.n && (S.tub.left -= dt) <= 0) { S.tray += S.tub.n; S.tub.n = 0; pop(46, 112, C.sand); float('clean!', 46, 95); }
+  if (!S.customer && (S.nextCustomer -= dt) <= 0) S.customer = { x: 340, y: 88, wait: T.customerWaits, leaving: false };
+  if (S.customer) {
+    const c = S.customer;
+    if (c.leaving) { c.x += 50 * dt; if (c.x > 340) { S.customer = null; S.nextCustomer = T.customerEvery; } }
+    else { if (c.x > 250) c.x -= 40 * dt; else if ((c.wait -= dt) <= 0) { c.leaving = true; float('...', c.x, c.y - 14, C.pink); } }
+  }
+  if (!S.inspector && (S.nextInspector -= dt) <= 0) S.inspector = { x: -30, y: 88, phase: 'in', hold: 2 };
+  if (S.inspector) {
+    const a = S.inspector;
+    if (a.phase === 'in') { a.x += 35 * dt; if (a.x >= 118) { a.phase = 'check'; a.ok = S.rawSold === 0; if (a.ok) { S.stamps++; float('stamp!', a.x, a.y - 18); } else { S.cash = Math.max(0, S.cash - T.fine); S.rawSold = 0; float(`-S$${T.fine}`, a.x, a.y - 18, C.pink); } } }
+    else if (a.phase === 'check' && (a.hold -= dt) <= 0) a.phase = 'out';
+    else if (a.phase === 'out') { a.x -= 45 * dt; if (a.x < -30) { S.inspector = null; S.nextInspector = T.inspectorEvery; } }
+  }
+  const N = S.nila; N.algae = Math.min(1, N.algae + dt / T.algaeEvery);
+  if (N.algae <= 0.5 && !S.won && (N.acc += dt) >= T.monthSeconds) { N.acc = 0; N.months++; float(`${N.months}/${T.nilaMonths}`, 275, 130); if (N.months >= T.nilaMonths) S.won = true; }
+  for (const f of S.floaters) { f.y -= 12 * dt; f.life -= dt * 0.8; }
+  S.floaters = S.floaters.filter(f => f.life > 0);
+  for (const p of S.particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 120 * dt; p.life -= dt; }
+  S.particles = S.particles.filter(p => p.life > 0);
+}
+
+// ---- draw ----
+function draw() {
+  hits.length = 0;
+  g.fillStyle = C.sky; g.fillRect(0, 0, 320, 180);
+  ell(290, 20, 10, 10, C.gold); // sun
+  g.fillStyle = C.sea; g.fillRect(0, 78, 320, 102);
+  for (let i = 0; i < 8; i++) { const y = 84 + i * 12 + Math.sin(S.t * 2 + i) * 1.5; g.fillStyle = C.sea2; g.fillRect(0, y, 320, 2); }
+  // kelong hut + walkway
+  g.fillStyle = C.wood; g.fillRect(8, 60, 60, 4); g.fillRect(12, 64, 3, 20); g.fillRect(60, 64, 3, 20); g.fillRect(70, 60, 4, 30); g.fillRect(74, 86, 50, 3);
+  g.fillStyle = C.sand; g.fillRect(14, 36, 48, 24); g.fillStyle = C.deep; g.beginPath(); g.moveTo(10, 36); g.lineTo(38, 22); g.lineTo(66, 36); g.closePath(); g.fill();
+  text('shop', 38, 50, C.ink, 7, 'center'); text(`S$${T.spotCost}`, 38, 57, C.deep, 6, 'center');
+  hit(8, 20, 60, 44, tapHut);
+  // basket (on walkway)
+  g.fillStyle = C.deep; g.fillRect(78, 72, 18, 12); g.fillStyle = C.gold2; g.fillRect(80, 74, 14, 8);
+  for (let i = 0; i < Math.min(S.basket, 6); i++) ell(82 + (i % 3) * 5, 76 + Math.floor(i / 3) * 4, 2.2, 1.6, C.deep);
+  text('basket', 87, 70, C.sand, 6, 'center'); if (S.basket) text(S.basket, 100, 82, C.gold2, 7);
+  hit(76, 62, 26, 24, () => sellFrom('basket'));
+  // bathtub (below hut, on a float)
+  g.fillStyle = C.wood; g.fillRect(26, 120, 44, 3);
+  g.fillStyle = '#cfe6ee'; g.fillRect(28, 104, 40, 16); g.fillStyle = '#9ad0e0'; g.fillRect(30, 108, 36, 10);
+  if (S.tub.n) { for (let i = 0; i < 5; i++) ell(34 + i * 7, 112 + Math.sin(S.t * 5 + i) * 3, 1.5, 1.5, '#e8f6fa'); text(`${Math.ceil(S.tub.left)}s`, 48, 101, C.sand, 6, 'center'); }
+  else text('bath', 48, 101, C.sand, 6, 'center');
+  hit(26, 96, 44, 28, tapTub);
+  // tray of clean oysters
+  g.fillStyle = C.sand; g.fillRect(76, 108, 24, 10);
+  for (let i = 0; i < Math.min(S.tray, 6); i++) ell(80 + (i % 3) * 7, 112 + Math.floor(i / 3) * 4, 2.4, 1.7, C.gold2);
+  text('clean', 88, 105, C.sand, 6, 'center'); if (S.tray) text(S.tray, 102, 117, C.gold2, 7);
+  hit(74, 98, 30, 24, () => sellFrom('tray'));
+  // oysters in water
+  S.oysters.forEach((o, i) => {
+    const bob = Math.sin(S.t * 2 + o.x) * 1.5, blink = Math.sin(S.t * 1.3 + o.x) > 0.97;
+    oysterSprite(o.x, o.y + bob, o.size, o.chomp, blink);
+    if (o.size >= 1) { ell(o.x, o.y - 14 + bob, 2, 2, C.gold); }
+    hit(o.x - 12, o.y - 14, 24, 24, () => tapOyster(o, i));
+  });
+  // NILA bottle under water
+  const N = S.nila; g.fillStyle = '#2a3650'; g.fillRect(266, 134, 18, 30); g.fillRect(270, 126, 10, 10);
+  g.fillStyle = C.gold; g.fillRect(268, 142, 14, 10); text('NILA', 275, 149, C.ink, 5, 'center');
+  for (let i = 0; i < Math.floor(N.months * 1.5); i++) ell(264 + (i * 7) % 22, 136 + Math.floor(i / 3) * 9, 2.5, 1.8, C.gold2);
+  if (N.algae > 0.5) { g.fillStyle = C.green + 'aa'; g.fillRect(266, 134, 18, 30); text('algae!', 275, 172, C.green, 6, 'center'); }
+  else text(`${N.months}/${T.nilaMonths} mo`, 275, 172, C.sand, 6, 'center');
+  hit(258, 122, 36, 52, tapNila);
+  // customer
+  if (S.customer) {
+    const c = S.customer, bob = Math.sin(S.t * 3) * 1.5, arrived = !c.leaving && c.x <= 250;
+    const pose = c.leaving ? (c.sold ? 'happy' : 'wait') : 'coin';
+    if (!sprite(`customer-${pose}`, c.x, c.y + 8 + bob, true)) { boat(c.x, c.y + bob, C.pink); face(c.x, c.y - 7, 7); if (arrived) { ell(c.x - 14, c.y - 20, 8, 6, C.sand); ell(c.x - 14, c.y - 20, 3, 3, C.gold); } }
+  }
+  // inspector
+  if (S.inspector) {
+    const a = S.inspector, bob = Math.sin(S.t * 3) * 1.5;
+    const pose = a.phase === 'check' ? (a.ok ? 'pleased' : 'frown') : 'neutral';
+    if (!sprite(`inspector-${pose}`, a.x, a.y + 8 + bob)) { boat(a.x, a.y, '#8fb3c9'); face(a.x, a.y - 7, 7, pose === 'frown' ? 'stern' : 'happy'); text('SFA', a.x, a.y + 6, C.sand, 5, 'center'); }
+  }
+  // tutorial arrows
+  if (S.step === 0 && S.oysters[0]) arrow(S.oysters[0].x, S.oysters[0].y - 10);
+  if (S.step === 1 && S.basket) arrow(48, 96);
+  if (S.step === 2 && S.tray && S.customer && !S.customer.leaving && S.customer.x <= 250) arrow(88, 98);
+  // hud
+  g.fillStyle = C.ink + 'aa'; g.fillRect(0, 0, 320, 12);
+  text(`S$${S.cash}`, 4, 9, C.gold2, 8); text(`stamps ${S.stamps}`, 316, 9, C.sand, 7, 'right');
+  for (const p of S.particles) { g.fillStyle = p.color; g.fillRect(p.x, p.y, 2, 2); }
+  for (const f of S.floaters) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, 7, 'center'); g.globalAlpha = 1; }
+  if (S.won) {
+    g.fillStyle = '#0c0c0ed0'; g.fillRect(0, 0, 320, 180);
+    oysterSprite(160, 70, 1, 0, false); text('Six months beneath the waves.', 160, 105, C.gold2, 11, 'center');
+    text('Your NILA bottle is ready.', 160, 120, C.sand, 8, 'center'); text('[ Reserve a bottle ]', 160, 145, C.gold, 9, 'center');
+  }
+}
+
+cv.addEventListener('pointerdown', (e) => {
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX - r.left) * 320 / r.width, y = (e.clientY - r.top) * 180 / r.height;
+  const h = [...hits].reverse().find(h => x >= h.x && x < h.x + h.w && y >= h.y && y < h.y + h.h);
+  if (h) { h.fn(); save(); }
+});
+let last = performance.now();
+(function loop(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; update(dt); draw(); requestAnimationFrame(loop); })(last);
+</script>
+</body>
+</html>
