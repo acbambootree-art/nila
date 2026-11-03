@@ -116,7 +116,7 @@ const WORK = {
 const PR = () => (S.moor || 7) - 1; // the row the moorings tie up below
 const land = (r, c) => (r >= 1 && c >= 1 && r <= 6 && c <= 5) || !!(S.deck && S.deck[r * MAP + c]); // the shed platform plus every deck tile laid since
 const deck = (r, c) => up('jetty') && c === 1 && (r === PR() + 1 || r === PR() + 2); // the Ubin jetty, once built
-const canDeck = (r, c) => inMap(r, c) && !solid(r, c) && !penTile(r, c) && !farmZone(r, c) && !(c === 1 && (r === PR() + 1 || r === PR() + 2)) && !(r === BOAT.r && c === BOAT.c) && !(r === DOCK.r && c === DOCK.c)
+const canDeck = (r, c) => inMap(r, c) && !solid(r, c) && !shedTile(r, c) && !penTile(r, c) && !farmZone(r, c) && !(c === 1 && (r === PR() + 1 || r === PR() + 2)) && !(r === BOAT.r && c === BOAT.c) && !(r === DOCK.r && c === DOCK.c)
   && [[1, 0], [0, 1], [-1, 0], [0, -1]].some(([a, b]) => land(r + a, c + b) || lane(r + a, c + b)); // open water touching the deck or a walkway; never the moorings, the jetty's spot or where pens will go
 function syncDock() { BOAT.r = DOCK.r = PR() + 1; }
 const farm = (r, c) => r >= FR0 && c >= FC0 && r <= FR0 + 3 * S.farm.a && c <= FC0 + 3 * S.farm.b;
@@ -130,7 +130,9 @@ const expandDir = (r, c) => { const A = FR0 + 3 * S.farm.a, B = FC0 + 3 * S.farm
   if (S.farm.b < MAXB && c > B && c <= B + 3 && r >= FR0 && r <= A) return 'b'; return null; };
 const HUT = { r: 2, c: 2 }; // 2×2 footprint ending at this tile
 const TANK = { r: 4, c: 4 }; // the depuration tank on the shed platform
-const hutTile = (r, c) => (r >= 1 && r <= 2 && c >= 1 && c <= (up('bigshed') ? 4 : 2)) || (r === TANK.r && c === TANK.c); // the shed's footprint grows to 2×4 // tiles nobody walks or builds on
+// the tiles under the shed picture: the small shed sits on 2×2 at the back corner; the big one on columns 3–4, running back over the water
+const shedTile = (r, c) => up('bigshed') ? r >= 0 && r <= 2 && c >= 3 && c <= 4 : r >= 1 && r <= 2 && c >= 1 && c <= 2;
+const hutTile = (r, c) => shedTile(r, c) || (r === TANK.r && c === TANK.c); // tiles nobody walks or builds on
 // depuration: harvested oysters sit in UV-cleaned seawater to purge before they may be sold (real tanks: 24–48 h; here 3 min)
 const DEP = 180, TANK_LV = [{ cap: 6 }, { cap: 16, cost: 300, lvl: 2 }, { cap: 40, cost: 1200, lvl: 4 }];
 const tankCap = () => TANK_LV[S.tankLv].cap, tankFull = () => S.tank.length >= tankCap();
@@ -689,7 +691,7 @@ function canPlace(it, r, c) {
 // move mode: pick up a decoration, the generator, the tank or an empty pen's fittings, then put it down somewhere valid
 function canMoveTo(r, c) {
   const m = S.moveSel; if (!m) return false;
-  if (m.tank) return land(r, c) && !isBroken(r, c) && !objAt(r, c) && !(r >= 1 && r <= 2 && c >= 1 && c <= 2) && !(r === TANK.r && c === TANK.c) && !(r === BOAT.r && c === BOAT.c);
+  if (m.tank) return land(r, c) && !isBroken(r, c) && !objAt(r, c) && !shedTile(r, c) && !(r === TANK.r && c === TANK.c) && !(r === BOAT.r && c === BOAT.c);
   const i = S.objs.indexOf(m.o); S.objs.splice(i, 1); const ok = canPlace(item(m.o.id), r, c); S.objs.splice(i, 0, m.o); return ok;
 }
 function moveTap(r, c) {
@@ -808,7 +810,7 @@ function placeFree(id) { const free = []; for (let r = 0; r < MAP; r++) for (let
 // the bigger shed covers more deck: re-home anything that was standing there
 function clearFootprint() {
   for (const o of [...S.objs]) if (item(o.id).on === 'land' && hutTile(o.r, o.c) && !(o.r === TANK.r && o.c === TANK.c)) { S.objs.splice(S.objs.indexOf(o), 1); placeFree(o.id); Object.assign(S.objs[S.objs.length - 1], { fed: o.fed }); }
-  if (TANK.r <= 2 && TANK.c <= 4) { const free = []; for (let r = 3; r <= 6; r++) for (let c = 1; c <= 5; c++) if (!objAt(r, c) && !isBroken(r, c)) free.push([r, c]); if (free[0]) { [TANK.r, TANK.c] = free[0]; S.tankAt = { r: TANK.r, c: TANK.c }; } }
+  if (shedTile(TANK.r, TANK.c)) { const free = []; for (let r = 3; r <= 6; r++) for (let c = 1; c <= 5; c++) if (!objAt(r, c) && !isBroken(r, c)) free.push([r, c]); if (free[0]) { [TANK.r, TANK.c] = free[0]; S.tankAt = { r: TANK.r, c: TANK.c }; } }
   S.broken = S.broken.filter(([r, c]) => !hutTile(r, c));
 }
 function buyUpgrade(u) {
@@ -1277,7 +1279,7 @@ function drawWorld(t, D) {
   if (OTTERS) { if (OTTERS.swim) { const [r, c] = rcOf(OTTERS.x, OTTERS.y); ents0.push({ kind: 'otterswim', r, c }); } else OTTERS.pack.forEach((o, i) => ents0.push({ kind: 'otter', o, i, r: o.r, c: o.c })); }
   if (HCRAB && HCRAB.phase === 'pen') ents0.push({ kind: 'hcrab', r: HCRAB.r, c: HCRAB.c });
   if (DINNER) { ents0.push({ kind: 'grill', r: DINNER.r, c: DINNER.c }); if (DINNER.table) ents0.push({ kind: 'dtable', r: DINNER.table[0], c: DINNER.table[1] }); DINNER.stools.forEach(([r, c], i) => ents0.push({ kind: 'stool', i, r: r - 0.01, c })); } if (CAT) ents0.push({ kind: 'cat', r: CAT.r, c: CAT.c }); for (const n of NUTS) ents0.push({ kind: 'nut', n, r: n.r, c: n.c });
-  const ents = [...ents0, ...(S.sale ? [{ kind: 'buyer', r: DOCK.r, c: DOCK.c }] : []), ...(DOG ? [{ kind: 'dog', r: DOG.r, c: DOG.c }] : []), { kind: 'hut', r: HUT.r, c: HUT.c }, { kind: 'tank', r: TANK.r, c: TANK.c }, { kind: 'farmer', r: F.r + (F.working === 'lounge' ? 0.02 : 0), c: F.c }, ...WK.map(w => ({ kind: 'worker', w, r: w.r + (w.working === 'lounge' ? 0.02 : 0), c: w.c })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => { const k = item(o.id).on === 'pen' ? 0.5 : 0; return { kind: 'obj', o, r: o.r + k, c: o.c + k }; })];
+  const ents = [...ents0, ...(S.sale ? [{ kind: 'buyer', r: DOCK.r, c: DOCK.c }] : []), ...(DOG ? [{ kind: 'dog', r: DOG.r, c: DOG.c }] : []), { kind: 'hut', r: HUT.r, c: up('bigshed') ? 3 : HUT.c }, { kind: 'tank', r: TANK.r, c: TANK.c }, { kind: 'farmer', r: F.r + (F.working === 'lounge' ? 0.02 : 0), c: F.c }, ...WK.map(w => ({ kind: 'worker', w, r: w.r + (w.working === 'lounge' ? 0.02 : 0), c: w.c })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => { const k = item(o.id).on === 'pen' ? 0.5 : 0; return { kind: 'obj', o, r: o.r + k, c: o.c + k }; })];
   for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (S.plots[r][c]) ents.push({ kind: 'plot', p: S.plots[r][c], r, c });
   ents.sort((a, b) => (a.r + a.c) - (b.r + b.c));
   for (const e of ents) { const p = center(e.r, e.c), [x, y] = scr(p.x, p.y); if (x < -120 || x > W + 120 || y < -140 || y > H + 60) continue; drawEntity(e, x, y, t, D); }
