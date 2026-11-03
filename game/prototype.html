@@ -116,9 +116,11 @@ const WORK = {
 const PR = () => (S.moor || 7) - 1; // the row the moorings tie up below
 const land = (r, c) => (r >= 1 && c >= 1 && r <= 6 && c <= 5) || !!(S.deck && S.deck[r * MAP + c]); // the shed platform plus every deck tile laid since
 const deck = (r, c) => up('jetty') && c === 1 && (r === PR() + 1 || r === PR() + 2); // the Ubin jetty, once built
-const canDeck = (r, c) => inMap(r, c) && !solid(r, c) && !shedTile(r, c) && !penTile(r, c) && !farmZone(r, c) && !(c === 1 && (r === PR() + 1 || r === PR() + 2)) && !(r === BOAT.r && c === BOAT.c) && !(r === DOCK.r && c === DOCK.c)
-  && [[1, 0], [0, 1], [-1, 0], [0, -1]].some(([a, b]) => land(r + a, c + b) || lane(r + a, c + b)); // open water touching the deck or a walkway; never the moorings, the jetty's spot or where pens will go
-function syncDock() { BOAT.r = DOCK.r = PR() + 1; }
+const deckWhy = (r, c) => !inMap(r, c) ? 'off the map' : solid(r, c) ? 'already deck' : shedTile(r, c) ? 'under the shed' : penTile(r, c) ? "that's a pen" : farmZone(r, c) ? 'kept clear for new pens' // why a deck tile can't go here ('' = it can)
+  : c >= 1 && c <= 5 && r >= MAP - 3 ? 'too far out' : ![[1, 0], [0, 1], [-1, 0], [0, -1]].some(([a, b]) => land(r + a, c + b) || lane(r + a, c + b)) ? 'must touch the deck' : '';
+const canDeck = (r, c) => !deckWhy(r, c);
+// the bumboat berth, the buyer's dock and the jetty sit one row past the lowest deck in the shed's five columns, so they move out as the deck grows
+function syncDock() { let low = 6; for (const k in S.deck) { const r = Math.floor(k / MAP), c = k % MAP; if (c >= 1 && c <= 5) low = Math.max(low, r); } S.moor = low + 1; BOAT.r = DOCK.r = S.moor; }
 const farm = (r, c) => r >= FR0 && c >= FC0 && r <= FR0 + 3 * S.farm.a && c <= FC0 + 3 * S.farm.b;
 const lane = (r, c) => farm(r, c) && ((r - FR0) % 3 === 0 || (c - FC0) % 3 === 0);
 const penTile = (r, c) => farm(r, c) && !lane(r, c);
@@ -710,9 +712,9 @@ function moveTap(r, c) {
 }
 function place(r, c) {
   const it = item(S.build), [x, y] = tilePos(r, c);
-  if (!canPlace(it, r, c)) { SFX.nope(); return float(it.on === 'land' ? 'needs a deck tile' : it.on === 'sea' ? 'must touch the deck' : 'needs an empty pen', x, y - 10, C.pink); }
+  if (!canPlace(it, r, c)) { SFX.nope(); return float(it.on === 'land' ? 'needs a deck tile' : it.on === 'sea' ? deckWhy(r, c) : 'needs an empty pen', x, y - 10, C.pink); }
   if (S.cash < it.cost) { SFX.nope(); return float("Not enough $", x, y - 10, C.pink); }
-  if (it.on === 'sea') { S.cash -= it.cost; S.deck[r * MAP + c] = 1; pop(x, y, '#d9b48a', 8); SFX.tok(); gainXp(it.xp); save(); return; } // stays in build mode: lay the next one
+  if (it.on === 'sea') { S.cash -= it.cost; S.deck[r * MAP + c] = 1; syncDock(); pop(x, y, '#d9b48a', 8); SFX.tok(); gainXp(it.xp); save(); return; } // stays in build mode: lay the next one
   const pp = it.on === 'pen' && penOf(r, c); S.cash -= it.cost; S.objs.push({ id: it.id, r: pp ? pp.r0 : r, c: pp ? pp.c0 : c, fed: null }); S.build = null; S.stats.built++; refreshQuests();
   pop(x, y, C.gold2, 10); float(`+${it.xp}xp`, x, y - 20, '#9ad0e0'); SFX.stamp(); gainXp(it.xp); checkQuests();
 }
