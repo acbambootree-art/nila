@@ -47,6 +47,10 @@ On return, a toast says how many oysters finished or withered, and how many plan
 
 **Flooring**: the platform and walkways are drawn as individual sun-bleached grey boards, four per tile, running continuously across the deck with staggered butt joints every 2–3 tiles, dark gaps, faint grain and nail heads; walkway boards run across the direction of travel.
 
+**Little life** (2026-11-04): palm fronds sway, the flag waves, the lantern, wind chimes and hammock swing, the potted plants and the umbrella nod, the cat breathes. Each palm drops a coconut every one to three minutes (at most two lying about); it thuds onto a nearby plank and can be tapped for S$8 and an album entry.
+
+**Crocodile** (rare): every 5–15 minutes, if there is a quiet edge plank at least four tiles from everyone, an estuarine crocodile swims in (only eyes and ridges showing), hauls out, basks for one to two minutes with its jaws opening now and then, and slides back out to sea. People will not walk onto it or rest near it, nobody swims while it is about (swimmers head back), the dog barks at it, and the first sighting is a rare album entry. Saltwater crocodiles really are seen around Pulau Ubin.
+
 ## Not in this version
 
 - Neighbours, gifting, visiting other farms

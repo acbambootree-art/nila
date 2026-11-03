@@ -76,6 +76,7 @@ const ALBUM = [ // collection book entries; counts live in S.album
   ...SP.map(s => ({ id: s.id, name: s.name, icon: () => tinted('oyster-fat-idle', s.tint) })),
   ...FISH.map(f => ({ id: f.id, name: f.name, icon: () => ready(`fish-${f.id}`) })), { id: 'crabs', name: 'Crabs', icon: () => ready('sea-crab-a') }, { id: 'bottle', name: 'NILA', icon: () => ready('bottle-3') },
   { id: 'rarepearl', name: 'Pearl drop', icon: () => ready('sp-pearl'), rare: true }, { id: 'gold', name: 'Gold shell', icon: () => ready('sp-gold'), rare: true },
+  { id: 'coconut', name: 'Coconut', icon: () => ready('nut') }, { id: 'croc', name: 'Crocodile', icon: () => ready('croc-lie'), rare: true },
 ];
 const RARE = { rarepearl: { odds: 0.05, cash: 60, sprite: 'sp-pearl', label: 'pearl' }, gold: { odds: 0.01, cash: 400, sprite: 'sp-gold', label: 'GOLD' } }; // per harvest
 const BOAT = { r: 7, c: 2, trips: [{ h: 2, cost: 30, cash: 150, xp: 20, name: 'Fishing run' }, { h: 8, cost: 100, cash: 800, xp: 90, name: 'Overnight run' }, { h: 4, cost: 200, cash: 1600, xp: 150, name: 'Ubin market', jetty: true }] };
@@ -156,7 +157,7 @@ function save() { try { const { t, pick, pickFish, build, panel, tab, moveSel, .
 // ---- sprites ----
 const IMG = {};
 ['oyster-baby-idle', 'oyster-baby-blink', 'oyster-medium-idle', 'oyster-medium-blink', 'oyster-fat-idle', 'oyster-fat-blink', 'sp-withered', 'sp-pearl', 'sp-gold', 'sea-crab-a', 'customer-wait', 'customer-happy',
-  'hut-hut', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'bottle-0', 'bottle-1', 'bottle-2', 'bottle-3', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
+  'hut-hut', 'croc-lie', 'croc-open', 'croc-swim', 'nut', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'bottle-0', 'bottle-1', 'bottle-2', 'bottle-3', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
   ...['carpenter', 'keeper', 'harvester'].flatMap(w => ['front-idle', 'front-walk', 'back-idle', 'back-walk', 'work-a', 'work-b', 'idle-fish', 'idle-rest', 'idle-mend', 'swim-a', 'swim-b', 'swim-play', 'swim-float'].map(f => `wk-${w}-${f}`)), 'farmer-idle-fish', 'farmer-idle-rest', 'farmer-idle-mend', 'farmer-swim-a', 'farmer-swim-b', 'farmer-swim-play', 'farmer-swim-float',
   'bld-stall', 'bld-shed', 'bld-lantern', 'bld-flag', 'bld-palm', 'bld-bench', 'bld-cat', 'pen-fishcage-empty', 'pen-fishcage-full', 'pen-crabpen-empty', 'pen-crabpen-full',
   'fish-seabass', 'fish-pomfret', 'fish-snapper', 'fish-grouper', 'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-gull-a', 'sea-gull-b', 'sea-jelly-a', 'sea-jelly-b', 'sc-cloud1', 'sc-cloud2', 'sc-cloud3',
@@ -170,6 +171,26 @@ const hit = (x, y, w, h, fn) => hits.push({ x, y, w, h, fn });
 const ready = n => { const im = IMG[n]; return im && im.complete && im.naturalWidth ? im : null; };
 function text(s, x, y, color = C.sand, size = 8, align = 'left') { size = Math.max(size, 7); g.font = `${size}px monospace`; g.textAlign = align; g.fillStyle = '#0c0c0e'; g.fillText(s, x + 1, y + 1); g.fillStyle = color; g.fillText(s, x, y); g.textAlign = 'left'; }
 function ell(x, y, rx, ry, color) { g.fillStyle = color; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill(); }
+// a sprite with one rectangular part animated: the rest is drawn still, the part is redrawn by fn (in sprite-local pixels)
+function spritePart(name, x, y, part, fn) {
+  const im = ready(name); if (!im) return false; const ox = Math.round(x - im.width / 2), oy = Math.round(y - im.height), [px, py, pw, ph] = part;
+  g.save(); g.beginPath(); g.rect(ox, oy, im.width, im.height); g.rect(ox + px, oy + py, pw, ph); g.clip('evenodd'); g.drawImage(im, ox, oy); g.restore();
+  g.save(); g.translate(ox, oy); fn(im, px, py, pw, ph); g.restore(); return true;
+}
+const sway = (amp, speed, ph, flutter = 0) => (im, px, py, pw, ph2) => { for (let j = 0; j < ph2; j += 2) { const k = 1 - j / ph2, dx = Math.round(amp * Math.sin(S.t * speed + ph) * k * k + flutter * Math.sin(S.t * 4 + j * 0.4 + ph) * k); g.drawImage(im, px, py + j, pw, 2, px + dx, py + j, pw, 2); } };
+const swing = (pivx, pivy, amp, speed, ph) => (im, px, py, pw, ph2) => { g.translate(pivx, pivy); g.rotate(amp * Math.sin(S.t * speed + ph)); g.drawImage(im, px, py, pw, ph2, px - pivx, py - pivy, pw, ph2); };
+const wave = (amp, speed) => (im, px, py, pw, ph2) => { for (let i = 0; i < pw; i++) { const dy = Math.round(amp * Math.sin(i * 0.4 - S.t * speed) * (i / pw)); g.drawImage(im, px + i, py, 1, ph2, px + i, py + dy, 1, ph2); } };
+// which part of each decoration moves, and how (palm fronds sway, flag waves, lantern and chimes swing, plants nod)
+const ANIM = {
+  palm:    (x, y, ph) => spritePart('bld-palm', x, y, [0, 0, 80, 52], sway(3, 1.1, ph, 0.9)),
+  flag:    (x, y, ph) => spritePart('bld-flag', x, y, [19, 2, 25, 38], wave(2, 6)),
+  lantern: (x, y, ph) => spritePart('bld-lantern', x, y, [14, 9, 23, 52], swing(26, 11, 0.07, 1.7, ph)),
+  chimes:  (x, y, ph) => spritePart('dec-chimes', x, y, [8, 6, 13, 42], swing(15, 7, 0.12, 2.1, ph)),
+  hammock: (x, y, ph) => spritePart('dec-hammock', x, y, [5, 10, 32, 22], swing(21, 10, 0.05, 1.3, ph)),
+  pot:     (x, y, ph) => spritePart('dec-pot', x, y, [0, 0, 34, 26], sway(0.8, 1.6, ph, 0.3)),
+  flowers: (x, y, ph) => spritePart('dec-flowers', x, y, [0, 0, 41, 30], sway(1, 1.4, ph, 0.3)),
+  chair:   (x, y, ph) => spritePart('dec-chair', x, y, [0, 0, 33, 16], sway(0.6, 1.8, ph)),
+};
 function sprite(name, x, y, { flip = false, alpha = 1, scale = 1 } = {}) {
   const im = typeof name === 'string' ? ready(name) : name; if (!im) return false;
   g.save(); g.globalAlpha = alpha; g.translate(Math.round(x), Math.round(y)); if (flip) g.scale(-1, 1);
@@ -224,7 +245,7 @@ function go(r, c, fn, who = F, kind = null) { const [tr, tc] = nearestWalkable(r
 const head = who => { const w = center(who.r, who.c), [x, y] = scr(w.x, w.y); return [x, y - 46]; };
 // walk to a free tile next to (r,c), face it, then "work" for a moment before fn fires
 // a tile is taken if another character stands on it or is already heading there
-const taken = (r, c, me) => [F, ...WK].some(o => o !== me && ((Math.round(o.r) === r && Math.round(o.c) === c) || o.queue.some(q => q.tr === r && q.tc === c)));
+const taken = (r, c, me) => (CROC && CROC.phase === 'bask' && Math.abs(CROC.r - r) + Math.abs(CROC.c - c) <= 2) || [F, ...WK].some(o => o !== me && ((Math.round(o.r) === r && Math.round(o.c) === c) || o.queue.some(q => q.tr === r && q.tc === c)));
 function goBeside(r, c, fn, who = F, kind = 'feed') {
   const nb = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => [r + a, c + b]).filter(([i, j]) => walkable(i, j) && !objAt(i, j) && !hutTile(i, j));
   const cost = ([i, j]) => Math.hypot(i - who.r, j - who.c) + (taken(i, j, who) ? 10 : 0); // a free side beats a nearer, occupied one
@@ -254,7 +275,7 @@ function idle(a, dt) {
   if (roll < 0.2) { a.flip = !a.flip; return; }
   if (roll < 0.35 && land(r0, c0)) { a.queue.push({ tr: r0, tc: c0, fn: () => {}, face: [r0 + (a.back ? -1 : 1), c0], act: WORK.sweep.t, kind: 'sweep', idle: true }); return; }
   if (roll < 0.7) { // sit and fish, swim, lie down, or mend a net; the first two need a platform edge facing open water
-    const kind = ['fish', 'swim', 'rest', 'mend'][Math.floor(Math.random() * 4)], edge = [];
+    const kind = (CROC ? ['fish', 'rest', 'mend'] : ['fish', 'swim', 'rest', 'mend'])[Math.floor(Math.random() * (CROC ? 3 : 4))], edge = []; // nobody swims with a croc about
     for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (land(r, c) && walkable(r, c) && !objAt(r, c) && !hutTile(r, c) && !taken(r, c, a) && path(r0, c0, r, c)) for (const [dr, dc] of [[1, 0], [0, 1]]) if (inMap(r + dr, c + dc) && !land(r + dr, c + dc) && !deck(r + dr, c + dc) && !farmZone(r + dr, c + dc)) edge.push([r, c, r + dr, c + dc]);
     const spot = kind === 'fish' || kind === 'swim' ? edge[Math.floor(Math.random() * edge.length)] : (land(r0, c0) ? [r0, c0, r0 + 1, c0] : null);
     if (spot) { a.idle = rnd(4, 9); a.queue.push({ tr: spot[0], tc: spot[1], fn: () => {}, face: [spot[2], spot[3]], act: WORK[kind].t, kind, idle: true }); return; }
@@ -262,18 +283,59 @@ function idle(a, dt) {
   const cand = []; for (let r = r0 - 3; r <= r0 + 3; r++) for (let c = c0 - 3; c <= c0 + 3; c++) if ((r !== r0 || c !== c0) && inMap(r, c) && walkable(r, c) && !objAt(r, c) && !hutTile(r, c) && !taken(r, c, a) && path(r0, c0, r, c)) cand.push([r, c]);
   if (cand.length) { const [r, c] = cand[Math.floor(Math.random() * cand.length)]; a.queue.push({ tr: r, tc: c, fn: () => {}, act: 0, idle: true }); }
 }
-// crabs in a pen: mostly still; now and then one raises a claw, or scuttles a short way sideways and settles again
-const CRABS = new WeakMap(), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-function crabsOf(o) { let a = CRABS.get(o); if (!a) { a = Array.from({ length: 5 }, () => { const u = rnd(-0.5, 0.5), v = rnd(-0.5, 0.5); return { u, v, tu: u, tv: v, rest: rnd(0, 5), wave: 0, walk: 0, face: Math.random() < 0.5, axis: Math.random() < 0.5 ? 0 : Math.PI / 2 }; }); CRABS.set(o, a); } return a; }
-function stepCrabs(dt) {
-  for (const o of S.objs) if (o.id === 'crabpen' && o.fed) for (const k of crabsOf(o)) {
-    const du = k.tu - k.u, dv = k.tv - k.v, d = Math.hypot(du, dv);
-    if (d > 0.004) { const st = Math.min(d, 0.22 * dt); k.u += du / d * st; k.v += dv / d * st; k.walk += dt; continue; }
-    k.walk = 0; if (k.wave > 0) { k.wave -= dt; continue; }
-    if ((k.rest -= dt) > 0) { if (Math.random() < 0.002) k.wave = rnd(0.5, 1); continue; }
-    const len = rnd(0.08, 0.25) * (Math.random() < 0.5 ? -1 : 1); k.tu = clamp(k.u + Math.cos(k.axis) * len, -0.55, 0.55); k.tv = clamp(k.v + Math.sin(k.axis) * len, -0.55, 0.55); k.rest = rnd(3, 9);
+// ---- a rare visitor: an estuarine crocodile (they do turn up around Pulau Ubin) swims in every 5–15 minutes or so,
+// hauls out on a quiet edge of the deck far from everyone, basks a minute or two with its jaws open now and then,
+// then slides back into the sea. People and the dog give it a wide berth; nobody swims while it is about. ----
+let CROC = null, crocWait = rnd(300, 900);
+function crocSpot() { // an empty edge plank beside open water, as far from everyone as possible, at least 4 tiles
+  const people = [F, ...WK, ...(DOG ? [DOG] : [])]; let best = null, bd = 0;
+  for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) {
+    if (!(land(r, c) || lane(r, c)) || hutTile(r, c) || objAt(r, c) || isBroken(r, c) || nutAt(r, c)) continue;
+    const sea = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => [r + a, c + b]).find(([i, j]) => inMap(i, j) && !solid(i, j) && !penTile(i, j) && !(i === BOAT.r && j === BOAT.c) && !(i === DOCK.r && j === DOCK.c)); if (!sea) continue;
+    const d = Math.min(...people.map(p => Math.hypot(p.r - r, p.c - c))); if (d > bd) { bd = d; best = { r, c, sr: sea[0], sc: sea[1] }; }
   }
+  return bd >= 4 ? best : null;
 }
+function spawnCroc() { const s = crocSpot(); if (!s) return false; const w = center(s.sr, s.sc), out = center(s.sr + (s.sr - s.r) * 7, s.sc + (s.sc - s.c) * 7);
+  CROC = { ...s, phase: 'in', t: 0, x: out.x, y: out.y, wx: w.x, wy: w.y, ox: out.x, oy: out.y, bask: rnd(60, 140), open: 0 };
+  for (const a of [F, ...WK]) for (const q of a.queue) if (q.kind === 'swim') q.act = Math.min(q.act, 4.4); // swimmers head back to the deck
+  return true; }
+function stepCroc(dt) {
+  if (!CROC) { if ((crocWait -= dt) > 0) return; crocWait = rnd(300, 900); spawnCroc(); return; }
+  const k = CROC; k.t += dt;
+  if (k.phase === 'in') { const u = Math.min(1, k.t / 9); k.x = k.ox + (k.wx - k.ox) * u; k.y = k.oy + (k.wy - k.oy) * u; if (u >= 1) { k.phase = 'up'; k.t = 0; SFX.splash(); } }
+  else if (k.phase === 'up') { if (k.t >= 1.5) { k.phase = 'bask'; k.t = 0; const [x, y] = tilePos(k.r, k.c); float('a crocodile!', x, y - 34, C.pink, 9); if (!S.album.croc) float('New in album: Crocodile', W / 2, 120, C.gold, 9, true); collect('croc'); } }
+  else if (k.phase === 'bask') { if (k.open > 0) k.open -= dt; else if (Math.random() < dt / 20) { k.open = rnd(2, 5); SFX.snap(); } if (k.t >= k.bask) { k.phase = 'down'; k.t = 0; } }
+  else if (k.phase === 'down') { if (k.t >= 1.5) { k.phase = 'out'; k.t = 0; SFX.splash(); } }
+  else if (k.phase === 'out') { const u = Math.min(1, k.t / 9); k.x = k.wx + (k.ox - k.wx) * u; k.y = k.wy + (k.oy - k.wy) * u; if (u >= 1) CROC = null; }
+}
+const crocAt = (r, c) => !!CROC && CROC.phase !== 'in' && CROC.phase !== 'out' && CROC.r === r && CROC.c === c;
+function tapCroc() { const [x, y] = tilePos(CROC.r, CROC.c); SFX.nope(); float('a saltwater croc, basking. leave it be', x, y - 30, C.sand); }
+function drawCroc(x0, y0, t) {
+  const k = CROC, w = center(k.r, k.c), [ps] = scr(w.x, w.y), [ws] = scr(k.wx, k.wy), toSea = ws > ps; // head points at the water while basking
+  if (k.phase === 'in' || k.phase === 'out') { const [sx, sy] = scr(k.x, k.y), right = (k.phase === 'in' ? k.wx - k.ox : k.ox - k.wx) > 0, bob = Math.sin(t * 1.5) * 1;
+    g.globalAlpha = 0.35; ell(sx, sy + 3, 34, 4, '#e8f4ff'); g.globalAlpha = 1; sprite('croc-swim', sx, sy + 4 + bob, { flip: right });
+    if (Math.random() < 0.3) A.particles.push({ x: sx + (right ? -40 : 40), y: sy + 2, vx: rnd(-6, 6), vy: rnd(-4, 1), life: 0.6, color: '#e8f4ff' }); return; }
+  const u = k.phase === 'up' ? Math.min(1, k.t / 1.5) : k.phase === 'down' ? 1 - Math.min(1, k.t / 1.5) : 1, px = k.wx + (w.x - k.wx) * u, py = k.wy + (w.y - k.wy) * u, [sx, sy] = scr(px, py), breathe = Math.sin(t * 0.8) * 0.5;
+  ell(sx, sy + 4, 40, 6, '#00000033'); sprite(k.open > 0 ? 'croc-open' : 'croc-lie', sx, sy + 6 + breathe, { flip: toSea });
+}
+// coconuts: now and then a palm drops one; it thuds onto a nearby plank and waits to be picked up for a few coins
+const NUTS = [], PALMT = new WeakMap();
+function stepNuts(dt) {
+  for (const o of S.objs) if (o.id === 'palm') {
+    let left = PALMT.get(o) ?? rnd(30, 90); left -= dt;
+    if (left <= 0) { left = rnd(60, 160); if (NUTS.filter(n => n.palm === o).length < 2) { const spots = [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1]].map(([a, b]) => [o.r + a, o.c + b]).filter(([r, c]) => walkable(r, c) && !hutTile(r, c) && !objAt(r, c) && !NUTS.some(n => n.r === r && n.c === c));
+      if (spots.length) { const [r, c] = spots[Math.floor(Math.random() * spots.length)], w = center(o.r, o.c); NUTS.push({ palm: o, r, c, x: w.x + rnd(-8, 8), y: w.y - 62, t: 0 }); } } }
+    PALMT.set(o, left);
+  }
+  for (const n of NUTS) if (n.t < 1) { const was = n.t; n.t = Math.min(1, n.t + dt / 0.7); if (was < 0.75 && n.t >= 0.75) { SFX.thud(); const w = center(n.r, n.c), [px, py] = scr(w.x, w.y); for (let i = 0; i < 4; i++) A.particles.push({ x: px, y: py, vx: rnd(-20, 20), vy: rnd(-25, -5), life: 0.4, color: '#c8c2b4' }); } }
+}
+const nutAt = (r, c) => NUTS.find(n => n.r === r && n.c === c && n.t >= 1);
+function pickNut(n) { go(n.r, n.c, () => { const i = NUTS.indexOf(n); if (i < 0) return; NUTS.splice(i, 1); S.cash += 8; collect('coconut'); float('coconut! +S$8', ...head(F), C.gold, 9); SFX.pop(); gainXp(2); }, F, 'collect'); }
+// crabs in a pen: three mud crabs that sit where they are; now and then one shuffles a pixel sideways and back
+const CRABS = new WeakMap(), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function crabsOf(o) { let a = CRABS.get(o); if (!a) { a = [[-14, 0, false], [11, -5, true], [3, 7, false]].map(([dx, dy, face]) => ({ dx, dy, face, shift: 0, next: rnd(3, 9) })); CRABS.set(o, a); } return a; }
+function stepCrabs(dt) { for (const o of S.objs) if (o.id === 'crabpen' && o.fed) for (const k of crabsOf(o)) if ((k.next -= dt) <= 0) { k.shift = k.shift ? 0 : (Math.random() < 0.5 ? -1 : 1); k.next = k.shift ? rnd(1.5, 3) : rnd(5, 12); } }
 // the golden retriever: dashes to a random spot, trots after the farmer, sits, sniffs, flops down on his bed
 let DOG = null;
 function dogThink(d, dt, bed) {
@@ -284,11 +346,12 @@ function dogThink(d, dt, bed) {
   if (roll < 0.4 && bed) { d.queue.push({ tr: bed.r, tc: bed.c, fn: () => { d.pose = 'lie'; d.idle = rnd(5, 9); }, act: 0, idle: true }); return; }
   d.pose = null; d.idle = rnd(0.2, 0.8);
   const [tr, tc] = roll < 0.6 ? [Math.round(F.r) + (Math.random() < 0.5 ? 1 : -1), Math.round(F.c)] : [r0 + Math.round(rnd(-6, 6)), c0 + Math.round(rnd(-6, 6))];
-  if (inMap(tr, tc) && walkable(tr, tc) && !hutTile(tr, tc) && (tr !== r0 || tc !== c0) && path(r0, c0, tr, tc)) { d.queue.push({ tr, tc, fn: () => {}, act: 0, idle: true }); if (Math.random() < 0.15) SFX.woof(); }
+  if (CROC && CROC.phase === 'bask' && Math.random() < 0.3) SFX.woof(); // the dog has opinions about the crocodile
+  if (inMap(tr, tc) && walkable(tr, tc) && !hutTile(tr, tc) && (tr !== r0 || tc !== c0) && !taken(tr, tc, d) && path(r0, c0, tr, tc)) { d.queue.push({ tr, tc, fn: () => {}, act: 0, idle: true }); if (Math.random() < 0.15) SFX.woof(); }
 }
 // shortest tile path over land/deck/raft (BFS, 4-neighbour); null if unreachable
 function path(r0, c0, r1, c1) {
-  const ok = (r, c) => inMap(r, c) && walkable(r, c) && !hutTile(r, c), key = (r, c) => r * MAP + c, prev = new Map([[key(r0, c0), null]]), q = [[r0, c0]];
+  const ok = (r, c) => inMap(r, c) && walkable(r, c) && !hutTile(r, c) && !crocAt(r, c), key = (r, c) => r * MAP + c, prev = new Map([[key(r0, c0), null]]), q = [[r0, c0]];
   while (q.length) { const [r, c] = q.shift(); if (r === r1 && c === c1) { const out = []; for (let k = key(r, c); k !== null; k = prev.get(k)) out.unshift([Math.floor(k / MAP), k % MAP]); return out.slice(1); }
     for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nr = r + a, nc = c + b; if (ok(nr, nc) && !prev.has(key(nr, nc))) { prev.set(key(nr, nc), key(r, c)); q.push([nr, nc]); } } }
   return null;
@@ -296,7 +359,7 @@ function path(r0, c0, r1, c1) {
 function stepActor(dt, F) {
   if (!F.queue.length) { F.moving = false; return; }
   const q = F.queue[0];
-  if (!q.path) { const p = path(Math.round(F.r), Math.round(F.c), q.tr, q.tc); if (!p) { F.queue.shift(); float('fix the planks first', ...head(F), C.pink); SFX.nope(); return; } q.path = p; }
+  if (!q.path) { const p = path(Math.round(F.r), Math.round(F.c), q.tr, q.tc); if (!p) { F.queue.shift(); float(CROC ? 'a crocodile is in the way' : 'fix the planks first', ...head(F), C.pink); SFX.nope(); return; } q.path = p; }
   const [wr, wc] = q.path.length ? q.path[0] : [q.tr, q.tc], dr = wr - F.r, dc = wc - F.c, d = Math.hypot(dr, dc);
   if (d < 0.05 && q.path.length) { F.r = wr; F.c = wc; q.path.shift(); return; }
   if (d < 0.05) {
@@ -318,6 +381,8 @@ function stepActor(dt, F) {
 // ---- actions ----
 function tapTile(r, c) {
   if (S.panel === 'build' && S.tab === 'move') return moveTap(r, c);
+  if (crocAt(r, c)) return tapCroc();
+  const nut = nutAt(r, c); if (nut && !S.build) return pickNut(nut);
   if (S.build) return place(r, c);
   if (r === BOAT.r && c === BOAT.c) return tapBoat();
   if (r === TANK.r && c === TANK.c) return tapTank();
@@ -559,7 +624,7 @@ function checkQuests() {
 
 // ---- update ----
 function update(dt) {
-  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepActor(dt, F); idle(F, dt); for (const w of WK) { w.speed = has('dog') ? 1.2 : 1; stepActor(dt, w); think(w, dt); idle(w, dt); }
+  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepActor(dt, F); idle(F, dt); for (const w of WK) { w.speed = has('dog') ? 1.2 : 1; stepActor(dt, w); think(w, dt); idle(w, dt); }
   const bed = S.objs.find(o => o.id === 'dog'); if (bed && !DOG) DOG = actor({ r: bed.r, c: bed.c, speed: 1.9 }); if (DOG) { stepActor(dt, DOG); dogThink(DOG, dt, bed); }
   for (const f of A.fish) { f.x += f.v * dt; if (f.x > 520) f.x = -520; if (f.x < -520) f.x = 520; if (Math.random() < 0.004) f.v = -f.v; }
   for (const j of A.jelly) { j.y -= 4 * dt; if (j.y < -20) j.y = 520; j.x += Math.sin(S.t + j.ph) * 3 * dt; }
@@ -598,7 +663,7 @@ function tone(f0, f1, dur, type = 'sine', vol = 0.12, delay = 0) {
   o.type = type; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(f1, t0 + dur); gn.gain.setValueAtTime(vol, t0); gn.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
   o.connect(gn); gn.connect(AC.destination); o.start(t0); o.stop(t0 + dur);
 }
-const SFX = { woof: () => { tone(520, 300, 0.07, 'square', 0.04); tone(480, 280, 0.07, 'square', 0.04, 0.12); }, tok: () => tone(900, 300, 0.05, 'square', 0.05), chomp: () => tone(220, 90, 0.08, 'square', 0.06), pop: () => tone(500, 1200, 0.12, 'sine', 0.12), coin: () => { tone(880, 880, 0.08, 'triangle', 0.1); tone(1320, 1320, 0.14, 'triangle', 0.1, 0.08); },
+const SFX = { thud: () => tone(140, 60, 0.12, 'sine', 0.14), snap: () => { tone(180, 90, 0.06, 'square', 0.06); tone(160, 80, 0.06, 'square', 0.05, 0.08); }, woof: () => { tone(520, 300, 0.07, 'square', 0.04); tone(480, 280, 0.07, 'square', 0.04, 0.12); }, tok: () => tone(900, 300, 0.05, 'square', 0.05), chomp: () => tone(220, 90, 0.08, 'square', 0.06), pop: () => tone(500, 1200, 0.12, 'sine', 0.12), coin: () => { tone(880, 880, 0.08, 'triangle', 0.1); tone(1320, 1320, 0.14, 'triangle', 0.1, 0.08); },
   splash: () => tone(300, 120, 0.25, 'sine', 0.1), stamp: () => { tone(660, 660, 0.1, 'square', 0.06); tone(990, 990, 0.2, 'square', 0.06, 0.1); }, nope: () => tone(260, 200, 0.15, 'square', 0.05) };
 // ---- music: a small island-lounge loop, synthesized like everything else: marimba melody with echo, a soft pad,
 // a plucked bass and a shaker; at night the shaker drops out, the melody goes down an octave and plays half as often ----
@@ -761,6 +826,9 @@ function drawEntity(e, x, y, t, D) {
     if (im) g.drawImage(im, Math.round(fx - ax), Math.round(fy - ay)); else sprite('hut-hut', x, y + 10, { scale: 2 });
     glow(fx + (big ? 0 : 24), fy - 48, 22 + 12 * D.lamp, '#f0c070', D.lamp);
     if (giftReady()) { const by = fy - top - Math.abs(Math.sin(t * 4)) * 3; x = big ? fx + 40 : fx; glow(x, by, 8, '#f6d48a', 0.7); ell(x, by, 2.5, 2.5, C.gold); text('gift! tap', x, by - 8, C.gold, 7, 'center'); } return; }
+  if (e.kind === 'nut') { const n = e.n, w = center(n.r, n.c), k = Math.min(1, n.t / 0.75), fx = n.x + (w.x - n.x) * k, fy = n.y + (w.y - n.y) * k * k, bounce = n.t >= 0.75 && n.t < 1 ? -Math.sin((n.t - 0.75) / 0.25 * Math.PI) * 4 : 0, [sx, sy] = scr(fx, fy + bounce);
+    if (n.t >= 1) ell(sx, sy + 3, 5, 2, '#00000044'); if (!sprite('nut', sx, sy + 4)) { ell(sx, sy, 4, 4, '#6b4a2a'); ell(sx - 1, sy - 1, 1.5, 1.5, '#9a7a52'); } return; }
+  if (e.kind === 'croc') { drawCroc(x, y, t); return; }
   if (e.kind === 'buyer') { const s = S.sale, ease = k => k * k * (3 - 2 * k), k = s.phase === 'arrive' ? 1 - ease(Math.min(1, s.t / 4)) : s.phase === 'leave' ? ease(Math.min(1, s.t / 5)) : 0, bx = x + 10 - k * 380, by = y + 6 + k * 150 - Math.sin(k * Math.PI) * 20, bob = Math.sin(t * 2) * 1.5;
     if (k > 0.02 && Math.random() < 0.6) A.particles.push({ x: bx + (s.phase === 'leave' ? 24 : -24), y: by + 4, vx: rnd(-8, 8), vy: rnd(-6, 2), life: 0.6, color: '#e8f4ff' });
     ell(bx, by + 4, 20, 6, '#00000044'); sprite(s.phase === 'leave' ? 'customer-happy' : 'customer-wait', bx, by + 8 + bob, { flip: s.phase !== 'leave' });
@@ -827,15 +895,15 @@ function drawEntity(e, x, y, t, D) {
           g.globalAlpha = 0.25; g.save(); g.translate(Math.round(x + fx), Math.round(fy + 3)); g.scale(0.42, 0.2); g.drawImage(im, -im.width / 2, -im.height); g.restore(); g.globalAlpha = 1;
           sprite(im, x + fx, fy, { scale: 0.42, flip: v > 0, alpha: 0.9 }); }
         g.restore(); }
-      if (o.fed && it.id === 'crabpen') { const fx = x, fy = y - 18; g.save(); g.beginPath(); g.moveTo(fx, fy - 20); g.lineTo(fx + 40, fy); g.lineTo(fx, fy + 20); g.lineTo(fx - 40, fy); g.closePath(); g.clip();
-        for (const k of [...crabsOf(o)].sort((a, b) => (a.u + a.v) - (b.u + b.v))) { const step = k.walk ? (Math.floor(k.walk * 8) % 2) : 0;
-          sprite(k.wave > 0 ? 'sea-crab-b' : 'sea-crab-a', Math.round(fx + (k.u - k.v) * 20), Math.round(fy + (k.u + k.v) * 10 + 6 - step), { scale: 0.7, flip: k.face }); }
-        g.restore(); }
+      if (o.fed && it.id === 'crabpen') { const im = tinted('sea-crab-a', '#5a4630'); if (im) for (const k of crabsOf(o)) { const w = Math.round(im.width * 0.7), h = Math.round(im.height * 0.7), cx = Math.round(x + k.dx + k.shift), cy = Math.round(y - 18 + k.dy);
+          ell(cx, cy, 6, 2, '#00000033'); g.save(); g.translate(cx, cy); if (k.face) g.scale(-1, 1); g.drawImage(im, -Math.round(w / 2), -h, w, h); g.restore(); } }
       const ty = it.id === 'crabpen' ? y - 92 : y - 30;
       if (done) { glow(x, ty, 10, '#f6d48a', 0.7); ell(x, ty - Math.abs(Math.sin(t * 4)) * 3, 3, 3, C.gold); } else if (!o.fed) text(it.id === 'fishcage' ? 'tap: stock' : 'tap: feed', x, ty + 4, C.sand, 7, 'center'); return; }
     if (it.id === 'dog') { sprite('dog-bed', x, y + 6); return; }
     if (it.id === 'generator') { sprite('shed-gen', x, y + 10); if (Math.random() < 0.05) A.particles.push({ x: x + 8, y: y - 44, vx: rnd(-4, 4), vy: -15, life: 1, color: '#9a9a9a' }); return; }
-    sprite(it.sprite, x, y + (it.id === 'cat' ? 5 : 10), { scale: it.id === 'cat' ? 0.5 : 1 }); if (it.id === 'lantern') glow(x + 8, y - 52, 20 + 14 * D.lamp, '#f0c070', D.lamp + 0.05); return;
+    if (ANIM[it.id] && ANIM[it.id](x, y + 10, o.r * 1.7 + o.c * 2.3)) return;
+    if (it.id === 'cat') { const im = ready('bld-cat'); if (im) { const b = 1 + 0.04 * Math.sin(t * 2 + o.r); g.drawImage(im, Math.round(x - im.width / 4), Math.round(y + 5 - im.height / 2 * b), Math.round(im.width / 2), Math.round(im.height / 2 * b)); } return; } // breathing
+    sprite(it.sprite, x, y + 10); if (it.id === 'lantern') glow(x + 8, y - 52, 20 + 14 * D.lamp, '#f0c070', D.lamp + 0.05); return;
   }
   if (e.kind === 'plot') {
     const p = e.p, sp = species(p.sp), f = growth(p);
@@ -862,7 +930,8 @@ function drawWorld(t, D) {
   if (S.build) { const it = item(S.build); g.globalAlpha = 0.25; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (canPlace(it, r, c)) { const [x, y] = tilePos(r, c); diamond(x, y); g.fillStyle = C.gold2; g.fill(); } g.globalAlpha = 1; }
   if (S.step === 0 && !S.pick && !S.build) { const [x, y] = tilePos(FR0 + 1, FC0 + 1); arrow(x, y - 8); }
   // entities, back to front
-  const ents = [...(S.sale ? [{ kind: 'buyer', r: DOCK.r, c: DOCK.c }] : []), ...(DOG ? [{ kind: 'dog', r: DOG.r, c: DOG.c }] : []), { kind: 'hut', r: HUT.r, c: HUT.c }, { kind: 'tank', r: TANK.r, c: TANK.c }, { kind: 'farmer', r: F.r, c: F.c }, ...WK.map(w => ({ kind: 'worker', w, r: w.r, c: w.c })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => { const k = item(o.id).on === 'pen' ? 0.5 : 0; return { kind: 'obj', o, r: o.r + k, c: o.c + k }; })];
+  const ents0 = CROC ? [{ kind: 'croc', r: CROC.r, c: CROC.c }] : []; for (const n of NUTS) ents0.push({ kind: 'nut', n, r: n.r, c: n.c });
+  const ents = [...ents0, ...(S.sale ? [{ kind: 'buyer', r: DOCK.r, c: DOCK.c }] : []), ...(DOG ? [{ kind: 'dog', r: DOG.r, c: DOG.c }] : []), { kind: 'hut', r: HUT.r, c: HUT.c }, { kind: 'tank', r: TANK.r, c: TANK.c }, { kind: 'farmer', r: F.r, c: F.c }, ...WK.map(w => ({ kind: 'worker', w, r: w.r, c: w.c })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => { const k = item(o.id).on === 'pen' ? 0.5 : 0; return { kind: 'obj', o, r: o.r + k, c: o.c + k }; })];
   for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (S.plots[r][c]) ents.push({ kind: 'plot', p: S.plots[r][c], r, c });
   ents.sort((a, b) => (a.r + a.c) - (b.r + b.c));
   for (const e of ents) { const p = center(e.r, e.c), [x, y] = scr(p.x, p.y); if (x < -120 || x > W + 120 || y < -140 || y > H + 60) continue; drawEntity(e, x, y, t, D); }
@@ -918,7 +987,7 @@ function drawBuild() {
   else text('pick something to build', W / 2, y0 - 6, C.sand, 7, 'center');
 }
 function drawAlbum() {
-  const w = 54, cols = 5, x0 = W - 6 - cols * w, y0 = 22; panelBox(x0 - 6, y0, cols * w + 12, 130);
+  const w = 54, cols = 5, x0 = W - 6 - cols * w, y0 = 22; panelBox(x0 - 6, y0, cols * w + 12, 22 + Math.ceil(ALBUM.length / cols) * 56);
   const found = ALBUM.filter(a => S.album[a.id]).length; text(`Album  ${found}/${ALBUM.length}`, x0, y0 + 12, C.gold2, 8);
   ALBUM.forEach((a, i) => {
     const x = x0 + (i % cols) * w + w / 2, y = y0 + 18 + Math.floor(i / cols) * 56, n = S.album[a.id] || 0, im = a.icon();
