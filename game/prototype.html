@@ -22,16 +22,22 @@ const SP = [ // oyster species: grow seconds, spat price, sale, xp, unlock level
   { id: 'belon',    name: 'Belon',    time: 12 * 3600, cost: 500, sell: 3500, xp: 400, lvl: 8, tint: '#c9a96e' },
 ];
 const ITEMS = [ // buildable: on land or sea; pens have a feed→wait→collect cycle; effects are read where they apply
-  { id: 'lantern',  name: 'Lantern',     cost: 60,   xp: 5,   lvl: 1, on: 'land', sprite: 'bld-lantern' },
+  { id: 'lantern',  name: 'Lantern',     cost: 60,   xp: 5,   lvl: 1, on: 'land', sprite: 'bld-lantern', note: 'withers 25% slower' },
   { id: 'fishcage', name: 'Fish cage',   cost: 150,  xp: 10,  lvl: 2, on: 'sea',  sprite: 'pen-fishcage', pen: { feed: 20, time: 20 * 60, sell: 90, xp: 15, what: 'fish' } },
-  { id: 'bench',    name: 'Bench',       cost: 80,   xp: 6,   lvl: 2, on: 'land', sprite: 'bld-bench' },
-  { id: 'palm',     name: 'Palm',        cost: 120,  xp: 10,  lvl: 2, on: 'land', sprite: 'bld-palm' },
+  { id: 'bench',    name: 'Bench',       cost: 80,   xp: 6,   lvl: 2, on: 'land', sprite: 'bld-bench', note: '+1 quest a day' },
+  { id: 'palm',     name: 'Palm',        cost: 120,  xp: 10,  lvl: 2, on: 'land', sprite: 'bld-palm', note: '+5% sales each, max 3' },
   { id: 'crabpen',  name: 'Crab pen',    cost: 250,  xp: 15,  lvl: 3, on: 'land', sprite: 'pen-crabpen', pen: { feed: 40, time: 3600, sell: 220, xp: 35, what: 'crabs' } },
   { id: 'stall',    name: 'Market',      cost: 500,  xp: 40,  lvl: 3, on: 'land', sprite: 'bld-stall', note: '+10% sales' },
-  { id: 'flag',     name: 'Flag',        cost: 200,  xp: 15,  lvl: 3, on: 'land', sprite: 'bld-flag' },
-  { id: 'cat',      name: 'Cat',         cost: 300,  xp: 25,  lvl: 4, on: 'land', sprite: 'bld-cat' },
+  { id: 'flag',     name: 'Flag',        cost: 200,  xp: 15,  lvl: 3, on: 'land', sprite: 'bld-flag', note: 'sampan 20% faster' },
+  { id: 'cat',      name: 'Cat',         cost: 300,  xp: 25,  lvl: 4, on: 'land', sprite: 'bld-cat', note: 'rare finds 2× likelier' },
   { id: 'shed',     name: 'Shed',        cost: 800,  xp: 60,  lvl: 5, on: 'land', sprite: 'bld-shed', note: 'withers 2× slower' },
   { id: 'cellar',   name: 'NILA cellar', cost: 400,  xp: 50,  lvl: 5, on: 'sea',  sprite: 'cellar', pen: { feed: 100, time: 6 * 3600, sell: 0, xp: 300, what: 'bottle', win: true } },
+];
+const FIX = 20, BREAK_MS = 30 * 60 * 1000, MAX_BROKEN = 4; // a plank breaks every 30 real minutes, up to 4 holes
+const WORKERS = [ // hired at the hut; one-off cost, they work forever
+  { id: 'harvester', name: 'Harvester',  cost: 400, lvl: 3, tint: '#7fb8d8', note: 'harvests & clears' },
+  { id: 'keeper',    name: 'Pen keeper', cost: 700, lvl: 4, tint: '#a8d8a0', note: 'feeds & collects pens' },
+  { id: 'carpenter', name: 'Carpenter',  cost: 600, lvl: 4, tint: '#f1c4cf', note: 'fixes broken planks' },
 ];
 const EXPAND = { 4: [150, 2], 5: [500, 4], 6: [1500, 6], 7: [4000, 8] };
 const ALBUM = [ // collection book entries; counts live in S.album
@@ -49,21 +55,24 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 // ---- map: a kelong island top-left, a deck, the raft growing to the lower right ----
 const land = (r, c) => r >= 1 && c >= 1 && r <= 6 && c <= 6 && r + c <= 10;
-const grass = (r, c) => land(r, c) && r <= 5 && c <= 5 && r + c <= 8;
 const deck = (r, c) => r === 4 && c === 7;
 const raft = (r, c) => r >= R0 && c >= C0 && r < R0 + S.n && c < C0 + S.n;
 const raftZone = (r, c) => r >= R0 && c >= C0 && r < R0 + MAXN && c < C0 + MAXN;
 const HUT = { r: 2, c: 2 }; // 2×2 footprint ending at this tile
 const hutTile = (r, c) => r >= 1 && r <= 2 && c >= 1 && c <= 2;
-const walkable = (r, c) => land(r, c) || deck(r, c) || raft(r, c);
+const isBroken = (r, c) => S.broken.some(([i, j]) => i === r && j === c);
+const walkable = (r, c) => (land(r, c) && !isBroken(r, c)) || deck(r, c) || raft(r, c);
 const inMap = (r, c) => r >= 0 && c >= 0 && r < MAP && c < MAP;
 
 const S = load() || {
   cash: 40, xp: 0, level: 1, n: 3, plots: Array.from({ length: MAXN }, () => Array(MAXN).fill(null)),
   objs: [], bottles: 0, won: false, step: 0, quests: [], questDay: '', stats: { harvest: {}, collect: 0, built: 0 },
-  farmer: { r: 3, c: 4 }, cam: null, album: {}, boat: { out: null, trip: 0 },
+  farmer: { r: 3, c: 4 }, cam: null, album: {}, boat: { out: null, trip: 0 }, broken: [], lastBreak: Date.now(),
 };
+S.broken = S.broken || []; S.lastBreak = S.lastBreak || Date.now();
 S.album = S.album || {}; S.boat = S.boat || { out: null, trip: 0 };
+const actor = w => Object.assign({ queue: [], walk: 0, back: false, flip: false, moving: false, think: 0 }, w);
+const WK = (S.workers || []).map(actor); S.workers = WK;
 Object.assign(S, { t: daySeconds * 0.75, pick: null, build: null, panel: null });
 const F = Object.assign({ tr: null, tc: null, queue: [], walk: 0, back: false, flip: false, moving: false }, S.farmer); S.farmer = F;
 const cam = S.cam || { x: 60, y: 150 }; S.cam = cam;
@@ -74,7 +83,7 @@ for (let i = 0; i < 3; i++) A.gulls.push({ x: rnd(0, W), y: rnd(20, 120), v: rnd
 [['cloud1', 40, 40, 3], ['cloud2', 300, 70, 2], ['cloud3', 520, 30, 4]].forEach(([k, x, y, v]) => A.clouds.push({ k, x, y, v }));
 
 function load() { try { return JSON.parse(localStorage.getItem('indigo-farm-v2')); } catch { return null; } }
-function save() { try { const { t, pick, build, panel, ...rest } = S; rest.farmer = { r: F.r, c: F.c }; localStorage.setItem('indigo-farm-v2', JSON.stringify(rest)); } catch {} }
+function save() { try { const { t, pick, build, panel, ...rest } = S; rest.farmer = { r: F.r, c: F.c }; rest.workers = WK.map(w => ({ id: w.id, r: w.r, c: w.c })); localStorage.setItem('indigo-farm-v2', JSON.stringify(rest)); } catch {} }
 
 // ---- sprites ----
 const IMG = {};
@@ -84,14 +93,16 @@ const IMG = {};
   'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-gull-a', 'sea-gull-b', 'sea-jelly-a', 'sea-jelly-b', 'sc-cloud1', 'sc-cloud2', 'sc-cloud3',
 ].forEach(n => { const im = new Image(); im.src = `sprites/${n}.png`; IMG[n] = im; });
 const cv = document.getElementById('c'), g = cv.getContext('2d');
-g.imageSmoothingEnabled = false;
+// backing store at an integer multiple of 640×360 so text renders sharp; sprites stay blocky via nearest sampling
+function fit() { const k = Math.min(4, Math.max(1, Math.ceil(cv.getBoundingClientRect().width * devicePixelRatio / W))); cv.width = W * k; cv.height = H * k; g.setTransform(k, 0, 0, k, 0, 0); g.imageSmoothingEnabled = false; }
+fit(); addEventListener('resize', fit);
 const hits = [];
 const hit = (x, y, w, h, fn) => hits.push({ x, y, w, h, fn });
 const ready = n => { const im = IMG[n]; return im && im.complete && im.naturalWidth ? im : null; };
-function text(s, x, y, color = C.sand, size = 8, align = 'left') { g.font = `${size}px monospace`; g.textAlign = align; g.fillStyle = '#0c0c0e'; g.fillText(s, x + 1, y + 1); g.fillStyle = color; g.fillText(s, x, y); g.textAlign = 'left'; }
+function text(s, x, y, color = C.sand, size = 8, align = 'left') { size = Math.max(size, 7); g.font = `${size}px monospace`; g.textAlign = align; g.fillStyle = '#0c0c0e'; g.fillText(s, x + 1, y + 1); g.fillStyle = color; g.fillText(s, x, y); g.textAlign = 'left'; }
 function ell(x, y, rx, ry, color) { g.fillStyle = color; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill(); }
 function sprite(name, x, y, { flip = false, alpha = 1, scale = 1 } = {}) {
-  const im = ready(name); if (!im) return false;
+  const im = typeof name === 'string' ? ready(name) : name; if (!im) return false;
   g.save(); g.globalAlpha = alpha; g.translate(Math.round(x), Math.round(y)); if (flip) g.scale(-1, 1);
   g.drawImage(im, -Math.round(im.width * scale / 2), -Math.round(im.height * scale), im.width * scale, im.height * scale); g.restore(); return true;
 }
@@ -109,7 +120,7 @@ function pop(x, y, color, n = 8) { for (let i = 0; i < n; i++) A.particles.push(
 function hop(im, x, y) { if (im) A.hops.push({ im, x, y, vy: -90, life: 0.9 }); } // a sprite that jumps up and fades (harvest, crate)
 function collect(id, n = 1) { const first = !S.album[id]; S.album[id] = (S.album[id] || 0) + n; if (first) { const e = ALBUM.find(a => a.id === id); float(`New in album: ${e ? e.name : id}`, W / 2, 120, C.gold, 10, true); SFX.stamp(); } }
 function rollRare(wx, wy) {
-  for (const [id, r] of Object.entries(RARE)) if (Math.random() < r.odds) { S.cash += r.cash; collect(id); hop(ready(r.sprite), wx, wy); float(`${r.label}! +S$${r.cash}`, wx, wy - 40, C.gold, 10); return; }
+  for (const [id, r] of Object.entries(RARE)) if (Math.random() < r.odds * (has('cat') ? 2 : 1)) { S.cash += r.cash; collect(id); hop(ready(r.sprite), wx, wy); float(`${r.label}! +S$${r.cash}`, wx, wy - 40, C.gold, 10); return; }
 }
 function fmt(s) { s = Math.max(0, Math.ceil(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h}h ${m}m` : m ? `${m}m ${s % 60}s` : `${s}s`; }
 
@@ -126,10 +137,10 @@ function diamond(x, y, w = TW, h = TH) { g.beginPath(); g.moveTo(x, y - h / 2); 
 const species = id => SP.find(s => s.id === id);
 const item = id => ITEMS.find(i => i.id === id);
 const objAt = (r, c) => S.objs.find(o => o.r === r && o.c === c);
-const has = id => S.objs.some(o => o.id === id);
+const has = id => S.objs.some(o => o.id === id), count = id => S.objs.filter(o => o.id === id).length;
 const growth = p => (Date.now() - p.at) / 1000 / species(p.sp).time;
-const withered = p => growth(p) >= 1 + 2 * (has('shed') ? 2 : 1);
-const sellMul = () => has('stall') ? 1.1 : 1;
+const withered = p => growth(p) >= 1 + 2 * (has('shed') ? 2 : 1) * (has('lantern') ? 1.25 : 1);
+const sellMul = () => (has('stall') ? 1.1 : 1) + 0.05 * Math.min(3, count('palm'));
 
 // ---- farmer: walks in a straight line to the task tile, then does it ----
 // ponytail: no pathfinding; island + deck + raft are convex enough that straight lines rarely cross open sea. BFS if it bothers anyone.
@@ -138,11 +149,33 @@ function nearestWalkable(r, c) {
   for (let i = 0; i < MAP; i++) for (let j = 0; j < MAP; j++) if (walkable(i, j) && !hutTile(i, j)) { const d = Math.abs(i - r) + Math.abs(j - c); if (d < bd) { bd = d; best = [i, j]; } }
   return best;
 }
-function go(r, c, fn) { const [tr, tc] = nearestWalkable(r, c); F.queue.push({ tr, tc, fn }); }
-function stepFarmer(dt) {
+function go(r, c, fn, who = F) { const [tr, tc] = nearestWalkable(r, c); who.queue.push({ tr, tc, fn }); }
+const head = who => { const w = center(who.r, who.c), [x, y] = scr(w.x, w.y); return [x, y - 46]; };
+// walk to a free tile next to (r,c), face it, then "work" for a moment before fn fires
+function goBeside(r, c, fn, who = F) {
+  const nb = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => [r + a, c + b]).filter(([i, j]) => walkable(i, j) && !objAt(i, j) && !hutTile(i, j));
+  const [tr, tc] = nb.length ? nb.sort((a, b) => Math.hypot(a[0] - who.r, a[1] - who.c) - Math.hypot(b[0] - who.r, b[1] - who.c))[0] : nearestWalkable(r, c);
+  who.queue.push({ tr, tc, fn, face: [r, c], act: 0.8 });
+}
+// shortest tile path over land/deck/raft (BFS, 4-neighbour); null if unreachable
+function path(r0, c0, r1, c1) {
+  const ok = (r, c) => inMap(r, c) && walkable(r, c) && !hutTile(r, c), key = (r, c) => r * MAP + c, prev = new Map([[key(r0, c0), null]]), q = [[r0, c0]];
+  while (q.length) { const [r, c] = q.shift(); if (r === r1 && c === c1) { const out = []; for (let k = key(r, c); k !== null; k = prev.get(k)) out.unshift([Math.floor(k / MAP), k % MAP]); return out.slice(1); }
+    for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nr = r + a, nc = c + b; if (ok(nr, nc) && !prev.has(key(nr, nc))) { prev.set(key(nr, nc), key(r, c)); q.push([nr, nc]); } } }
+  return null;
+}
+function stepActor(dt, F) {
   if (!F.queue.length) { F.moving = false; return; }
-  const q = F.queue[0], dr = q.tr - F.r, dc = q.tc - F.c, d = Math.hypot(dr, dc);
-  if (d < 0.05) { F.r = q.tr; F.c = q.tc; F.queue.shift(); q.fn(); save(); return; }
+  const q = F.queue[0];
+  if (!q.path) { const p = path(Math.round(F.r), Math.round(F.c), q.tr, q.tc); if (!p) { F.queue.shift(); float('fix the planks first', ...head(F), C.pink); SFX.nope(); return; } q.path = p; }
+  const [wr, wc] = q.path.length ? q.path[0] : [q.tr, q.tc], dr = wr - F.r, dc = wc - F.c, d = Math.hypot(dr, dc);
+  if (d < 0.05 && q.path.length) { F.r = wr; F.c = wc; q.path.shift(); return; }
+  if (d < 0.05) {
+    F.r = q.tr; F.c = q.tc; F.moving = false;
+    if (q.face) { const sx = q.face[1] - q.tc - (q.face[0] - q.tr), sy = q.face[1] - q.tc + (q.face[0] - q.tr); F.back = sy < 0; F.flip = sx < 0; }
+    if (q.act > 0) { q.act -= dt; F.walk += dt; F.working = true; if (Math.random() < 0.3) { const w = center(q.face[0], q.face[1]), [px, py] = scr(w.x, w.y); A.particles.push({ x: px + rnd(-8, 8), y: py - 14, vx: rnd(-10, 10), vy: rnd(-40, -10), life: 0.5, color: '#a8884f' }); } return; }
+    F.working = false; F.queue.shift(); q.fn(); save(); return;
+  }
   const st = Math.min(d, WALK * dt); F.r += dr / d * st; F.c += dc / d * st; F.moving = true; F.walk += dt;
   const sx = dc - dr, sy = dc + dr; F.back = sy < 0; F.flip = sx < 0;
 }
@@ -151,12 +184,14 @@ function stepFarmer(dt) {
 function tapTile(r, c) {
   if (S.build) return place(r, c);
   if (r === BOAT.r && c === BOAT.c) return tapBoat();
+  if (hutTile(r, c)) return tapHut();
+  if (isBroken(r, c)) return fixPlank(r, c);
   const o = objAt(r, c); if (o) return tapObj(o);
   if (raft(r, c)) {
     const pr = r - R0, pc = c - C0, p = S.plots[pr][pc], [x, y] = tilePos(r, c);
     if (!p) { S.pick = { r, c }; SFX.pop(); }
     else if (withered(p)) go(r, c, () => { S.plots[pr][pc] = null; pop(x, y, C.grey, 6); float('cleared', x, y - 20, C.grey); SFX.splash(); });
-    else if (growth(p) >= 1) go(r, c, () => harvest(pr, pc));
+    else if (growth(p) >= 1) go(r, c, () => harvest(pr, pc, F));
     else { float(fmt(species(p.sp).time - (Date.now() - p.at) / 1000), x, y - 22, C.sand); SFX.chomp(); }
   } else if (raftZone(r, c) && r < R0 + S.n + 1 && c < C0 + S.n + 1 && S.n < MAXN) expand();
 }
@@ -167,11 +202,11 @@ function plant(sp) {
   S.cash -= sp.cost; S.pick = null; SFX.pop();
   go(r, c, () => { S.plots[r - R0][c - C0] = { sp: sp.id, at: Date.now() }; pop(x, y, '#9ad0e0', 6); SFX.splash(); if (S.step === 0) S.step = 1; });
 }
-function harvest(pr, pc) {
+function harvest(pr, pc, who = F) {
   const p = S.plots[pr][pc]; if (!p || growth(p) < 1 || withered(p)) return;
   const sp = species(p.sp), [x, y] = tilePos(pr + R0, pc + C0), cash = Math.round(sp.sell * sellMul());
   const wp = center(pr + R0, pc + C0);
-  S.plots[pr][pc] = null; S.cash += cash; pop(x, y - 8, C.gold2); hop(tinted('oyster-fat-idle', sp.tint), wp.x, wp.y); float(`+S$${cash}`, x, y - 24); float(`+${sp.xp}xp`, x, y - 14, '#9ad0e0', 7); SFX.coin();
+  S.plots[pr][pc] = null; S.cash += cash; pop(x, y - 8, C.gold2); hop(tinted('oyster-fat-idle', sp.tint), wp.x, wp.y); const [hx, hy] = head(who); float(`+S$${cash}`, hx, hy, C.gold, 10); float(`+${sp.xp}xp`, hx, hy + 10, '#9ad0e0', 7); SFX.coin();
   S.stats.harvest[sp.id] = (S.stats.harvest[sp.id] || 0) + 1; collect(sp.id); rollRare(wp.x, wp.y); if (S.step === 1) S.step = 2; gainXp(sp.xp); checkQuests();
 }
 function gainXp(n) {
@@ -189,37 +224,85 @@ function expand() {
 }
 function canPlace(it, r, c) {
   if (!inMap(r, c) || objAt(r, c) || hutTile(r, c) || deck(r, c) || (r === BOAT.r && c === BOAT.c)) return false;
-  return it.on === 'land' ? land(r, c) : !land(r, c) && !raftZone(r, c);
+  return it.on === 'land' ? land(r, c) && !isBroken(r, c) : !land(r, c) && !raftZone(r, c);
 }
 function place(r, c) {
   const it = item(S.build), [x, y] = tilePos(r, c);
-  if (!canPlace(it, r, c)) { SFX.nope(); return float(it.on === 'land' ? 'needs land' : 'needs open sea', x, y - 10, C.pink); }
+  if (!canPlace(it, r, c)) { SFX.nope(); return float(it.on === 'land' ? 'needs the platform' : 'needs open sea', x, y - 10, C.pink); }
   if (S.cash < it.cost) { SFX.nope(); return float("Not enough $", x, y - 10, C.pink); }
-  S.cash -= it.cost; S.objs.push({ id: it.id, r, c, fed: null }); S.build = null; S.stats.built++;
+  S.cash -= it.cost; S.objs.push({ id: it.id, r, c, fed: null }); S.build = null; S.stats.built++; refreshQuests();
   pop(x, y, C.gold2, 10); float(`+${it.xp}xp`, x, y - 20, '#9ad0e0'); SFX.stamp(); gainXp(it.xp); checkQuests();
 }
-function tapObj(o) {
+function tapObj(o, who = F) {
   const it = item(o.id), [x, y] = tilePos(o.r, o.c); if (!it.pen) { SFX.chomp(); return float(it.name, x, y - 30, C.sand); }
   const pen = it.pen, left = o.fed ? pen.time - (Date.now() - o.fed) / 1000 : 0;
   if (!o.fed) {
     if (S.cash < pen.feed) { SFX.nope(); return float("Not enough $", x, y - 30, C.pink); }
-    S.cash -= pen.feed; SFX.pop(); go(o.r, o.c, () => { o.fed = Date.now(); pop(x, y - 10, '#9ad0e0', 6); float(pen.win ? 'bottle lowered' : 'fed', x, y - 30, C.sand); SFX.splash(); });
+    S.cash -= pen.feed; SFX.pop(); goBeside(o.r, o.c, () => { o.fed = Date.now(); pop(x, y - 10, '#9ad0e0', 6); float(pen.win ? 'bottle lowered' : 'fed', x, y - 30, C.sand); SFX.splash(); }, who);
   } else if (left > 0) { float(fmt(left), x, y - 30, C.sand); SFX.chomp(); }
-  else go(o.r, o.c, () => {
-    o.fed = null; const cash = Math.round(pen.sell * sellMul()); S.cash += cash; S.stats.collect++;
-    if (pen.win) { S.won = true; S.bottles++; } else { float(`+S$${cash}`, x, y - 34); } collect(pen.what);
-    float(`+${pen.xp}xp`, x, y - 24, '#9ad0e0', 7); pop(x, y - 10, C.gold2); SFX.coin(); gainXp(pen.xp); checkQuests();
+  else goBeside(o.r, o.c, () => {
+    o.fed = null; const cash = Math.round(pen.sell * sellMul()), [hx, hy] = head(who); S.cash += cash; S.stats.collect++;
+    if (pen.win) { S.won = true; S.bottles++; } else { float(`+S$${cash}`, hx, hy, C.gold, 10); } collect(pen.what);
+    float(`+${pen.xp}xp`, hx, hy + 10, '#9ad0e0', 7); pop(x, y - 10, C.gold2); SFX.coin(); gainXp(pen.xp); checkQuests();
   });
 }
 
+// ---- kelong upkeep: planks rot over real time; tap a hole to send someone to fix it ----
+function breakPlanks() {
+  while (Date.now() - S.lastBreak >= BREAK_MS) {
+    S.lastBreak += BREAK_MS; if (S.broken.length >= MAX_BROKEN) continue;
+    const cand = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (land(r, c) && !hutTile(r, c) && !objAt(r, c) && !isBroken(r, c)) cand.push([r, c]);
+    if (cand.length) S.broken.push(cand[Math.floor(Math.random() * cand.length)]);
+  }
+}
+function fixPlank(r, c, who = F) {
+  const [x, y] = tilePos(r, c);
+  if (S.cash < FIX) { SFX.nope(); return float("Not enough $", x, y - 30, C.pink); }
+  S.cash -= FIX; SFX.pop();
+  goBeside(r, c, () => { S.broken = S.broken.filter(([i, j]) => i !== r || j !== c); pop(x, y, '#b8824f', 8); float('fixed', x, y - 24, C.sand); float('+3xp', ...head(who), '#9ad0e0', 7); SFX.stamp(); gainXp(3); }, who);
+}
+
+// ---- hut: home; a once-a-day gift so there is always a reason to come back ----
+const giftReady = () => S.giftDay !== new Date().toDateString();
+function tapHut() { S.panel = S.panel === 'hut' ? null : 'hut'; S.build = null; SFX.pop(); }
+function claimGift() {
+  const [x, y] = tilePos(HUT.r, HUT.c); S.panel = null;
+  if (!giftReady()) { SFX.chomp(); return float('come back tomorrow', x, y - 40, C.sand); }
+  goBeside(HUT.r, HUT.c, () => { const cash = 25 * S.level, xp = 10; S.giftDay = new Date().toDateString(); S.cash += cash; float(`daily gift! +S$${cash}`, x, y - 50, C.gold, 10); float(`+${xp}xp`, x, y - 40, '#9ad0e0', 7); pop(x, y - 20, C.gold2, 12); SFX.coin(); gainXp(xp); });
+}
+
+function hire(i) {
+  const k = WORKERS[i], [x, y] = tilePos(HUT.r, HUT.c);
+  if (WK.some(w => w.id === k.id)) return float('already hired', x, y - 40, C.sand);
+  if (S.level < k.lvl) { SFX.nope(); return float(`level ${k.lvl}`, x, y - 40, C.pink); }
+  if (S.cash < k.cost) { SFX.nope(); return float("Not enough $", x, y - 40, C.pink); }
+  S.cash -= k.cost; WK.push(actor({ id: k.id, r: 3, c: 3 })); S.panel = null; float(`${k.name} hired!`, x, y - 50, C.gold, 10); pop(x, y - 20, C.gold2, 10); SFX.stamp(); save();
+}
+// workers look for a job every 1.5s when idle; nearest job first
+function think(w, dt) {
+  if (w.queue.length || (w.think -= dt) > 0) return; w.think = 1.5;
+  const near = (a, b) => Math.hypot(a.r - w.r, a.c - w.c) - Math.hypot(b.r - w.r, b.c - w.c);
+  if (w.id === 'harvester') {
+    const jobs = []; S.plots.forEach((row, pr) => row.forEach((p, pc) => { if (p && (growth(p) >= 1 || withered(p))) jobs.push({ r: pr + R0, c: pc + C0, pr, pc }); }));
+    const j = jobs.sort(near)[0]; if (!j) return;
+    go(j.r, j.c, () => { if (withered(S.plots[j.pr][j.pc])) { S.plots[j.pr][j.pc] = null; pop(...tilePos(j.r, j.c), C.grey, 6); } else harvest(j.pr, j.pc, w); }, w);
+  } else if (w.id === 'carpenter') {
+    const j = S.broken.map(([r, c]) => ({ r, c })).sort(near)[0]; if (j && S.cash >= FIX) fixPlank(j.r, j.c, w);
+  } else {
+    const done = o => o.fed && Date.now() - o.fed >= item(o.id).pen.time * 1000;
+    const j = S.objs.filter(o => item(o.id).pen && !item(o.id).pen.win && (done(o) || (!o.fed && S.cash >= item(o.id).pen.feed))).sort(near)[0];
+    if (j) tapObj(j, w);
+  }
+}
+
 // ---- sampan: an idle trip; send it out, come back later for a crate ----
-const boatLeft = () => S.boat.out ? BOAT.trips[S.boat.trip].h * 3600 - (Date.now() - S.boat.out) / 1000 : 0;
+const boatLeft = () => S.boat.out ? BOAT.trips[S.boat.trip].h * 3600 * (has('flag') ? 0.8 : 1) - (Date.now() - S.boat.out) / 1000 : 0;
 function tapBoat() {
   const [x, y] = tilePos(BOAT.r, BOAT.c), b = S.boat;
   if (!b.out) { S.panel = S.panel === 'boat' ? null : 'boat'; SFX.pop(); return; }
   if (boatLeft() > 0) { float(`back in ${fmt(boatLeft())}`, x, y - 30, C.sand); SFX.chomp(); return; }
   const tr = BOAT.trips[b.trip]; b.out = null; const cash = Math.round(tr.cash * sellMul() * rnd(0.8, 1.3)), wp = center(BOAT.r, BOAT.c);
-  go(BOAT.r, BOAT.c, () => { S.cash += cash; float(`crate! +S$${cash}`, x, y - 36, C.gold, 10); float(`+${tr.xp}xp`, x, y - 26, '#9ad0e0', 7); pop(x, y - 10, C.gold2, 12); hop(ready('sea-fish2-a'), wp.x, wp.y); SFX.coin(); collect('fish', 1 + tr.h); if (Math.random() < 0.3) rollRare(wp.x, wp.y - 10); gainXp(tr.xp); });
+  go(BOAT.r, BOAT.c, () => { S.cash += cash; float(`crate! +S$${cash}`, ...head(F), C.gold, 10); float(`+${tr.xp}xp`, x, y - 26, '#9ad0e0', 7); pop(x, y - 10, C.gold2, 12); hop(ready('sea-fish2-a'), wp.x, wp.y); SFX.coin(); collect('fish', 1 + tr.h); if (Math.random() < 0.3) rollRare(wp.x, wp.y - 10); gainXp(tr.xp); });
 }
 function sendBoat(i) {
   const tr = BOAT.trips[i], [x, y] = tilePos(BOAT.r, BOAT.c);
@@ -237,14 +320,14 @@ function newQuest() {
   return { k, n: 1, base: S.stats.built, cash: 100, xp: 30, text: 'Build anything' };
 }
 const questProg = q => Math.min(q.n, (q.k === 'harvest' ? (S.stats.harvest[q.sp] || 0) : q.k === 'collect' ? S.stats.collect : S.stats.built) - q.base);
-function refreshQuests() { const day = new Date().toDateString(); if (S.questDay !== day) { S.questDay = day; S.quests = [newQuest(), newQuest(), newQuest()]; } while (S.quests.length < 3) S.quests.push(newQuest()); }
+function refreshQuests() { const day = new Date().toDateString(); if (S.questDay !== day) { S.questDay = day; S.quests = []; } while (S.quests.length < (has('bench') ? 4 : 3)) S.quests.push(newQuest()); }
 function checkQuests() {
   S.quests.forEach((q, i) => { if (questProg(q) >= q.n) { S.cash += q.cash; float(`Quest done! +S$${q.cash} +${q.xp}xp`, W / 2, 90 + i * 12, C.gold, 10, true); SFX.stamp(); S.quests[i] = newQuest(); gainXp(q.xp); } });
 }
 
 // ---- update ----
 function update(dt) {
-  S.t += dt; stepFarmer(dt);
+  S.t += dt; breakPlanks(); stepActor(dt, F); for (const w of WK) { stepActor(dt, w); think(w, dt); }
   for (const f of A.fish) { f.x += f.v * dt; if (f.x > 520) f.x = -520; if (f.x < -520) f.x = 520; if (Math.random() < 0.004) f.v = -f.v; }
   for (const j of A.jelly) { j.y -= 4 * dt; if (j.y < -20) j.y = 520; j.x += Math.sin(S.t + j.ph) * 3 * dt; }
   for (const b of A.gulls) { b.x += b.v * dt; if (b.x > W + 40) b.x = -40; if (b.x < -40) b.x = W + 40; }
@@ -289,19 +372,25 @@ function toggleMute() { muted = !muted; try { localStorage.setItem('indigo-tides
 // ---- draw ----
 function groundTile(r, c, x, y, D, t) {
   if (land(r, c)) {
-    diamond(x, y); g.fillStyle = grass(r, c) ? '#6cc24a' : '#f3dc9c'; g.fill();
-    g.fillStyle = grass(r, c) ? '#8fdc62' : '#fff0c0'; for (let i = 0; i < 5; i++) { const h = Math.sin(r * 12.9 + c * 78.2 + i * 37.7) * 43758.5, k = h - Math.floor(h), h2 = Math.cos(r * 3.1 + c * 9.7 + i * 11.3) * 1234.5, k2 = h2 - Math.floor(h2); g.fillRect(Math.round(x - 20 + k * 40), Math.round(y - 6 + k2 * 12), 2, 1); }
-    g.strokeStyle = '#3e8a3a'; g.lineWidth = 0.5; g.globalAlpha = 0.3; diamond(x, y); g.stroke(); g.globalAlpha = 1;
-    // wet sand where the beach meets water
-    if (!grass(r, c)) for (const [a, b, px, py] of [[1, 0, -TW / 4, TH / 4], [0, 1, TW / 4, TH / 4], [-1, 0, TW / 4, -TH / 4], [0, -1, -TW / 4, -TH / 4]]) if (!land(r + a, c + b)) { g.globalAlpha = 0.25; ell(x + px, y + py, 14, 6, '#8a7448'); g.globalAlpha = 1; }
-    // cliff faces under the island's lower edges: rock, a darker strata line, a wet line at the waterline
+    // kelong: a timber deck on stilts, planks running one way, each board a slightly different brown
+    const h = Math.sin(r * 12.9 + c * 78.2) * 43758.5, k = h - Math.floor(h);
+    diamond(x, y); g.fillStyle = k < 0.33 ? '#b07a4a' : k < 0.66 ? '#a8734a' : '#b8824f'; g.fill();
+    g.strokeStyle = '#6b4330'; g.lineWidth = 1; for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(x - TW / 2 + (i + 3) * TW / 14, y + (i + 3) * TH / 14); g.lineTo(x + (i + 3) * TW / 14, y + TH / 2 - (3 - i) * TH / 14); g.stroke(); }
+    g.strokeStyle = '#5a3a28'; diamond(x, y); g.stroke();
+    if (isBroken(r, c)) { // a hole: sea through it, two snapped boards
+      g.fillStyle = D.sea; g.beginPath(); g.moveTo(x, y - 8); g.lineTo(x + 18, y); g.lineTo(x, y + 8); g.lineTo(x - 18, y); g.closePath(); g.fill();
+      g.strokeStyle = '#4a2e1e'; g.lineWidth = 2; g.beginPath(); g.moveTo(x - 10, y - 4); g.lineTo(x + 2, y + 2); g.moveTo(x + 4, y - 5); g.lineTo(x + 12, y + 3); g.stroke();
+      text(`tap: fix S$${FIX}`, x, y - 12 - Math.abs(Math.sin(t * 4)) * 2, C.pink, 7, 'center');
+    }
+    // stilts: dark timber faces under the lower edges, posts down into the water, a wet line at the waterline
     const CH = 14, face = (x1, y1, x2, y2, col, col2) => {
       g.fillStyle = col; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.lineTo(x2, y2 + CH); g.lineTo(x1, y1 + CH); g.closePath(); g.fill();
-      g.fillStyle = col2; g.beginPath(); g.moveTo(x1, y1 + 5); g.lineTo(x2, y2 + 5); g.lineTo(x2, y2 + 7); g.lineTo(x1, y1 + 7); g.closePath(); g.fill();
+      g.fillStyle = col2; g.beginPath(); g.moveTo(x1, y1 + 3); g.lineTo(x2, y2 + 3); g.lineTo(x2, y2 + 5); g.lineTo(x1, y1 + 5); g.closePath(); g.fill();
       g.fillStyle = '#1f6a90'; g.globalAlpha = 0.5; g.beginPath(); g.moveTo(x1, y1 + CH - 3); g.lineTo(x2, y2 + CH - 3); g.lineTo(x2, y2 + CH); g.lineTo(x1, y1 + CH); g.closePath(); g.fill(); g.globalAlpha = 1;
     };
-    if (!land(r + 1, c)) face(x - TW / 2, y, x, y + TH / 2, '#d9a86a', '#b8844e');
-    if (!land(r, c + 1)) face(x, y + TH / 2, x + TW / 2, y, '#b8844e', '#8f6238');
+    const post = (px, py) => { g.fillStyle = '#3e2616'; g.fillRect(Math.round(px) - 1, Math.round(py), 3, CH + 6); };
+    if (!land(r + 1, c)) { face(x - TW / 2, y, x, y + TH / 2, '#8a5a3a', '#5e3a24'); post(x - TW / 2, y); post(x, y + TH / 2); }
+    if (!land(r, c + 1)) { face(x, y + TH / 2, x + TW / 2, y, '#6e4529', '#4a2c1a'); post(x + TW / 2, y); }
   } else if (deck(r, c)) {
     diamond(x, y); g.fillStyle = C.wood; g.fill(); g.strokeStyle = '#4a3626'; g.lineWidth = 1; for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(x - TW / 2 + (i + 3) * TW / 14, y + (i + 3) * TH / 14 - TH / 2 + TH / 2); g.lineTo(x + (i + 3) * TW / 14 - 0, y + TH / 2 - (3 - i) * TH / 14 + 0); g.stroke(); }
     diamond(x, y); g.stroke();
@@ -342,8 +431,8 @@ function drawRaftFrame(D) {
   }
 }
 function drawEntity(e, x, y, t, D) {
-  if (e.kind === 'hut') { ell(x, y + 8, 52, 20, '#00000033'); sprite('hut-hut', x, y + 10, { scale: 2 }); glow(x - 40, y - 48, 24 + 12 * D.lamp, '#f0c070', D.lamp); return; }
-  if (e.kind === 'farmer') { const n = `farmer-${F.back ? 'back' : 'front'}-${F.moving && Math.floor(F.walk * 6) % 2 ? 'walk' : 'idle'}`, bob = F.moving ? -Math.abs(Math.sin(F.walk * 12)) * 2 : 0; ell(x, y + 2, 9 + bob, 4, '#00000055'); sprite(n, x, y + 2 + bob, { flip: F.flip }); return; }
+  if (e.kind === 'hut') { ell(x, y + 8, 52, 20, '#00000033'); sprite('hut-hut', x, y + 10, { scale: 2 }); glow(x - 40, y - 48, 24 + 12 * D.lamp, '#f0c070', D.lamp); if (giftReady()) { const by = y - 70 - Math.abs(Math.sin(t * 4)) * 3; glow(x, by, 8, '#f6d48a', 0.7); ell(x, by, 2.5, 2.5, C.gold); text('gift! tap', x, y - 78, C.gold, 7, 'center'); } return; }
+  if (e.kind === 'farmer' || e.kind === 'worker') { const a = e.w || F, n = `farmer-${a.back ? 'back' : 'front'}-${(a.moving || a.working) && Math.floor(a.walk * 6) % 2 ? 'walk' : 'idle'}`, bob = a.moving ? -Math.abs(Math.sin(a.walk * 12)) * 2 : 0; ell(x, y + 2, 9 + bob, 4, '#00000055'); sprite(e.w ? tinted(n, WORKERS.find(k => k.id === a.id).tint) : n, x, y + 2 + bob, { flip: a.flip }); return; }
   if (e.kind === 'boat') {
     const b = S.boat, left = boatLeft(), bob = Math.sin(t * 2) * 1.5;
     g.fillStyle = C.wood; g.fillRect(x - 22, y - 12, 3, 16); // mooring post
@@ -388,7 +477,7 @@ function drawWorld(t, D) {
   if (S.build) { const it = item(S.build); g.globalAlpha = 0.25; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (canPlace(it, r, c)) { const [x, y] = tilePos(r, c); diamond(x, y); g.fillStyle = C.gold2; g.fill(); } g.globalAlpha = 1; }
   if (S.step === 0 && !S.pick && !S.build) { const [x, y] = tilePos(R0 + 1, C0 + 1); arrow(x, y - 8); }
   // entities, back to front
-  const ents = [{ kind: 'hut', r: HUT.r, c: HUT.c }, { kind: 'farmer', r: F.r, c: F.c }, { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => ({ kind: 'obj', o, r: o.r, c: o.c }))];
+  const ents = [{ kind: 'hut', r: HUT.r, c: HUT.c }, { kind: 'farmer', r: F.r, c: F.c }, ...WK.map(w => ({ kind: 'worker', w, r: w.r, c: w.c })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => ({ kind: 'obj', o, r: o.r, c: o.c }))];
   for (let r = 0; r < S.n; r++) for (let c = 0; c < S.n; c++) if (S.plots[r][c]) ents.push({ kind: 'plot', p: S.plots[r][c], r: R0 + r, c: C0 + c });
   ents.sort((a, b) => (a.r + a.c) - (b.r + b.c));
   for (const e of ents) { const p = center(e.r, e.c), [x, y] = scr(p.x, p.y); if (x < -120 || x > W + 120 || y < -140 || y > H + 60) continue; drawEntity(e, x, y, t, D); }
@@ -419,7 +508,7 @@ function drawBuild() {
     text(it.name, x, y0 + 54, locked ? C.grey : C.sand, 6, 'center'); text(locked ? `lv ${it.lvl}` : `S$${it.cost}`, x, y0 + 64, locked ? C.grey : S.cash < it.cost ? C.pink : C.gold2, 6, 'center'); g.globalAlpha = 1;
     hit(x - w / 2, y0, w, 70, () => { if (locked) { SFX.nope(); return float(`level ${it.lvl}`, x, y0 - 6, C.pink, 8, true); } S.build = sel ? null : it.id; SFX.pop(); });
   });
-  text(S.build ? `${item(S.build).name}${item(S.build).note ? ' · ' + item(S.build).note : ''} — tap a ${item(S.build).on === 'land' ? 'land' : 'sea'} tile` : 'pick something to build', W / 2, y0 - 6, C.sand, 7, 'center');
+  text(S.build ? `${item(S.build).name}${item(S.build).note ? ' · ' + item(S.build).note : ''} — tap a ${item(S.build).on === 'land' ? 'platform' : 'sea'} tile` : 'pick something to build', W / 2, y0 - 6, C.sand, 7, 'center');
 }
 function drawAlbum() {
   const w = 54, cols = 5, x0 = W - 6 - cols * w, y0 = 22; panelBox(x0 - 6, y0, cols * w + 12, 130);
@@ -431,6 +520,17 @@ function drawAlbum() {
     text(n ? a.name : '???', x, y + 40, n ? (a.rare ? C.gold : C.sand) : C.grey, 6, 'center'); if (n) text(`×${n}`, x, y + 48, C.gold2, 6, 'center');
   });
 }
+function drawHutPanel() {
+  const cards = [{ name: 'Daily gift', sub: giftReady() ? `S$${25 * S.level} · +10xp` : 'claimed today', note: giftReady() ? 'tap to claim' : 'come back tomorrow', fn: claimGift, ok: giftReady() },
+    ...WORKERS.map((k, i) => { const hired = WK.some(w => w.id === k.id), locked = S.level < k.lvl; return { name: k.name, sub: hired ? 'hired' : locked ? `level ${k.lvl}` : `hire S$${k.cost}`, note: k.note, fn: () => hire(i), ok: !hired && !locked && S.cash >= k.cost, tint: k.tint }; })];
+  const w = 130, x0 = W / 2 - cards.length * w / 2, y0 = H / 2 - 44; panelBox(x0 - 6, y0, cards.length * w + 12, 88); text('Kelong hut', W / 2, y0 + 14, C.gold2, 8, 'center');
+  cards.forEach((k, i) => {
+    const x = x0 + i * w + w / 2; g.fillStyle = '#1a2a40'; g.fillRect(x - w / 2 + 6, y0 + 22, w - 12, 58);
+    if (k.tint) sprite(tinted('farmer-front-idle', k.tint), x - 46, y0 + 72);
+    text(k.name, x, y0 + 38, C.sand, 8, 'center'); text(k.sub, x, y0 + 50, k.ok ? C.gold2 : C.grey, 7, 'center'); text(k.note, x, y0 + 64, C.grey, 6, 'center');
+    hit(x - w / 2 + 6, y0 + 22, w - 12, 58, k.fn);
+  });
+}
 function drawBoatPanel() {
   const w = 150, x0 = W / 2 - w, y0 = H / 2 - 40; panelBox(x0 - 6, y0, w * 2 + 12, 80); text('Send the sampan out', W / 2, y0 + 14, C.gold2, 8, 'center');
   BOAT.trips.forEach((tr, i) => {
@@ -440,7 +540,7 @@ function drawBoatPanel() {
   });
 }
 function drawQuests() {
-  panelBox(W - 230, 22, 220, 70); text('Today\'s quests', W - 220, 36, C.gold2, 8);
+  panelBox(W - 230, 22, 220, 34 + 14 * S.quests.length); text('Today\'s quests', W - 220, 36, C.gold2, 8);
   S.quests.forEach((q, i) => { const y = 50 + i * 14, p = questProg(q); text(q.text, W - 220, y, C.sand, 7); text(`${p}/${q.n}`, W - 80, y, p >= q.n ? C.gold : C.grey, 7, 'right'); text(`S$${q.cash} +${q.xp}xp`, W - 18, y, C.gold2, 6, 'right'); });
 }
 function draw() {
@@ -458,6 +558,7 @@ function draw() {
   if (S.panel === 'quests') drawQuests();
   if (S.panel === 'album') drawAlbum();
   if (S.panel === 'boat') drawBoatPanel();
+  if (S.panel === 'hut') drawHutPanel();
   for (const f of A.floaters) if (f.ui) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, f.size, 'center'); } g.globalAlpha = 1;
   g.fillStyle = '#0c0c0eb0'; g.fillRect(0, 0, W, 18);
   text(`S$${S.cash}`, 8, 13, C.gold2, 11);
@@ -497,7 +598,7 @@ cv.addEventListener('pointerup', e => {
   const wx = x - W / 2 + cam.x, wy = y - H / 2 + cam.y; A.ripples.push({ x: wx, y: wy, r: 2, life: 1 }); SFX.splash();
 });
 refreshQuests();
-{ let n = 0; for (const row of S.plots) for (const p of row) if (p && growth(p) >= 1 && !withered(p)) n++; const w = S.plots.flat().filter(p => p && withered(p)).length; if (n || w) setTimeout(() => float(`${n ? `${n} ready` : ''}${n && w ? ', ' : ''}${w ? `${w} withered` : ''} while you were away`, W / 2, 100, C.gold, 10, true), 600); }
+{ breakPlanks(); let n = 0; for (const row of S.plots) for (const p of row) if (p && growth(p) >= 1 && !withered(p)) n++; const w = S.plots.flat().filter(p => p && withered(p)).length, b = S.broken.length; if (n || w || b) setTimeout(() => float([n && `${n} ready`, w && `${w} withered`, b && `${b} planks to fix`].filter(Boolean).join(', ') + ' while you were away', W / 2, 100, C.gold, 10, true), 600); }
 let last = performance.now();
 (function loop(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; update(dt); draw(); requestAnimationFrame(loop); })(last);
 </script>

@@ -15,7 +15,7 @@ Farm-sim, real clock, drag to look around, tap to act. Oysters grow while the ta
 1. **Plant**: tap an empty raft plot, pick a species from the strip, pay the spat price. The farmer walks over and drops it in.
 2. **Wait**: each species has a real-clock timer: Rock 1 min, Pacific 5 min, Kumamoto 30 min, Pearl 4 h, Belon 12 h. A bar under each oyster shows progress; tap a growing one to see the time left.
 3. **Harvest**: a ready oyster bounces with a gold dot. Tap it, the farmer walks over, coins and XP. Leave it twice its grow time past ready and it withers (grey shell, tap to clear, no payout). The shed doubles that grace.
-4. **Build**: the build bar sells lanterns, benches, palms, a flag, a cat (decor and XP), a market (+10% sales), a shed, and two pens: a fish cage on open sea and a crab pen on land. Pens are feed → wait → collect, like a second crop.
+4. **Build**: every item does something, shown in the build bar: lantern (withers 25% slower), bench (+1 quest a day), palm (+5% sales each, max 3), flag (sampan 20% faster), cat (rare finds 2× likelier), market (+10% sales), shed (withers 2× slower), and two pens: a fish cage on open sea and a crab pen on land. Pens are feed → wait → collect, like a second crop; the farmer walks to the tile beside a pen, faces it and tosses feed for a moment before the timer starts.
 5. **Level up and expand**: XP unlocks species and buildings; the raft grows 3×3 → 7×7 for coins at level gates.
 6. **Quests**: three a day, drawn from what the player can actually do ("Harvest 9 Rock", "Collect from pens ×2", "Build anything"), paid in coins and XP.
 7. **Album**: a collection book of every species, pen catch and bottle, plus two rare harvest drops (pearl 1-in-20, gold shell 1-in-100) that pay a bonus. First discovery of anything gets a banner.
@@ -27,19 +27,24 @@ Visual juice (added 2026-11-03): two-tone water shimmer, animated foam where sea
 
 The NILA cellar is a buildable sea object at level 5. Lower a bottle for S$100; it ages one "month" per real hour, crust growing. Six months is the win screen: bottle crusted in oysters, gold text, "Reserve a bottle" (opens nila.wine) and "Keep farming" (lower another; bottle count in the HUD).
 
-On return, a toast says how many oysters finished or withered while you were away. The tutorial is one bouncing "tap" arrow over the first empty plot, then over the first ready oyster.
+The hut is home. Tapping it opens a panel with the daily gift (S$25 × level and 10 XP, once a real day; a bouncing gold dot shows when it is ready) and two workers to hire: a Harvester (S$400, level 3) who harvests ready oysters and clears withered ones, and a Pen keeper (S$700, level 4) who feeds and collects pens, and a Carpenter (S$600, level 4) who fixes planks. Workers are tinted farmer sprites, walk the same paths, pick the nearest job every 1.5 s, and are a one-off cost. Coins earned float above the head of whoever earned them.
+
+The farmer only walks on land, the deck and the raft (breadth-first path over those tiles); the deck is the one bridge from island to raft.
+
+Upkeep, like a real kelong: a plank breaks every 30 real minutes (up to 4 holes). A hole shows the sea through the deck, can't be walked on or built on, and can cut the path to the raft ("fix the planks first"). Tap it, pay S$20, and the farmer walks over and fixes it; a Carpenter (S$600, level 4) does this on his own.
+
+On return, a toast says how many oysters finished or withered, and how many planks broke, while you were away. The tutorial is one bouncing "tap" arrow over the first empty plot, then over the first ready oyster.
 
 ## Not in this version
 
 - Neighbours, gifting, visiting other farms
 - The SFA inspector, depuration bath, customers (could return as events)
 - Breeding and genetics, weather
-- Pathfinding: the farmer walks straight lines (island, deck and raft are near enough convex)
 - Leaderboards, accounts, saving to a server (localStorage is enough)
 
 ## Screen
 
-640×360 logical pixels scaled up, isometric 64×32 tiles on a 16×16 map you drag around. The kelong island sits top-left (grass core, sand rim, hut as a 2×2 object), a one-tile deck joins it to the raft, the raft grows toward the lower right, and open sea around it is where fish cages and the cellar go. Ground tiles are drawn in code; the farmer, buildings, pens and withered oyster are AI-generated then sliced (`sprites/farmer-*`, `bld-*`, `pen-*`, `sp-*`). Top strip: cash, level with XP bar, raft size, bottles, quests and build buttons, mute. Day/night is a colour tint over the whole scene plus lantern and buoy glows.
+640×360 logical pixels scaled up, isometric 64×32 tiles on a 16×16 map you drag around. The kelong sits top-left: a timber platform on stilts over open water, like the real Singapore kelongs (planks in code, dark stilt faces and posts under the lower edges, hut as a 2×2 object), a one-tile deck joins it to the raft, the raft grows toward the lower right, and open sea around it is where fish cages and the cellar go. Ground tiles are drawn in code; the farmer, buildings, pens and withered oyster are AI-generated then sliced (`sprites/farmer-*`, `bld-*`, `pen-*`, `sp-*`). Top strip: cash, level with XP bar, raft size, bottles, quests and build buttons, mute. Day/night is a colour tint over the whole scene plus lantern and buoy glows.
 
 Dusk the whole time: gradient sky, twinkling stars, a low sun with a glitter path on the water, drifting clouds, island silhouettes, gulls. Under the surface: fish of three kinds, jellyfish, rising bubbles, seaweed and rocks on the bed, a crab on the walkway, lamp glow on the hut, ripples where you tap, vignette at the edges. All ambient life is cosmetic and never saved.
 
