@@ -21,6 +21,8 @@ Farm-sim, real clock, drag to look around, tap to act. Oysters grow while the ta
 7. **Album**: a collection book of every species, pen catch and bottle, plus two rare harvest drops (pearl 1-in-20, gold shell 1-in-100) that pay a bonus. First discovery of anything gets a banner.
 8. **Sampan**: an idle trip from the deck. Pay to send it out for 2 or 8 hours; come back for a crate of coins, fish for the album and a chance at a rare. Something is always "due" when the player returns.
 
+Palette (2026-11-03): tropical day is the default look: turquoise sea, lime grass, cream sand, warm cliff faces; dusk is gold, night is deep blue rather than black. Game starts at day.
+
 Visual juice (added 2026-11-03): two-tone water shimmer, animated foam where sea meets island, caustic light drifting over the raft nets, lamp reflections on the water at night, two-tone cliff faces with a wet line under the island, wet sand at the shore, drop shadows under everything, a squash-and-settle when an oyster is planted, and the harvested oyster hops up and fades.
 
 The NILA cellar is a buildable sea object at level 5. Lower a bottle for S$100; it ages one "month" per real hour, crust growing. Six months is the win screen: bottle crusted in oysters, gold text, "Reserve a bottle" (opens nila.wine) and "Keep farming" (lower another; bottle count in the HUD).

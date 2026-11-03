@@ -64,7 +64,7 @@ const S = load() || {
   farmer: { r: 3, c: 4 }, cam: null, album: {}, boat: { out: null, trip: 0 },
 };
 S.album = S.album || {}; S.boat = S.boat || { out: null, trip: 0 };
-Object.assign(S, { t: 0, pick: null, build: null, panel: null });
+Object.assign(S, { t: daySeconds * 0.75, pick: null, build: null, panel: null });
 const F = Object.assign({ tr: null, tc: null, queue: [], walk: 0, back: false, flip: false, moving: false }, S.farmer); S.farmer = F;
 const cam = S.cam || { x: 60, y: 150 }; S.cam = cam;
 const A = { fish: [], jelly: [], bubbles: [], ripples: [], floaters: [], particles: [], gulls: [], clouds: [], hops: [] };
@@ -88,7 +88,7 @@ g.imageSmoothingEnabled = false;
 const hits = [];
 const hit = (x, y, w, h, fn) => hits.push({ x, y, w, h, fn });
 const ready = n => { const im = IMG[n]; return im && im.complete && im.naturalWidth ? im : null; };
-function text(s, x, y, color = C.sand, size = 8, align = 'left') { g.fillStyle = color; g.font = `${size}px monospace`; g.textAlign = align; g.fillText(s, x, y); g.textAlign = 'left'; }
+function text(s, x, y, color = C.sand, size = 8, align = 'left') { g.font = `${size}px monospace`; g.textAlign = align; g.fillStyle = '#0c0c0e'; g.fillText(s, x + 1, y + 1); g.fillStyle = color; g.fillText(s, x, y); g.textAlign = 'left'; }
 function ell(x, y, rx, ry, color) { g.fillStyle = color; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill(); }
 function sprite(name, x, y, { flip = false, alpha = 1, scale = 1 } = {}) {
   const im = ready(name); if (!im) return false;
@@ -163,7 +163,7 @@ function tapTile(r, c) {
 function plant(sp) {
   const { r, c } = S.pick, [x, y] = tilePos(r, c);
   if (S.level < sp.lvl) { SFX.nope(); return float(`level ${sp.lvl}`, x, y - 22, C.pink); }
-  if (S.cash < sp.cost) { SFX.nope(); return float(`need S$${sp.cost}`, x, y - 22, C.pink); }
+  if (S.cash < sp.cost) { SFX.nope(); return float("Not enough $", x, y - 22, C.pink); }
   S.cash -= sp.cost; S.pick = null; SFX.pop();
   go(r, c, () => { S.plots[r - R0][c - C0] = { sp: sp.id, at: Date.now() }; pop(x, y, '#9ad0e0', 6); SFX.splash(); if (S.step === 0) S.step = 1; });
 }
@@ -184,7 +184,7 @@ function gainXp(n) {
 function expand() {
   const [cost, lvl] = EXPAND[S.n + 1], [x, y] = tilePos(R0 + S.n, C0 + S.n);
   if (S.level < lvl) { SFX.nope(); return float(`level ${lvl} to expand`, x, y, C.pink); }
-  if (S.cash < cost) { SFX.nope(); return float(`need S$${cost}`, x, y, C.pink); }
+  if (S.cash < cost) { SFX.nope(); return float("Not enough $", x, y, C.pink); }
   S.cash -= cost; S.n++; float('raft expanded!', x, y, C.gold, 10); SFX.stamp(); pop(x, y, '#9ad0e0', 10);
 }
 function canPlace(it, r, c) {
@@ -194,7 +194,7 @@ function canPlace(it, r, c) {
 function place(r, c) {
   const it = item(S.build), [x, y] = tilePos(r, c);
   if (!canPlace(it, r, c)) { SFX.nope(); return float(it.on === 'land' ? 'needs land' : 'needs open sea', x, y - 10, C.pink); }
-  if (S.cash < it.cost) { SFX.nope(); return float(`need S$${it.cost}`, x, y - 10, C.pink); }
+  if (S.cash < it.cost) { SFX.nope(); return float("Not enough $", x, y - 10, C.pink); }
   S.cash -= it.cost; S.objs.push({ id: it.id, r, c, fed: null }); S.build = null; S.stats.built++;
   pop(x, y, C.gold2, 10); float(`+${it.xp}xp`, x, y - 20, '#9ad0e0'); SFX.stamp(); gainXp(it.xp); checkQuests();
 }
@@ -202,7 +202,7 @@ function tapObj(o) {
   const it = item(o.id), [x, y] = tilePos(o.r, o.c); if (!it.pen) { SFX.chomp(); return float(it.name, x, y - 30, C.sand); }
   const pen = it.pen, left = o.fed ? pen.time - (Date.now() - o.fed) / 1000 : 0;
   if (!o.fed) {
-    if (S.cash < pen.feed) { SFX.nope(); return float(`need S$${pen.feed}`, x, y - 30, C.pink); }
+    if (S.cash < pen.feed) { SFX.nope(); return float("Not enough $", x, y - 30, C.pink); }
     S.cash -= pen.feed; SFX.pop(); go(o.r, o.c, () => { o.fed = Date.now(); pop(x, y - 10, '#9ad0e0', 6); float(pen.win ? 'bottle lowered' : 'fed', x, y - 30, C.sand); SFX.splash(); });
   } else if (left > 0) { float(fmt(left), x, y - 30, C.sand); SFX.chomp(); }
   else go(o.r, o.c, () => {
@@ -223,7 +223,7 @@ function tapBoat() {
 }
 function sendBoat(i) {
   const tr = BOAT.trips[i], [x, y] = tilePos(BOAT.r, BOAT.c);
-  if (S.cash < tr.cost) { SFX.nope(); return float(`need S$${tr.cost}`, x, y - 30, C.pink); }
+  if (S.cash < tr.cost) { SFX.nope(); return float("Not enough $", x, y - 30, C.pink); }
   S.cash -= tr.cost; S.boat = { out: Date.now(), trip: i }; S.panel = null; float(`sampan out for ${tr.h}h`, x, y - 30, C.sand); SFX.splash(); pop(x, y, '#9ad0e0', 8);
 }
 
@@ -259,10 +259,10 @@ function update(dt) {
 
 // ---- day / night ----
 const KEYS = [ // dusk, night, dawn, day: sea deep, sea shallow, overlay colour, overlay alpha, lamp
-  { sea: '#1b2f4e', shallow: '#2f5a80', tint: '#c98a5a', ta: 0.10, lamp: 0.3 },
-  { sea: '#0d1628', shallow: '#1a2e4a', tint: '#0b1024', ta: 0.35, lamp: 0.6 },
-  { sea: '#243a5e', shallow: '#3a6a90', tint: '#e8a070', ta: 0.12, lamp: 0.2 },
-  { sea: '#2a5a8a', shallow: '#4a8ab8', tint: '#cfe3f0', ta: 0.0, lamp: 0 },
+  { sea: '#2a7fb0', shallow: '#4fb3d6', tint: '#ff9a4a', ta: 0.14, lamp: 0.3 },
+  { sea: '#1e4a80', shallow: '#2d6aa8', tint: '#1a2a6e', ta: 0.28, lamp: 0.6 },
+  { sea: '#3a9ac8', shallow: '#62c6e0', tint: '#ffc080', ta: 0.12, lamp: 0.2 },
+  { sea: '#3fb0d8', shallow: '#6fd8ea', tint: '#cfe3f0', ta: 0.0, lamp: 0 },
 ];
 const hex = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
 const mix = (a, b, k) => `rgb(${hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * k)).join(',')})`;
@@ -289,27 +289,27 @@ function toggleMute() { muted = !muted; try { localStorage.setItem('indigo-tides
 // ---- draw ----
 function groundTile(r, c, x, y, D, t) {
   if (land(r, c)) {
-    diamond(x, y); g.fillStyle = grass(r, c) ? '#4f8a5a' : '#d9c89a'; g.fill();
-    g.fillStyle = grass(r, c) ? '#5f9a6a' : '#e8d9b0'; for (let i = 0; i < 5; i++) { const h = Math.sin(r * 12.9 + c * 78.2 + i * 37.7) * 43758.5, k = h - Math.floor(h), h2 = Math.cos(r * 3.1 + c * 9.7 + i * 11.3) * 1234.5, k2 = h2 - Math.floor(h2); g.fillRect(Math.round(x - 20 + k * 40), Math.round(y - 6 + k2 * 12), 2, 1); }
-    g.strokeStyle = '#2c4a38'; g.lineWidth = 0.5; g.globalAlpha = 0.4; diamond(x, y); g.stroke(); g.globalAlpha = 1;
+    diamond(x, y); g.fillStyle = grass(r, c) ? '#6cc24a' : '#f3dc9c'; g.fill();
+    g.fillStyle = grass(r, c) ? '#8fdc62' : '#fff0c0'; for (let i = 0; i < 5; i++) { const h = Math.sin(r * 12.9 + c * 78.2 + i * 37.7) * 43758.5, k = h - Math.floor(h), h2 = Math.cos(r * 3.1 + c * 9.7 + i * 11.3) * 1234.5, k2 = h2 - Math.floor(h2); g.fillRect(Math.round(x - 20 + k * 40), Math.round(y - 6 + k2 * 12), 2, 1); }
+    g.strokeStyle = '#3e8a3a'; g.lineWidth = 0.5; g.globalAlpha = 0.3; diamond(x, y); g.stroke(); g.globalAlpha = 1;
     // wet sand where the beach meets water
     if (!grass(r, c)) for (const [a, b, px, py] of [[1, 0, -TW / 4, TH / 4], [0, 1, TW / 4, TH / 4], [-1, 0, TW / 4, -TH / 4], [0, -1, -TW / 4, -TH / 4]]) if (!land(r + a, c + b)) { g.globalAlpha = 0.25; ell(x + px, y + py, 14, 6, '#8a7448'); g.globalAlpha = 1; }
     // cliff faces under the island's lower edges: rock, a darker strata line, a wet line at the waterline
     const CH = 14, face = (x1, y1, x2, y2, col, col2) => {
       g.fillStyle = col; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.lineTo(x2, y2 + CH); g.lineTo(x1, y1 + CH); g.closePath(); g.fill();
       g.fillStyle = col2; g.beginPath(); g.moveTo(x1, y1 + 5); g.lineTo(x2, y2 + 5); g.lineTo(x2, y2 + 7); g.lineTo(x1, y1 + 7); g.closePath(); g.fill();
-      g.fillStyle = '#2f4a60'; g.globalAlpha = 0.7; g.beginPath(); g.moveTo(x1, y1 + CH - 3); g.lineTo(x2, y2 + CH - 3); g.lineTo(x2, y2 + CH); g.lineTo(x1, y1 + CH); g.closePath(); g.fill(); g.globalAlpha = 1;
+      g.fillStyle = '#1f6a90'; g.globalAlpha = 0.5; g.beginPath(); g.moveTo(x1, y1 + CH - 3); g.lineTo(x2, y2 + CH - 3); g.lineTo(x2, y2 + CH); g.lineTo(x1, y1 + CH); g.closePath(); g.fill(); g.globalAlpha = 1;
     };
-    if (!land(r + 1, c)) face(x - TW / 2, y, x, y + TH / 2, '#9a8458', '#7a6646');
-    if (!land(r, c + 1)) face(x, y + TH / 2, x + TW / 2, y, '#7a6646', '#5e4e36');
+    if (!land(r + 1, c)) face(x - TW / 2, y, x, y + TH / 2, '#d9a86a', '#b8844e');
+    if (!land(r, c + 1)) face(x, y + TH / 2, x + TW / 2, y, '#b8844e', '#8f6238');
   } else if (deck(r, c)) {
     diamond(x, y); g.fillStyle = C.wood; g.fill(); g.strokeStyle = '#4a3626'; g.lineWidth = 1; for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(x - TW / 2 + (i + 3) * TW / 14, y + (i + 3) * TH / 14 - TH / 2 + TH / 2); g.lineTo(x + (i + 3) * TW / 14 - 0, y + TH / 2 - (3 - i) * TH / 14 + 0); g.stroke(); }
     diamond(x, y); g.stroke();
   } else if (raft(r, c)) {
-    diamond(x, y); g.fillStyle = '#2b4a6e'; g.globalAlpha = 0.7; g.fill(); g.globalAlpha = 1;
-    g.strokeStyle = '#4a6a90'; g.lineWidth = 0.7; g.globalAlpha = 0.6; g.beginPath();
+    diamond(x, y); g.fillStyle = '#1f6a9a'; g.globalAlpha = 0.5; g.fill(); g.globalAlpha = 1;
+    g.strokeStyle = '#9ad8ee'; g.lineWidth = 0.7; g.globalAlpha = 0.6; g.beginPath();
     for (let i = 1; i < 4; i++) { const k = i / 4; g.moveTo(x - TW / 2 + k * TW / 2, y - TH / 2 + k * TH / 2); g.lineTo(x + k * TW / 2, y + TH / 2 - k * TH / 2); g.moveTo(x - TW / 2 + k * TW / 2, y + TH / 2 - k * TH / 2); g.lineTo(x + k * TW / 2, y - TH / 2 + k * TH / 2); }
-    g.stroke(); g.globalAlpha = 1; g.strokeStyle = '#1a2a40'; g.lineWidth = 1; diamond(x, y); g.stroke();
+    g.stroke(); g.globalAlpha = 1; g.strokeStyle = '#17507a'; g.lineWidth = 1; diamond(x, y); g.stroke();
     // caustics: slow light blobs drifting over the net
     g.globalAlpha = 0.10; for (let i = 0; i < 3; i++) ell(x + Math.sin(t * 0.7 + i * 2.1 + r) * 14, y + Math.cos(t * 0.5 + i * 1.7 + c) * 6, 6, 3, '#bfe8ff'); g.globalAlpha = 1;
   } else {
@@ -398,7 +398,8 @@ function drawWorld(t, D) {
   for (const h of A.hops) { const [x, y] = scr(h.x, h.y); g.globalAlpha = Math.min(1, h.life * 1.5); g.drawImage(h.im, Math.round(x - h.im.width / 2), Math.round(y - h.im.height)); } g.globalAlpha = 1;
   for (const f of A.floaters) if (!f.ui) { const [x, y] = scr(f.x, f.y); g.globalAlpha = Math.min(1, f.life); text(f.s, x, y, f.color, f.size, 'center'); } g.globalAlpha = 1;
 }
-function panelBox(x, y, w, h) { g.fillStyle = '#0c0c0ee6'; g.fillRect(x, y, w, h); g.strokeStyle = C.deep; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); hit(x, y, w, h, () => {}); }
+function closePanels() { S.panel = null; S.pick = null; S.build = null; }
+function panelBox(x, y, w, h) { if (!S.build) hit(0, 18, W, H - 18, closePanels); g.fillStyle = '#0c0c0ee6'; g.fillRect(x, y, w, h); g.strokeStyle = C.deep; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); hit(x, y, w, h, () => {}); text('×', x + w - 7, y + 9, C.grey, 9, 'center'); hit(x + w - 14, y, 14, 14, closePanels); }
 function drawPicker() {
   const w = 64, x0 = W / 2 - SP.length * w / 2, y0 = 22; panelBox(x0 - 6, y0, SP.length * w + 12, 58);
   SP.forEach((sp, i) => {
@@ -450,7 +451,7 @@ function draw() {
   g.fillStyle = D.tint; g.globalAlpha = D.ta; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
   for (const c of A.clouds) sprite(`sc-${c.k}`, c.x, c.y, { alpha: 0.5, scale: 1.5 });
   for (const b of A.gulls) sprite(Math.floor(t * 6 + b.ph) % 2 ? 'sea-gull-a' : 'sea-gull-b', b.x, b.y + Math.sin(t * 2 + b.ph) * 3, { flip: b.v < 0 });
-  const v = g.createRadialGradient(W / 2, H / 2, 220, W / 2, H / 2, 440); v.addColorStop(0, 'transparent'); v.addColorStop(1, '#00000099'); g.fillStyle = v; g.fillRect(0, 0, W, H);
+  const v = g.createRadialGradient(W / 2, H / 2, 220, W / 2, H / 2, 440); v.addColorStop(0, 'transparent'); v.addColorStop(1, '#00000044'); g.fillStyle = v; g.fillRect(0, 0, W, H);
   // panels and hud
   if (S.pick) drawPicker();
   if (S.panel === 'build') drawBuild();
