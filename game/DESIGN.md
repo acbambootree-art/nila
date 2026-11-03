@@ -47,7 +47,9 @@ On return, a toast says how many oysters finished or withered, and how many plan
 
 **Flooring**: the platform and walkways are drawn as individual sun-bleached grey boards, four per tile, running continuously across the deck with staggered butt joints every 2–3 tiles, dark gaps, faint grain and nail heads; walkway boards run across the direction of travel.
 
-**Little life** (2026-11-04): palm fronds sway, the flag waves, the lantern, wind chimes and hammock swing, the potted plants and the umbrella nod, the cat breathes. Each palm drops a coconut every one to three minutes (at most two lying about); it thuds onto a nearby plank and can be tapped for S$8 and an album entry.
+**Little life** (2026-11-04): palm fronds sway, the flag waves, the lantern, wind chimes and hammock swing, the potted plants and the umbrella nod, the cat breathes. Each palm drops a coconut every one to three minutes (at most two lying about); it thuds onto a nearby plank and can be tapped for S$8 and an album entry. Idle characters within a few tiles wander over, pick it up, and stand drinking it through a straw for a few seconds ("ahh~"). The palm is drawn 1.35× so it reads as a tall coconut palm.
+
+**Dinner** (every evening): from late dusk into the night the crew set up a charcoal grill (satay and a fish on the grate, coals glowing, smoke and sparks, a warm pool of light) on the most open plank near the middle of the platform, with a table of chilli crab, rice, satay and drinks and a few plastic stools. Everyone wraps up what they were doing, gathers round, faces the grill and eats satay off the stick, with the odd "shiok!", "sedap!" or "cheers!"; workers pause their jobs, the dog sits by the grill hoping for scraps, and the coals sizzle. When it gets late it all fades away and they go back to normal. A crocodile visit cancels dinner.
 
 **Crocodile** (rare): every 5–15 minutes, if there is a quiet edge plank at least four tiles from everyone, an estuarine crocodile swims in (only eyes and ridges showing), hauls out, basks for one to two minutes with its jaws opening now and then, and slides back out to sea. People will not walk onto it or rest near it, nobody swims while it is about (swimmers head back), the dog barks at it, and the first sighting is a rare album entry. Saltwater crocodiles really are seen around Pulau Ubin.
 
@@ -61,6 +63,13 @@ On return, a toast says how many oysters finished or withered, and how many plan
 ## Screen
 
 640×360 logical pixels, rendered at an integer multiple for sharp text, isometric 64×32 tiles on a 16×16 map you drag around. Modelled on the real farm off Pulau Ubin (photo `Ourfarm.HEIC`, 2026-11-04): everything floats. The shed platform sits west (grey sun-bleached planks on blue plastic drums, the blue plywood shed with a rusty tin roof as a 2×2 object, a spare drum, the generator once built); the farm grid runs east (walkway lanes every third row and column, 2×2 net pens between them with black mesh and a timber rail where the net hangs). The bumboat moors below the platform and motors out to the lower left. Pulau Ubin's shoreline (rainforest hills, palms, mangrove roots, two stilt houses) sits on the horizon past the north edge, with sky behind it. Ground tiles are drawn in code; characters, shed, generator, drums, bumboat, crates and the shoreline are AI-generated then sliced (`sprites/farmer-*`, `wk-*`, `shed-*`, `boat-bumboat`, `bg-ubin`).
+
+## Sound
+
+Everything is synthesized in the browser; there are no audio files. It starts on the first tap and the note icon in the HUD mutes it all.
+
+- **Music**: an island-lounge loop at 88 BPM in F (Fmaj7, Dm7, B♭maj7, C7): a marimba melody from the F major pentatonic with echo, a soft filtered pad, plucked bass, an off-beat ukulele strum, a shaker and a little bell sparkle. Four phrases (A A B C) so the tune comes back. At night the shaker stops, the strum thins out and the melody drops an octave and plays half as often.
+- **Effects**, MapleStory-style: soft bells and bubbly pops in a major key, never buzzy. A coin is a two-note "tring", building or hiring a quick major arpeggio, levelling up a five-note fanfare, water a sine bloop with a hush of spray, a wrong tap a gentle two-note "uh-uh", the hammer a wooden knock, a coconut a soft bonk, the dog a little woof-woof and the cat a mew.
 
 ## Art direction (custom pixel art)
 

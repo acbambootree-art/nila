@@ -97,6 +97,8 @@ const WORK = {
   fish:    { t: 12, beat: 99, n: 0, y: 0, col: [], sfx: () => {}, tool: null, pose: 'fish' },
   rest:    { t: 10, beat: 99, n: 0, y: 0, col: [], sfx: () => {}, tool: null, pose: 'rest' },
   swim:    { t: 18, beat: 99, n: 0, y: 0, col: [], sfx: () => {}, tool: null, pose: 'swim' },
+  eat:     { t: 999, beat: 99, n: 0, y: 0, col: [], sfx: () => {}, tool: null },
+  drink:   { t: 3.4, beat: 99, n: 0, y: 0, col: [], sfx: () => {}, tool: null },
   mend:    { t: 8,  beat: 99, n: 0, y: 0, col: [], sfx: () => {}, tool: null, pose: 'mend' },
 };
 
@@ -157,7 +159,7 @@ function save() { try { const { t, pick, pickFish, build, panel, tab, moveSel, .
 // ---- sprites ----
 const IMG = {};
 ['oyster-baby-idle', 'oyster-baby-blink', 'oyster-medium-idle', 'oyster-medium-blink', 'oyster-fat-idle', 'oyster-fat-blink', 'sp-withered', 'sp-pearl', 'sp-gold', 'sea-crab-a', 'customer-wait', 'customer-happy',
-  'hut-hut', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'bottle-0', 'bottle-1', 'bottle-2', 'bottle-3', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
+  'hut-hut', 'bbq-grill', 'bbq-table', 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'bottle-0', 'bottle-1', 'bottle-2', 'bottle-3', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
   ...['carpenter', 'keeper', 'harvester'].flatMap(w => ['front-idle', 'front-walk', 'back-idle', 'back-walk', 'work-a', 'work-b', 'idle-fish', 'idle-rest', 'idle-mend', 'swim-a', 'swim-b', 'swim-play', 'swim-float'].map(f => `wk-${w}-${f}`)), 'farmer-idle-fish', 'farmer-idle-rest', 'farmer-idle-mend', 'farmer-swim-a', 'farmer-swim-b', 'farmer-swim-play', 'farmer-swim-float',
   'bld-stall', 'bld-shed', 'bld-lantern', 'bld-flag', 'bld-palm', 'bld-bench', 'bld-cat', 'pen-fishcage-empty', 'pen-fishcage-full', 'pen-crabpen-empty', 'pen-crabpen-full',
   'fish-seabass', 'fish-pomfret', 'fish-snapper', 'fish-grouper', 'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-gull-a', 'sea-gull-b', 'sea-jelly-a', 'sea-jelly-b', 'sc-cloud1', 'sc-cloud2', 'sc-cloud3',
@@ -182,7 +184,7 @@ const swing = (pivx, pivy, amp, speed, ph) => (im, px, py, pw, ph2) => { g.trans
 const wave = (amp, speed) => (im, px, py, pw, ph2) => { const gust = 0.7 + 0.3 * Math.sin(S.t * 0.5); for (let i = 0; i < pw; i++) { const dy = Math.round(amp * gust * Math.sin(i * 0.28 - S.t * speed) * (i / pw)); g.drawImage(im, px + i, py, 1, ph2, px + i, py + dy, 1, ph2); } };
 // which part of each decoration moves, and how (palm fronds sway, flag waves, lantern and chimes swing, plants nod)
 const ANIM = {
-  palm:    (x, y, ph) => spritePart('bld-palm', x, y, [0, 0, 80, 52], sway(3, 1.1, ph, 0.9)),
+  palm:    (x, y, ph) => { g.save(); g.translate(x, y); g.scale(1.35, 1.35); const ok = spritePart('bld-palm', 0, 0, [0, 0, 80, 52], sway(4, 1.1, ph, 1.1)); g.restore(); return ok; }, // a tall coconut palm
   flag:    (x, y, ph) => spritePart('bld-flag', x, y, [19, 0, 25, 44], wave(4.5, 4)), // a big, slow billow that swells and eases with the breeze
   lantern: (x, y, ph) => spritePart('bld-lantern', x, y, [14, 9, 23, 52], swing(26, 11, 0.07, 1.7, ph)),
   chimes:  (x, y, ph) => spritePart('dec-chimes', x, y, [8, 6, 13, 42], swing(15, 7, 0.12, 2.1, ph)),
@@ -268,6 +270,12 @@ function stepSwim(a, q, dt) {
 // nobody stands still: every few idle seconds an actor looks around, wanders a few planks, or sweeps the deck
 function idle(a, dt) {
   if (a.queue.length) return;
+  if (DINNER && joinDinner(a)) return;
+  // a coconut lying nearby: wander over, pick it up, crack it open and drink it
+  const nut = NUTS.find(n => n.t >= 1 && !(n.claimT && S.t - n.claimT < 10) && Math.abs(n.r - a.r) + Math.abs(n.c - a.c) <= 4);
+  if (nut && Math.random() < dt * 0.6 && path(Math.round(a.r), Math.round(a.c), nut.r, nut.c)) { nut.claimT = S.t;
+    a.queue.push({ tr: nut.r, tc: nut.c, face: [nut.r + 1, nut.c], act: WORK.collect.t, kind: 'collect', idle: true, fn: () => { const i = NUTS.indexOf(nut); if (i < 0) return; NUTS.splice(i, 1); SFX.tok();
+      a.queue.push({ tr: nut.r, tc: nut.c, face: [nut.r + 1, nut.c], act: WORK.drink.t, kind: 'drink', idle: true, fn: () => float('ahh~', ...head(a), C.sand, 7) }); } }); return; }
   const r0 = Math.round(a.r), c0 = Math.round(a.c), crowded = [F, ...WK].some(o => o !== a && Math.hypot(o.r - a.r, o.c - a.c) < 0.8);
   if (crowded) a.idle = Math.min(a.idle || 0, 0.3); // standing on someone: step away almost at once
   if ((a.idle = (a.idle || 0) - dt) > 0) return; a.idle = rnd(2.5, 6);
@@ -325,7 +333,7 @@ function stepNuts(dt) {
   for (const o of S.objs) if (o.id === 'palm') {
     let left = PALMT.get(o) ?? rnd(30, 90); left -= dt;
     if (left <= 0) { left = rnd(60, 160); if (NUTS.filter(n => n.palm === o).length < 2) { const spots = [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1]].map(([a, b]) => [o.r + a, o.c + b]).filter(([r, c]) => walkable(r, c) && !hutTile(r, c) && !objAt(r, c) && !NUTS.some(n => n.r === r && n.c === c));
-      if (spots.length) { const [r, c] = spots[Math.floor(Math.random() * spots.length)], w = center(o.r, o.c); NUTS.push({ palm: o, r, c, x: w.x + rnd(-8, 8), y: w.y - 62, t: 0 }); } } }
+      if (spots.length) { const [r, c] = spots[Math.floor(Math.random() * spots.length)], w = center(o.r, o.c); NUTS.push({ palm: o, r, c, x: w.x + rnd(-10, 10), y: w.y - 84, t: 0 }); } } }
     PALMT.set(o, left);
   }
   for (const n of NUTS) if (n.t < 1) { const was = n.t; n.t = Math.min(1, n.t + dt / 0.7); if (was < 0.75 && n.t >= 0.75) { SFX.thud(); const w = center(n.r, n.c), [px, py] = scr(w.x, w.y); for (let i = 0; i < 4; i++) A.particles.push({ x: px, y: py, vx: rnd(-20, 20), vy: rnd(-25, -5), life: 0.4, color: '#c8c2b4' }); } }
@@ -361,6 +369,32 @@ function stepPlay(dt) {
   if (Math.random() < dt / 2) SFX.woof(); if (Math.random() < dt / 3) SFX.mew();
   if (p.t >= p.len) { PLAY = null; for (const a of [CAT, DOG]) { a.moving = false; a.r = Math.round(a.r); a.c = Math.round(a.c); if (!walkable(a.r, a.c) || hutTile(a.r, a.c)) [a.r, a.c] = nearestWalkable(a.r, a.c); } CAT.pose = 'sit'; CAT.idle = rnd(2, 4); DOG.idle = 0; }
 }
+// ---- dinner: every evening, from late dusk into the night, the crew fire up a charcoal grill on the platform,
+// set out a table of chilli crab, rice and satay, and eat together until it's late; then they pack it away ----
+let DINNER = null;
+const dinnerTime = () => { const p = (S.t % daySeconds) / daySeconds; return p > 0.1 && p < 0.38; };
+const AROUND = [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+function dinnerSpot() { // an open plank near the middle of the platform with room all round
+  const ok = (r, c) => land(r, c) && !hutTile(r, c) && !objAt(r, c) && !isBroken(r, c) && !crocAt(r, c);
+  let best = null, bs = -1e9; for (let r = 2; r <= 6; r++) for (let c = 1; c <= 5; c++) if (ok(r, c)) { const room = AROUND.filter(([a, b]) => ok(r + a, c + b)).length - Math.hypot(r - 4, c - 3) * 0.3; if (room > bs) { bs = room; best = [r, c]; } }
+  return best;
+}
+function stepDinner(dt) {
+  if (!DINNER && dinnerTime() && !CROC) { const sp = dinnerSpot(); if (sp) { const [r, c] = sp, around = AROUND.map(([a, b]) => [r + a, c + b]).filter(([i, j]) => land(i, j) && !hutTile(i, j) && !objAt(i, j) && !isBroken(i, j));
+      const table = around.find(([i, j]) => i === r && j === c + 1) || around.find(([i, j]) => i === r + 1 && j === c) || null, seats = around.filter(s => s !== table);
+      DINNER = { r, c, t: 0, fade: 0, table, seats, stools: seats.slice(0, 3) };
+      for (const a of [F, ...WK]) for (const q of a.queue) if (q.idle && q.kind !== 'swim') q.act = Math.min(q.act, 0.5); } } // wrap up what they were doing and come over
+  if (!DINNER) return; DINNER.t += dt;
+  if (!dinnerTime() || CROC) { DINNER.fade += dt; for (const a of [F, ...WK]) for (const q of a.queue) if (q.kind === 'eat') q.act = 0; if (DINNER.fade > 3) DINNER = null; return; }
+  if (Math.random() < dt / 2.5) SFX.sizzle();
+  if (Math.random() < dt / 3.5) { const eaters = [F, ...WK].filter(a => a.working === 'eat'); if (eaters.length) { const a = eaters[Math.floor(Math.random() * eaters.length)]; float(['shiok!', 'yum~', 'sedap!', 'haha!', 'more satay?', 'so full…', 'cheers!'][Math.floor(Math.random() * 7)], ...head(a), C.sand, 7); } }
+}
+function joinDinner(a) { // a free seat round the grill: walk there, face the grill, eat till dinner's done
+  const d = DINNER; if (!d || d.fade) return false; if ((a.dinTry = (a.dinTry || 0) - 1) > 0) return false; a.dinTry = 30;
+  const seat = d.seats.filter(([r, c]) => !taken(r, c, a)).sort((p, q) => Math.hypot(p[0] - a.r, p[1] - a.c) - Math.hypot(q[0] - a.r, q[1] - a.c))[0];
+  if (!seat || !path(Math.round(a.r), Math.round(a.c), seat[0], seat[1])) return false;
+  a.queue.push({ tr: seat[0], tc: seat[1], face: [d.r, d.c], act: 999, kind: 'eat', idle: true, fn: () => {} }); return true;
+}
 // off-duty fishing: every few seconds a bite; four times in ten a fish comes up (a few coins, into the album), otherwise it gets away
 function fishTick(a, q, dt) {
   if (q.bite === undefined) q.bite = rnd(2.5, 6);
@@ -378,6 +412,7 @@ function dogThink(d, dt, bed) {
   if (roll < 0.4 && bed) { d.queue.push({ tr: bed.r, tc: bed.c, fn: () => { d.pose = 'lie'; d.idle = rnd(5, 9); }, act: 0, idle: true }); return; }
   d.pose = null; d.idle = rnd(0.2, 0.8);
   const [tr, tc] = roll < 0.6 ? [Math.round(F.r) + (Math.random() < 0.5 ? 1 : -1), Math.round(F.c)] : [r0 + Math.round(rnd(-6, 6)), c0 + Math.round(rnd(-6, 6))];
+  if (DINNER && !DINNER.fade && Math.random() < 0.5) { const s = DINNER.seats.find(([r, c]) => !taken(r, c, d)); if (s) { d.queue.push({ tr: s[0], tc: s[1], fn: () => { d.pose = 'sit'; d.idle = rnd(4, 8); if (Math.random() < 0.3) SFX.woof(); }, act: 0, idle: true }); return; } }
   if (CROC && CROC.phase === 'bask' && Math.random() < 0.3) SFX.woof(); // the dog has opinions about the crocodile
   if (inMap(tr, tc) && walkable(tr, tc) && !hutTile(tr, tc) && (tr !== r0 || tc !== c0) && !taken(tr, tc, d) && path(r0, c0, tr, tc)) { d.queue.push({ tr, tc, fn: () => {}, act: 0, idle: true }); if (Math.random() < 0.15) SFX.woof(); }
 }
@@ -449,7 +484,7 @@ function gainXp(n) {
   S.xp += n;
   for (let i = 0; S.xp >= lvlXp(S.level + 1); i++) {
     S.level++; const u = [...SP.filter(s => s.lvl === S.level), ...ITEMS.filter(s => s.lvl === S.level)].map(s => s.name);
-    float(`Level ${S.level}!` + (u.length ? `  ${u.join(', ')} unlocked` : ''), W / 2, 60 + i * 14, C.gold, 11, true); SFX.stamp();
+    float(`Level ${S.level}!` + (u.length ? `  ${u.join(', ')} unlocked` : ''), W / 2, 60 + i * 14, C.gold, 11, true); SFX.levelup();
   }
 }
 // growing the farm = bolting on another walkway lane, which opens a new row or column of pens
@@ -599,6 +634,7 @@ function buyUpgrade(u) {
 }
 // workers look for a job every 1.5s when idle; nearest job first
 function think(w, dt) {
+  if (DINNER && !DINNER.fade) return; // dinner: the work can wait
   if (w.queue.some(q => !q.idle) || (w.think -= dt) > 0) return; w.think = 1.5;
   const near = (a, b) => Math.hypot(a.r - w.r, a.c - w.c) - Math.hypot(b.r - w.r, b.c - w.c);
   if (w.id === 'harvester') {
@@ -657,7 +693,7 @@ function checkQuests() {
 
 // ---- update ----
 function update(dt) {
-  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepActor(dt, F); idle(F, dt); for (const w of WK) { w.speed = has('dog') ? 1.2 : 1; stepActor(dt, w); think(w, dt); idle(w, dt); }
+  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepDinner(dt); stepActor(dt, F); idle(F, dt); for (const w of WK) { w.speed = has('dog') ? 1.2 : 1; stepActor(dt, w); think(w, dt); idle(w, dt); }
   const bed = S.objs.find(o => o.id === 'dog'); if (bed && !DOG) DOG = actor({ r: bed.r, c: bed.c, speed: 1.9 }); if (!bed) DOG = null;
   const home = S.objs.find(o => o.id === 'cat'); if (home && !CAT) CAT = actor({ r: home.r, c: home.c, speed: 0.7, pose: 'sleep' }); if (!home) CAT = null;
   if (DOG && (!PLAY || PLAY.phase === 'gather')) stepActor(dt, DOG); if (DOG && !PLAY) dogThink(DOG, dt, bed);
@@ -699,11 +735,11 @@ function tone(f0, f1, dur, type = 'sine', vol = 0.12, delay = 0) {
   o.type = type; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(f1, t0 + dur); gn.gain.setValueAtTime(vol, t0); gn.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
   o.connect(gn); gn.connect(AC.destination); o.start(t0); o.stop(t0 + dur);
 }
-const SFX = { mew: () => { tone(900, 700, 0.12, 'triangle', 0.04); tone(760, 980, 0.1, 'triangle', 0.03, 0.12); }, thud: () => tone(140, 60, 0.12, 'sine', 0.14), snap: () => { tone(180, 90, 0.06, 'square', 0.06); tone(160, 80, 0.06, 'square', 0.05, 0.08); }, woof: () => { tone(520, 300, 0.07, 'square', 0.04); tone(480, 280, 0.07, 'square', 0.04, 0.12); }, tok: () => tone(900, 300, 0.05, 'square', 0.05), chomp: () => tone(220, 90, 0.08, 'square', 0.06), pop: () => tone(500, 1200, 0.12, 'sine', 0.12), coin: () => { tone(880, 880, 0.08, 'triangle', 0.1); tone(1320, 1320, 0.14, 'triangle', 0.1, 0.08); },
+const SFX = { sizzle: () => {}, mew: () => { tone(900, 700, 0.12, 'triangle', 0.04); tone(760, 980, 0.1, 'triangle', 0.03, 0.12); }, thud: () => tone(140, 60, 0.12, 'sine', 0.14), snap: () => { tone(180, 90, 0.06, 'square', 0.06); tone(160, 80, 0.06, 'square', 0.05, 0.08); }, woof: () => { tone(520, 300, 0.07, 'square', 0.04); tone(480, 280, 0.07, 'square', 0.04, 0.12); }, tok: () => tone(900, 300, 0.05, 'square', 0.05), chomp: () => tone(220, 90, 0.08, 'square', 0.06), pop: () => tone(500, 1200, 0.12, 'sine', 0.12), coin: () => { tone(880, 880, 0.08, 'triangle', 0.1); tone(1320, 1320, 0.14, 'triangle', 0.1, 0.08); },
   splash: () => tone(300, 120, 0.25, 'sine', 0.1), stamp: () => { tone(660, 660, 0.1, 'square', 0.06); tone(990, 990, 0.2, 'square', 0.06, 0.1); }, nope: () => tone(260, 200, 0.15, 'square', 0.05) };
 // ---- music: a small island-lounge loop, synthesized like everything else: marimba melody with echo, a soft pad,
 // a plucked bass and a shaker; at night the shaker drops out, the melody goes down an octave and plays half as often ----
-const MUS = { bpm: 80, next: 0, step: 0, bus: null };
+const MUS = { bpm: 88, next: 0, step: 0, bus: null };
 const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
 const CHORDS = [[53, 57, 60, 64], [50, 53, 57, 60], [46, 50, 53, 57], [48, 52, 55, 58]]; // Fmaj7 Dm7 Bbmaj7 C7
 const PENTA = [65, 67, 69, 72, 74, 77, 79, 81]; // F major pentatonic
@@ -728,9 +764,36 @@ function music() {
     if (i % 8 === 0 || i % 8 === 3 || i % 8 === 4) voice('sine', NOTE(ch[0] - 12), t0, e * 1.6, 0.06);
     const m = ph[i]; if (m >= 0 && !(night && i % 4)) { const f = NOTE(PENTA[m] - (night ? 12 : 0)); voice('sine', f, t0, e * 3, 0.04, { send: 0.6 }); voice('sine', f * 4, t0, e * 0.5, 0.007); }
     if (!night) shaker(t0, i % 2 ? 0.03 : 0.012);
+    if (i % 2 === 1 && !(night && i % 4 !== 3)) for (const n of ch.slice(1)) voice('triangle', NOTE(n + 12), t0, e * 0.7, night ? 0.006 : 0.009, { lp: 2600 }); // off-beat uke strum
+    if (!night && m >= 0 && i % 8 === 6) voice('sine', NOTE(PENTA[m] + 12), t0 + e * 0.5, e * 2, 0.012, { send: 0.8 }); // a little bell sparkle
     MUS.next += e; MUS.step++;
   }
 }
+// ---- sound effects, MapleStory-ish: soft bells and bubbly pops in a major key, nothing buzzy ----
+// a bell note: triangle body + quiet sine an octave up, soft attack, gentle decay; bend glides the pitch for bloops and boops
+function bell(f, dur = 0.25, vol = 0.08, delay = 0, bend = 1, type = 'triangle') {
+  if (!AC || muted) return; const t0 = AC.currentTime + delay;
+  for (const [mul, v, tp] of [[1, vol, type], [2, vol * 0.25, 'sine']]) { const o = AC.createOscillator(), gn = AC.createGain(); o.type = tp; o.frequency.setValueAtTime(f * mul, t0); if (bend !== 1) o.frequency.exponentialRampToValueAtTime(f * mul * bend, t0 + dur * 0.6);
+    gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(v, t0 + 0.006); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur); o.connect(gn); gn.connect(AC.destination); o.start(t0); o.stop(t0 + dur + 0.02); }
+}
+function hush(dur, vol, lp, delay = 0) { if (!AC || muted) return; const t0 = AC.currentTime + delay, b = AC.createBuffer(1, Math.floor(AC.sampleRate * dur), AC.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
+  const src = AC.createBufferSource(); src.buffer = b; const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp; const gn = AC.createGain(); gn.gain.value = vol; src.connect(f); f.connect(gn); gn.connect(AC.destination); src.start(t0); }
+const N = n => NOTE(n); // midi to Hz
+Object.assign(SFX, {
+  sizzle: () => hush(0.5, 0.025, 6000),                                                             // satay on the coals
+  pop:    () => bell(N(79), 0.14, 0.07, 0, 1.5, 'sine'),                                             // bubbly boop up (open, pick)
+  coin:   () => { bell(N(88), 0.18, 0.06); bell(N(95), 0.32, 0.06, 0.07); },                        // meso "tring"
+  stamp:  () => [72, 76, 79, 84].forEach((n, i) => bell(N(n), 0.3, 0.06, i * 0.06)),                // happy arpeggio (built, hired)
+  levelup:() => { [72, 76, 79, 84, 88].forEach((n, i) => bell(N(n), 0.45, 0.07, i * 0.08)); bell(N(91), 0.9, 0.05, 0.42); }, // level-up fanfare
+  splash: () => { bell(N(74), 0.18, 0.06, 0, 0.45, 'sine'); hush(0.18, 0.05, 1800); },              // water bloop
+  chomp:  () => bell(N(81), 0.08, 0.045, 0, 0.9, 'sine'),                                           // soft wooden tick (info)
+  nope:   () => { bell(N(76), 0.12, 0.05); bell(N(72), 0.18, 0.05, 0.09); },                        // gentle "uh-uh"
+  tok:    () => { bell(N(67), 0.06, 0.06, 0, 0.7, 'sine'); hush(0.03, 0.05, 3000); },               // hammer knock
+  thud:   () => { bell(N(55), 0.16, 0.09, 0, 0.6, 'sine'); hush(0.06, 0.05, 900); },               // coconut bonk
+  snap:   () => { bell(N(50), 0.07, 0.06, 0, 0.8); bell(N(48), 0.08, 0.06, 0.09, 0.8); },          // croc jaws
+  woof:   () => { bell(N(69), 0.08, 0.05, 0, 0.7); bell(N(67), 0.09, 0.05, 0.12, 0.7); },          // little woof-woof
+  mew:    () => bell(N(86), 0.2, 0.035, 0, 0.82),                                                   // mew
+});
 function toggleMute() { muted = !muted; try { localStorage.setItem('indigo-tides-muted', muted ? '1' : '0'); } catch {} if (muted && AC) AC.suspend(); else if (AC) AC.resume(); else audio(); }
 
 // ---- water, MapleStory-style: flat saturated blue, a few soft lighter patches, sparse thin white ripple lines
@@ -864,6 +927,12 @@ function drawEntity(e, x, y, t, D) {
     if (giftReady()) { const by = fy - top - Math.abs(Math.sin(t * 4)) * 3; x = big ? fx + 40 : fx; glow(x, by, 8, '#f6d48a', 0.7); ell(x, by, 2.5, 2.5, C.gold); text('gift! tap', x, by - 8, C.gold, 7, 'center'); } return; }
   if (e.kind === 'cat') { const k = CAT, n = k.moving ? (k.pose === 'pounce' ? 'cat-pounce' : `cat-walk-${Math.floor(k.walk * (PLAY ? 10 : 6)) % 2 ? 'a' : 'b'}`) : `cat-${k.pose || 'sit'}`, b = k.pose === 'sleep' ? Math.sin(t * 1.6) * 0.4 : 0, hop = PLAY && k.pose === 'pounce' ? -3 : 0;
     ell(x, y + 3, 8, 2.5, '#00000044'); sprite(n, x, y + 4 + b + hop, { flip: k.flip }); return; }
+  if (e.kind === 'grill' || e.kind === 'dtable' || e.kind === 'stool') { const D2 = sky(), a = DINNER ? 1 - Math.min(1, DINNER.fade / 3) : 0; g.globalAlpha = a;
+    if (e.kind === 'stool') sprite(e.i % 2 ? 'bbq-stool-blue' : 'bbq-stool-red', x, y + 6, { alpha: a });
+    if (e.kind === 'dtable') { ell(x, y + 4, 22, 6, '#00000033'); sprite('bbq-table', x, y + 8, { alpha: a }); }
+    if (e.kind === 'grill') { glow(x, y - 4, 60, '#f0a050', a * (0.25 + D2.lamp * 0.5)); ell(x, y + 4, 12, 4, '#00000044'); sprite('bbq-grill', x, y + 6, { alpha: a }); glow(x, y - 22, 14, '#ff8a3a', a * (0.5 + 0.2 * Math.sin(t * 9)));
+      if (a > 0.5 && Math.random() < 0.35) A.particles.push({ x: x + rnd(-8, 8), y: y - 26, vx: rnd(-4, 6), vy: rnd(-26, -14), life: 1.3, color: Math.random() < 0.12 ? '#ffb040' : '#cfc9bd' }); }
+    g.globalAlpha = 1; return; }
   if (e.kind === 'nut') { const n = e.n, w = center(n.r, n.c), k = Math.min(1, n.t / 0.75), fx = n.x + (w.x - n.x) * k, fy = n.y + (w.y - n.y) * k * k, bounce = n.t >= 0.75 && n.t < 1 ? -Math.sin((n.t - 0.75) / 0.25 * Math.PI) * 4 : 0, [sx, sy] = scr(fx, fy + bounce);
     if (n.t >= 1) ell(sx, sy + 3, 5, 2, '#00000044'); if (!sprite('nut', sx, sy + 4)) { ell(sx, sy, 4, 4, '#6b4a2a'); ell(sx - 1, sy - 1, 1.5, 1.5, '#9a7a52'); } return; }
   if (e.kind === 'croc') { drawCroc(x, y, t); return; }
@@ -894,9 +963,14 @@ function drawEntity(e, x, y, t, D) {
         g.globalAlpha = 0.35; ell(sx, sy + 2, 16 + Math.sin(a.walk * 2) * 2, 5, '#e8f4ff'); g.globalAlpha = 1; sprite(fname, sx, sy + b2, { flip: a.flip }); return; }
       if (wk.pose === 'fish' && Math.random() < 0.02) { const dir = a.flip ? -1 : 1; A.ripples.push({ x: center(a.r, a.c).x + dir * 30, y: center(a.r, a.c).y + 8, r: 2, life: 1 }); }
     }
+    else if (a.working === 'drink' || a.working === 'eat') n = `${pre}-front-idle`;
     else if (a.working) { const an = WORK[a.working].anim; n = e.w ? `${pre}-work-${fr ? 'b' : 'a'}` : `farmer-work-${an[fr % an.length]}`; }
     ell(x, y + 2, 9 + bob, 4, '#00000055');
     if (a.carry) sprite('shed-crates', x, y - 34 + bob, { scale: 0.45 });
+    if (a.working === 'eat') { sprite(n, x, y + 2, { flip: a.flip }); const bite = Math.max(0, Math.sin(a.walk * 1.6)), sx = x + (a.flip ? -6 : 6), sy = y - 14 - bite * 8; // a satay stick, up to the mouth and down again
+      g.strokeStyle = '#c8a070'; g.lineWidth = 1; g.beginPath(); g.moveTo(sx, sy + 6); g.lineTo(sx + (a.flip ? -3 : 3), sy - 4); g.stroke(); for (let k = 0; k < 3; k++) ell(sx + (a.flip ? -1 : 1) * (0.8 + k), sy + 1 - k * 2.4, 1.6, 1.3, '#7a3a1a'); return; }
+    if (a.working === 'drink') { sprite(n, x, y + 2, { flip: a.flip }); const tip = Math.sin(a.walk * 2.5) * 0.25, cx = x + (a.flip ? -7 : 7), cy = y - 20 - Math.abs(Math.sin(a.walk * 2.5)) * 2; // coconut raised to the mouth, a straw, a sip now and then
+      g.save(); g.translate(cx, cy); g.rotate(a.flip ? tip : -tip); sprite('nut', 0, 5, { scale: 0.8 }); ell(0, -3, 3, 1.2, '#f2efe4'); g.strokeStyle = '#e04a4a'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, -3); g.lineTo(a.flip ? 3 : -3, -10); g.stroke(); g.restore(); return; }
     if (!sprite(n, x, y + 2 + bob, { flip: a.flip })) { sprite(`${pre}-front-idle`, x, y + 2, { flip: a.flip }); if (a.working) tool(WORK[a.working].tool, x + (a.flip ? -7 : 7), y - 16, a.walk, a.flip); }
     return;
   }
@@ -968,7 +1042,8 @@ function drawWorld(t, D) {
   if (S.build) { const it = item(S.build); g.globalAlpha = 0.25; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (canPlace(it, r, c)) { const [x, y] = tilePos(r, c); diamond(x, y); g.fillStyle = C.gold2; g.fill(); } g.globalAlpha = 1; }
   if (S.step === 0 && !S.pick && !S.build) { const [x, y] = tilePos(FR0 + 1, FC0 + 1); arrow(x, y - 8); }
   // entities, back to front
-  const ents0 = CROC ? [{ kind: 'croc', r: CROC.r, c: CROC.c }] : []; if (CAT) ents0.push({ kind: 'cat', r: CAT.r, c: CAT.c }); for (const n of NUTS) ents0.push({ kind: 'nut', n, r: n.r, c: n.c });
+  const ents0 = CROC ? [{ kind: 'croc', r: CROC.r, c: CROC.c }] : [];
+  if (DINNER) { ents0.push({ kind: 'grill', r: DINNER.r, c: DINNER.c }); if (DINNER.table) ents0.push({ kind: 'dtable', r: DINNER.table[0], c: DINNER.table[1] }); DINNER.stools.forEach(([r, c], i) => ents0.push({ kind: 'stool', i, r: r - 0.01, c })); } if (CAT) ents0.push({ kind: 'cat', r: CAT.r, c: CAT.c }); for (const n of NUTS) ents0.push({ kind: 'nut', n, r: n.r, c: n.c });
   const ents = [...ents0, ...(S.sale ? [{ kind: 'buyer', r: DOCK.r, c: DOCK.c }] : []), ...(DOG ? [{ kind: 'dog', r: DOG.r, c: DOG.c }] : []), { kind: 'hut', r: HUT.r, c: HUT.c }, { kind: 'tank', r: TANK.r, c: TANK.c }, { kind: 'farmer', r: F.r, c: F.c }, ...WK.map(w => ({ kind: 'worker', w, r: w.r, c: w.c })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => { const k = item(o.id).on === 'pen' ? 0.5 : 0; return { kind: 'obj', o, r: o.r + k, c: o.c + k }; })];
   for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (S.plots[r][c]) ents.push({ kind: 'plot', p: S.plots[r][c], r, c });
   ents.sort((a, b) => (a.r + a.c) - (b.r + b.c));
