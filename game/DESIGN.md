@@ -10,36 +10,34 @@ Why it works: real sea-aged bottles come up crusted with oysters and barnacles. 
 
 ## Core loop (what the player does, over and over)
 
-Real-time, cozy, tap-only. No turns, no menus, no rule text. The first grey-box was turn-based and tested as confusing and dull (2026-11-03), so this replaced it.
+Farm-sim, real clock, drag to look around, tap to act. Oysters grow while the tab is closed, so a visit is a minute or two and the game runs for days. Three earlier versions (turn-based grey-box, a real-time feed/bath/sell scene, a one-screen raft) tested as confusing, shallow or too thin (2026-11-03); this replaced them.
 
-1. **Feed**: tap an oyster, it chomps and grows. Oysters have faces, bob, and blink.
-2. **Pick**: a fat oyster shows a gold dot; tap and it hops into the basket.
-3. **Bath**: tap the bathtub, the oysters bubble for a few seconds and move to the clean tray. This is depuration, shown, not explained.
-4. **Sell**: a customer paddles up holding a coin. Tap the clean tray to sell. Tapping the basket sells a raw one: allowed, but the inspector catches it.
-5. **Reinvest**: tap the shop to buy a baby oyster. Later: bigger bath, more spots.
+1. **Plant**: tap an empty raft plot, pick a species from the strip, pay the spat price. The farmer walks over and drops it in.
+2. **Wait**: each species has a real-clock timer: Rock 1 min, Pacific 5 min, Kumamoto 30 min, Pearl 4 h, Belon 12 h. A bar under each oyster shows progress; tap a growing one to see the time left.
+3. **Harvest**: a ready oyster bounces with a gold dot. Tap it, the farmer walks over, coins and XP. Leave it twice its grow time past ready and it withers (grey shell, tap to clear, no payout). The shed doubles that grace.
+4. **Build**: the build bar sells lanterns, benches, palms, a flag, a cat (decor and XP), a market (+10% sales), a shed, and two pens: a fish cage on open sea and a crab pen on land. Pens are feed → wait → collect, like a second crop.
+5. **Level up and expand**: XP unlocks species and buildings; the raft grows 3×3 → 7×7 for coins at level gates.
+6. **Quests**: three a day, drawn from what the player can actually do ("Harvest 9 Rock", "Collect from pens ×2", "Build anything"), paid in coins and XP.
+7. **Album**: a collection book of every species, pen catch and bottle, plus two rare harvest drops (pearl 1-in-20, gold shell 1-in-100) that pay a bonus. First discovery of anything gets a banner.
+8. **Sampan**: an idle trip from the deck. Pay to send it out for 2 or 8 hours; come back for a crate of coins, fish for the album and a chance at a rare. Something is always "due" when the player returns.
 
-The NILA bottle sits under the water, growing oysters on its cage. It gathers algae; tap to clean, and it only ages while clean. Six months (about two real minutes) is the win screen: bottle crusted in oysters, gold text, "Reserve a bottle".
+Visual juice (added 2026-11-03): two-tone water shimmer, animated foam where sea meets island, caustic light drifting over the raft nets, lamp reflections on the water at night, two-tone cliff faces with a wet line under the island, wet sand at the shore, drop shadows under everything, a squash-and-settle when an oyster is planted, and the harvested oyster hops up and fades.
 
-The tutorial is a bouncing "tap" arrow over the next thing, for the first three steps only.
+The NILA cellar is a buildable sea object at level 5. Lower a bottle for S$100; it ages one "month" per real hour, crust growing. Six months is the win screen: bottle crusted in oysters, gold text, "Reserve a bottle" (opens nila.wine) and "Keep farming" (lower another; bottle count in the HUD).
 
-## The hook: SFA spot checks
+On return, a toast says how many oysters finished or withered while you were away. The tutorial is one bouncing "tap" arrow over the first empty plot, then over the first ready oyster.
 
-A stern auntie in an SFA cap paddles in every half minute or so. If you sold any raw oysters since her last visit, she frowns, fines you, and paddles off. If not, she smiles and you get a stamp. Funny, not punishing: the player always chose the shortcut. Storms and water temperature are cut from the first version.
+## Not in this version
 
-## Side income: fish
-
-A single fish trap you can bait once per tide. Pays a little cash, nothing else. It exists so a player who just got fined has a way back. Cut it if the first version runs long.
-
-## Not in the first version
-
-- Breeding and genetics (version 2; a second economy on its own)
-- Weather beyond one storm event
-- Multiple farms, staff, boats, story characters
+- Neighbours, gifting, visiting other farms
+- The SFA inspector, depuration bath, customers (could return as events)
+- Breeding and genetics, weather
+- Pathfinding: the farmer walks straight lines (island, deck and raft are near enough convex)
 - Leaderboards, accounts, saving to a server (localStorage is enough)
 
 ## Screen
 
-One fixed scene, 480×270 pixels scaled up (16:9, matches the site's hero). Left to right: kelong hut (the shop) with walkway, basket and clean tray; the bath on a float below it; the farm, three rope lines between two buoys with 12 dropper spots; the NILA bottle in its cage at the right. Boats arrive on the water line. Top strip: cash, oysters owned, stamps. Tap only, so it works on phones.
+640×360 logical pixels scaled up, isometric 64×32 tiles on a 16×16 map you drag around. The kelong island sits top-left (grass core, sand rim, hut as a 2×2 object), a one-tile deck joins it to the raft, the raft grows toward the lower right, and open sea around it is where fish cages and the cellar go. Ground tiles are drawn in code; the farmer, buildings, pens and withered oyster are AI-generated then sliced (`sprites/farmer-*`, `bld-*`, `pen-*`, `sp-*`). Top strip: cash, level with XP bar, raft size, bottles, quests and build buttons, mute. Day/night is a colour tint over the whole scene plus lantern and buoy glows.
 
 Dusk the whole time: gradient sky, twinkling stars, a low sun with a glitter path on the water, drifting clouds, island silhouettes, gulls. Under the surface: fish of three kinds, jellyfish, rising bubbles, seaweed and rocks on the bed, a crab on the walkway, lamp glow on the hut, ripples where you tap, vignette at the edges. All ambient life is cosmetic and never saved.
 
@@ -78,5 +76,6 @@ Sound is synthesized in the browser (no audio files): a low sea wash under every
 ## Open decisions
 
 - Pixel art: AI-generated, then hand-cleaned in Aseprite (decided 2026-11-03). Generate each sprite against the palette above at 4× size, downscale, fix outlines by hand.
-- Oyster prices and growth times: start with 4 tides per growth stage, S$2 per oyster, S$40 per spat line, and tune in step 1.
+- Species timers, prices and XP curve (30·(L−1)^1.7) are first guesses in the `SP`, `EXPAND`, `NILA` tables at the top of prototype.html; tune after a few days of real play.
+- Species look: the same oyster sprites tinted per species. Real per-species art later if the tints read as samey.
 - Name: "Indigo Tides" is a placeholder.
