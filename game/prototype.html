@@ -22,16 +22,16 @@ const SP = [ // oyster species: grow seconds, spat price, sale, xp, unlock level
   { id: 'belon',    name: 'Belon',    time: 12 * 3600, cost: 500, sell: 3500, xp: 400, lvl: 8, tint: '#c9a96e' },
 ];
 const ITEMS = [ // buildable: on land or sea; pens have a feed→wait→collect cycle; effects are read where they apply
-  { id: 'lantern',  name: 'Lantern',     cost: 60,   xp: 5,   lvl: 1, on: 'land', sprite: 'bld-lantern', note: 'wither -25%' },
-  { id: 'fishcage', name: 'Fish cage',   cost: 150,  xp: 10,  lvl: 2, on: 'sea',  sprite: 'pen-fishcage', pen: { feed: 20, time: 20 * 60, sell: 90, xp: 15, what: 'fish' }, note: 'fish every 20m' },
-  { id: 'bench',    name: 'Bench',       cost: 80,   xp: 6,   lvl: 2, on: 'land', sprite: 'bld-bench', note: '+1 quest/day' },
-  { id: 'palm',     name: 'Palm',        cost: 120,  xp: 10,  lvl: 2, on: 'land', sprite: 'bld-palm', note: '+5% sales ×3' },
-  { id: 'crabpen',  name: 'Crab pen',    cost: 250,  xp: 15,  lvl: 3, on: 'land', sprite: 'pen-crabpen', pen: { feed: 40, time: 3600, sell: 220, xp: 35, what: 'crabs' }, note: 'crabs every 1h' },
-  { id: 'stall',    name: 'Market',      cost: 500,  xp: 40,  lvl: 3, on: 'land', sprite: 'bld-stall', note: '+10% sales' },
-  { id: 'flag',     name: 'Flag',        cost: 200,  xp: 15,  lvl: 3, on: 'land', sprite: 'bld-flag', note: 'sampan -20%' },
-  { id: 'cat',      name: 'Cat',         cost: 300,  xp: 25,  lvl: 4, on: 'land', sprite: 'bld-cat', note: '2× rare finds' },
-  { id: 'shed',     name: 'Shed',        cost: 800,  xp: 60,  lvl: 5, on: 'land', sprite: 'bld-shed', note: 'wither 2× slow' },
-  { id: 'cellar',   name: 'NILA cellar', cost: 400,  xp: 50,  lvl: 5, on: 'sea',  sprite: 'cellar', pen: { feed: 100, time: 6 * 3600, sell: 0, xp: 300, what: 'bottle', win: true }, note: 'age a bottle' },
+  { id: 'lantern',  name: 'Lantern',     cost: 60,   xp: 5,   lvl: 1, on: 'land', sprite: 'bld-lantern', note: 'wither -25%', desc: 'A ready oyster withers if left too long. A lantern gives you 25% more time to harvest it.' },
+  { id: 'fishcage', name: 'Fish cage',   cost: 150,  xp: 10,  lvl: 2, on: 'sea',  sprite: 'pen-fishcage', pen: { feed: 20, time: 20 * 60, sell: 90, xp: 15, what: 'fish' }, note: 'fish every 20m', desc: 'Feed it S$20, wait 20 minutes, collect S$90 of fish. Goes on open sea.' },
+  { id: 'bench',    name: 'Bench',       cost: 80,   xp: 6,   lvl: 2, on: 'land', sprite: 'bld-bench', note: '+1 quest/day', desc: 'A fourth quest every day, so more coins and XP from the quest board.' },
+  { id: 'palm',     name: 'Palm',        cost: 120,  xp: 10,  lvl: 2, on: 'land', sprite: 'bld-palm', note: '+5% sales ×3', desc: 'Each palm adds 5% to every sale. Up to three palms count.' },
+  { id: 'crabpen',  name: 'Crab pen',    cost: 250,  xp: 15,  lvl: 3, on: 'land', sprite: 'pen-crabpen', pen: { feed: 40, time: 3600, sell: 220, xp: 35, what: 'crabs' }, note: 'crabs every 1h', desc: 'Feed it S$40, wait an hour, collect S$220 of crabs. Goes on the platform.' },
+  { id: 'stall',    name: 'Market',      cost: 500,  xp: 40,  lvl: 3, on: 'land', sprite: 'bld-stall', note: '+10% sales', desc: 'Every oyster, fish and crab sale pays 10% more.' },
+  { id: 'flag',     name: 'Flag',        cost: 200,  xp: 15,  lvl: 3, on: 'land', sprite: 'bld-flag', note: 'sampan -20%', desc: 'Sampan trips come back 20% sooner.' },
+  { id: 'cat',      name: 'Cat',         cost: 300,  xp: 25,  lvl: 4, on: 'land', sprite: 'bld-cat', note: '2× rare finds', desc: 'Pearl and gold shell finds on harvest are twice as likely.' },
+  { id: 'shed',     name: 'Shed',        cost: 800,  xp: 60,  lvl: 5, on: 'land', sprite: 'bld-shed', note: 'wither 2× slow', desc: 'Doubles the time a ready oyster waits before it withers.' },
+  { id: 'cellar',   name: 'NILA cellar', cost: 400,  xp: 50,  lvl: 5, on: 'sea',  sprite: 'cellar', pen: { feed: 100, time: 6 * 3600, sell: 0, xp: 300, what: 'bottle', win: true }, note: 'age a bottle', desc: 'Lower a NILA bottle for S$100. Six real hours later it comes up sea-aged: the win.' },
 ];
 const FIX = 20, BREAK_MS = 30 * 60 * 1000, MAX_BROKEN = 4; // a plank breaks every 30 real minutes, up to 4 holes
 const WORKERS = [ // hired at the hut; one-off cost, they work forever
@@ -257,7 +257,7 @@ function place(r, c) {
   pop(x, y, C.gold2, 10); float(`+${it.xp}xp`, x, y - 20, '#9ad0e0'); SFX.stamp(); gainXp(it.xp); checkQuests();
 }
 function tapObj(o, who = F) {
-  const it = item(o.id), [x, y] = tilePos(o.r, o.c); if (!it.pen) { SFX.chomp(); return float(it.name, x, y - 30, C.sand); }
+  const it = item(o.id), [x, y] = tilePos(o.r, o.c); if (!it.pen) { SFX.chomp(); return float(`${it.name} · ${it.note}`, x, y - 30, C.sand); }
   const pen = it.pen, left = o.fed ? pen.time - (Date.now() - o.fed) / 1000 : 0;
   if (!o.fed) {
     if (S.cash < pen.feed) { SFX.nope(); return float("Not enough $", x, y - 30, C.pink); }
@@ -483,7 +483,9 @@ function drawEntity(e, x, y, t, D) {
       else text('tap: lower bottle', x, y + 14, C.gold2, 7, 'center');
       return;
     }
-    if (it.pen) { const done = o.fed && Date.now() - o.fed >= it.pen.time * 1000; sprite(`${it.sprite}-${o.fed ? 'full' : 'empty'}`, x, y + 14); if (done) { glow(x, y - 30, 10, '#f6d48a', 0.7); ell(x, y - 30 - Math.abs(Math.sin(t * 4)) * 3, 3, 3, C.gold); } else if (!o.fed) text('tap: feed', x, y - 26, C.sand, 7, 'center'); return; }
+    if (it.pen) { const done = o.fed && Date.now() - o.fed >= it.pen.time * 1000; sprite(`${it.sprite}-${o.fed ? 'full' : 'empty'}`, x, y + 14);
+      if (o.fed && it.id === 'fishcage') for (let i = 0; i < 3; i++) { const ph = i * 2.1 + o.r, fx = Math.sin(t * 0.8 + ph) * 16, v = Math.cos(t * 0.8 + ph); sprite(`sea-fish${1 + i % 3}-${Math.floor(t * 5 + i) % 2 ? 'a' : 'b'}`, x + fx, y - 2 + i * 5 + Math.sin(t * 3 + ph) * 2, { scale: 0.5, flip: v < 0, alpha: 0.9 }); }
+      if (o.fed && it.id === 'crabpen') for (let i = 0; i < 2; i++) { const ph = i * 3.3 + o.c, cx = Math.round(Math.sin(t * 1.5 + ph) * 12), step = Math.abs(Math.sin(t * 6 + ph)) * 1.5; sprite(`sea-crab-${Math.floor(t * 4 + i) % 2 ? 'a' : 'b'}`, x + cx, y + 2 + i * 6 - step, { scale: 0.6, flip: Math.cos(t * 1.5 + ph) < 0 }); } if (done) { glow(x, y - 30, 10, '#f6d48a', 0.7); ell(x, y - 30 - Math.abs(Math.sin(t * 4)) * 3, 3, 3, C.gold); } else if (!o.fed) text('tap: feed', x, y - 26, C.sand, 7, 'center'); return; }
     sprite(it.sprite, x, y + (it.id === 'cat' ? 6 : 10)); if (it.id === 'lantern') glow(x + 8, y - 52, 20 + 14 * D.lamp, '#f0c070', D.lamp + 0.05); return;
   }
   if (e.kind === 'plot') {
@@ -531,6 +533,13 @@ function drawPicker() {
     hit(x - w / 2, y0, w, 58, () => plant(sp));
   });
 }
+// a boxed caption above a bar: title, a wrapped sentence, optional hint
+function tooltip(title, body, bottom, hint) {
+  g.font = '7px monospace'; const lines = [], max = 300; let cur = '';
+  for (const wd of body.split(' ')) { const t = cur ? cur + ' ' + wd : wd; if (g.measureText(t).width > max) { lines.push(cur); cur = wd; } else cur = t; } lines.push(cur); if (hint) lines.push(hint);
+  const h = 16 + lines.length * 10, y = bottom - h; g.fillStyle = '#0c0c0ee6'; g.fillRect(W / 2 - 160, y, 320, h); g.strokeStyle = C.deep; g.strokeRect(W / 2 - 159.5, y + 0.5, 319, h - 1);
+  text(title, W / 2, y + 11, C.gold2, 8, 'center'); lines.forEach((l, i) => text(l, W / 2, y + 22 + i * 10, hint && i === lines.length - 1 ? C.grey : C.sand, 7, 'center'));
+}
 function drawBuild() {
   const w = 62, x0 = W / 2 - ITEMS.length * w / 2, y0 = H - 86; panelBox(x0 - 6, y0, ITEMS.length * w + 12, 80);
   ITEMS.forEach((it, i) => {
@@ -541,7 +550,9 @@ function drawBuild() {
     text(it.name, x, y0 + 54, locked ? C.grey : C.sand, 6, 'center'); text(locked ? `lv ${it.lvl}` : `S$${it.cost}`, x, y0 + 64, locked ? C.grey : S.cash < it.cost ? C.pink : C.gold2, 6, 'center'); text(it.note, x, y0 + 74, locked ? C.grey : '#9ad0e0', 6, 'center'); g.globalAlpha = 1;
     hit(x - w / 2, y0, w, 80, () => { if (locked) { SFX.nope(); return float(`level ${it.lvl}`, x, y0 - 6, C.pink, 8, true); } S.build = sel ? null : it.id; SFX.pop(); });
   });
-  text(S.build ? `${item(S.build).name}${item(S.build).note ? ' · ' + item(S.build).note : ''} — tap a ${item(S.build).on === 'land' ? 'platform' : 'sea'} tile` : 'pick something to build', W / 2, y0 - 6, C.sand, 7, 'center');
+  const hv = hover && hover.y >= y0 ? ITEMS[Math.floor((hover.x - x0) / w)] : null, tip = hv || (S.build && item(S.build));
+  if (tip) tooltip(`${tip.name}${tip.lvl > S.level ? ` (level ${tip.lvl})` : ''}`, tip.desc, y0 - 8, tip === item(S.build) ? `tap a ${tip.on === 'land' ? 'platform' : 'sea'} tile to place it` : null);
+  else text('pick something to build', W / 2, y0 - 6, C.sand, 7, 'center');
 }
 function drawAlbum() {
   const w = 54, cols = 5, x0 = W - 6 - cols * w, y0 = 22; panelBox(x0 - 6, y0, cols * w + 12, 130);
@@ -614,8 +625,11 @@ function draw() {
 // ---- input: drag pans the camera, a short press taps ----
 let press = null;
 const toCanvas = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
+cv.addEventListener('pointerleave', () => { hover = null; });
 cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); const [x, y] = toCanvas(e); press = { x, y, cx: cam.x, cy: cam.y, drag: false }; audio(); });
+let hover = null;
 cv.addEventListener('pointermove', e => {
+  if (e.pointerType === 'mouse') { const [hx, hy] = toCanvas(e); hover = { x: hx, y: hy }; }
   if (!press) return; const [x, y] = toCanvas(e), dx = x - press.x, dy = y - press.y;
   if (!press.drag && Math.hypot(dx, dy) > 6) press.drag = true;
   if (press.drag) { cam.x = Math.max(-(MAP - 2) * TW / 2, Math.min((MAP - 2) * TW / 2, press.cx - dx)); cam.y = Math.max(TH * 2, Math.min((MAP - 1) * TH, press.cy - dy)); }
