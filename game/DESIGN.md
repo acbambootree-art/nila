@@ -39,7 +39,13 @@ A single fish trap you can bait once per tide. Pays a little cash, nothing else.
 
 ## Screen
 
-One fixed scene, 320×180 pixels scaled up (16:9, matches the site's hero). Left to right: kelong hut and stall, the cage lines in the water, the NILA cage on its own buoy, the inspector boat lane at the horizon. Bottom strip: cash, month, tide clock, log button. Click or tap on things; no keyboard needed, so it works on phones.
+One fixed scene, 480×270 pixels scaled up (16:9, matches the site's hero). Left to right: kelong hut (the shop) with walkway, basket and clean tray; the bath on a float below it; the farm, three rope lines between two buoys with 12 dropper spots; the NILA bottle in its cage at the right. Boats arrive on the water line. Top strip: cash, oysters owned, stamps. Tap only, so it works on phones.
+
+Dusk the whole time: gradient sky, twinkling stars, a low sun with a glitter path on the water, drifting clouds, island silhouettes, gulls. Under the surface: fish of three kinds, jellyfish, rising bubbles, seaweed and rocks on the bed, a crab on the walkway, lamp glow on the hut, ripples where you tap, vignette at the edges. All ambient life is cosmetic and never saved.
+
+Time passes: a full dusk → night → dawn → day cycle every 4 minutes. At night the hut lamp, window and buoy lamps glow and a moon lights the water; by day the sky is blue and the stars are gone.
+
+Sound is synthesized in the browser (no audio files): a low sea wash under everything, a chomp when feeding, a pop on harvest, a two-note coin on a sale, a splash for the bath, a chime for a clean inspection, a buzz for a fine. It starts on the first tap and the note icon in the corner mutes it.
 
 ## Art direction (custom pixel art)
 

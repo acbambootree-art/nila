@@ -3,212 +3,297 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Indigo Tides — cozy prototype</title>
+<title>Indigo Tides</title>
 <style>
   html, body { margin: 0; background: #0c0c0e; }
   #wrap { max-width: 960px; margin: 0 auto; padding: 16px; }
-  canvas { width: 100%; image-rendering: pixelated; display: block; touch-action: manipulation; border-radius: 4px; }
+  canvas { width: 100%; image-rendering: pixelated; display: block; touch-action: manipulation; border-radius: 6px; box-shadow: 0 20px 60px #000a; }
 </style>
 </head>
 <body>
-<div id="wrap"><canvas id="c" width="320" height="180"></canvas></div>
+<div id="wrap"><canvas id="c" width="480" height="270"></canvas></div>
 <script>
 // ---- tuning knobs ----
 const T = {
-  growPerSec: 0.04, feedBoost: 0.18, price: 3, spotCost: 20, maxSpots: 6,
-  tubSeconds: 5, customerEvery: 9, customerWaits: 8, inspectorEvery: 35, fine: 10,
-  monthSeconds: 20, nilaMonths: 6, algaeEvery: 15,
+  growPerSec: 0.035, feedBoost: 0.18, price: 3, spotCost: 20, spotCostStep: 10, maxSpots: 12,
+  tubSeconds: 5, customerEvery: 9, customerWaits: 9, inspectorEvery: 40, fine: 10,
+  monthSeconds: 25, nilaMonths: 6, algaeEvery: 18,
 };
-const C = { sky: '#1b2838', sea: '#0f1724', sea2: '#131d2b', sand: '#f5f0e8', gold: '#c9a96e', gold2: '#d4bc8a', deep: '#a8884f', ink: '#0c0c0e', cheek: '#e8a0a0', green: '#5f9a6a', wood: '#6b4f3a', pink: '#f1c4cf' };
+const C = { sand: '#f5f0e8', gold: '#c9a96e', gold2: '#d4bc8a', deep: '#a8884f', ink: '#0c0c0e', cheek: '#e8a0a0', green: '#5f9a6a', wood: '#6b4f3a', pink: '#f1c4cf', sea: '#1b2838', sea2: '#131d2b' };
+const SURF = 130; // water line
+
+// farm: 3 rope lines x 4 droppers, filled in this order as the player buys spots
+const SPOTS = []; for (const y of [172, 207, 242]) for (const x of [232, 277, 322, 367]) SPOTS.push([x, y]);
 
 const S = load() || {
-  cash: 10, t: 0, step: 0, // tutorial step
-  oysters: [{ size: 0.2, chomp: 0, x: 130, y: 130 }],
-  spots: [[130, 130], [170, 122], [205, 134], [150, 157], [190, 160], [230, 152]],
+  cash: 10, t: 0, step: 0,
+  oysters: [{ size: 0.2, chomp: 0, x: 232, y: 172 }],
   basket: 0, tub: { n: 0, left: 0 }, tray: 0,
   customer: null, nextCustomer: 6, inspector: null, nextInspector: T.inspectorEvery, rawSold: 0, stamps: 0,
   nila: { months: 0, acc: 0, algae: 0 }, won: false,
-  floaters: [], particles: [],
 };
+// ambient life lives outside the save: fish, jellies, gulls, clouds, bubbles, crab
+const A = { fish: [], jelly: [], gulls: [], clouds: [], bubbles: [], ripples: [], floaters: [], particles: [], crab: { x: 120, dir: 1, pause: 0 } };
+const rnd = (a, b) => a + Math.random() * (b - a);
+for (let i = 0; i < 9; i++) A.fish.push({ kind: 1 + (i % 3), x: rnd(0, 480), y: rnd(150, 255), v: rnd(10, 26) * (Math.random() < 0.5 ? 1 : -1), ph: rnd(0, 6) });
+for (let i = 0; i < 2; i++) A.jelly.push({ x: rnd(60, 440), y: rnd(180, 250), ph: rnd(0, 6) });
+for (let i = 0; i < 2; i++) A.gulls.push({ x: rnd(0, 480), y: rnd(30, 70), v: rnd(14, 22) * (i ? -1 : 1), ph: rnd(0, 6) });
+[['cloud1', 40, 40, 3], ['cloud2', 180, 56, 2], ['cloud3', 330, 44, 4], ['cloud1', 420, 70, 2.5], ['cloud2', 260, 38, 1.5]].forEach(([k, x, y, v]) => A.clouds.push({ k, x, y, v }));
+const STARS = []; for (let i = 0; i < 40; i++) STARS.push([Math.floor(rnd(0, 480)), Math.floor(rnd(4, 95)), rnd(0, 6)]);
 
-// save on every tap; visitors come and go, so they are not saved
-function load() { try { const s = JSON.parse(localStorage.getItem('indigo-tides-v2')); if (s) { s.customer = null; s.inspector = null; s.floaters = []; s.particles = []; } return s; } catch { return null; } }
-function save() { try { localStorage.setItem('indigo-tides-v2', JSON.stringify(S)); } catch {} }
+function load() { try { const s = JSON.parse(localStorage.getItem('indigo-tides-v3')); if (s) { s.customer = null; s.inspector = null; } return s; } catch { return null; } }
+function save() { try { localStorage.setItem('indigo-tides-v3', JSON.stringify(S)); } catch {} }
 
-// ---- drawing helpers ----
+// ---- sprites ----
+const IMG = {};
+const NAMES = ['oyster-baby-idle', 'oyster-baby-blink', 'oyster-baby-chomp', 'oyster-medium-idle', 'oyster-medium-blink', 'oyster-medium-chomp', 'oyster-fat-idle', 'oyster-fat-blink', 'oyster-fat-chomp',
+  'customer-coin', 'customer-happy', 'customer-wait', 'inspector-neutral', 'inspector-pleased', 'inspector-frown',
+  'prop-tub', 'prop-tub-bubble1', 'prop-tub-bubble2', 'prop-basket', 'prop-tray', 'hut-hut', 'hut-walkway', 'bottle-0', 'bottle-1', 'bottle-2', 'bottle-3', 'bottle-algae', 'win',
+  'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-crab-a', 'sea-crab-b', 'sea-gull-a', 'sea-gull-b', 'sea-jelly-a', 'sea-jelly-b',
+  'sc-cloud1', 'sc-cloud2', 'sc-cloud3', 'sc-buoy', 'sc-rocks', 'sc-weed'];
+for (const n of NAMES) { const im = new Image(); im.src = `sprites/${n}.png`; IMG[n] = im; }
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 g.imageSmoothingEnabled = false;
 const hits = [];
 const hit = (x, y, w, h, fn) => hits.push({ x, y, w, h, fn });
 function text(s, x, y, color = C.sand, size = 7, align = 'left') { g.fillStyle = color; g.font = `${size}px monospace`; g.textAlign = align; g.fillText(s, x, y); g.textAlign = 'left'; }
 function ell(x, y, rx, ry, color) { g.fillStyle = color; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill(); }
-function face(x, y, r, mood = 'happy', blink = false) {
-  // eyes
-  if (blink) { g.fillStyle = C.ink; g.fillRect(x - r * 0.45, y - r * 0.1, r * 0.3, 1); g.fillRect(x + r * 0.15, y - r * 0.1, r * 0.3, 1); }
-  else { ell(x - r * 0.3, y - r * 0.1, r * 0.13 + 0.6, r * 0.16 + 0.6, C.ink); ell(x + r * 0.3, y - r * 0.1, r * 0.13 + 0.6, r * 0.16 + 0.6, C.ink); }
-  ell(x - r * 0.45, y + r * 0.15, r * 0.14, r * 0.08, C.cheek); ell(x + r * 0.45, y + r * 0.15, r * 0.14, r * 0.08, C.cheek);
-  g.strokeStyle = C.ink; g.lineWidth = 1; g.beginPath();
-  if (mood === 'happy') g.arc(x, y + r * 0.15, r * 0.25, 0.15 * Math.PI, 0.85 * Math.PI);
-  else if (mood === 'open') { g.arc(x, y + r * 0.25, r * 0.22, 0, Math.PI * 2); }
-  else { g.arc(x, y + r * 0.45, r * 0.25, 1.15 * Math.PI, 1.85 * Math.PI); g.moveTo(x - r * 0.5, y - r * 0.4); g.lineTo(x - r * 0.15, y - r * 0.25); g.moveTo(x + r * 0.5, y - r * 0.4); g.lineTo(x + r * 0.15, y - r * 0.25); }
-  g.stroke();
-}
-// AI-generated sprites (game/sprites), hand-clean pass still to do; code-drawn shapes stay as the fallback until they load
-const IMG = {};
-for (const s of ['baby', 'medium', 'fat']) for (const e of ['idle', 'blink', 'chomp']) { const im = new Image(); im.src = `sprites/oyster-${s}-${e}.png`; IMG[`${s}-${e}`] = im; }
-for (const n of ['customer-coin', 'customer-happy', 'customer-wait', 'inspector-neutral', 'inspector-pleased', 'inspector-frown',
-  'prop-tub', 'prop-tub-bubble1', 'prop-tub-bubble2', 'prop-basket', 'prop-tray', 'hut-hut', 'hut-walkway', 'bottle-0', 'bottle-1', 'bottle-2', 'bottle-3', 'bottle-algae', 'win']) { const im = new Image(); im.src = `sprites/${n}.png`; IMG[n] = im; }
-// draw a sprite with its bottom-centre at (x, y); flip mirrors it to face left. Returns false if not loaded yet.
-function sprite(name, x, y, flip = false) {
+// bottom-centre anchored sprite; flip mirrors to face left; alpha for underwater haze
+function sprite(name, x, y, flip = false, alpha = 1) {
   const im = IMG[name]; if (!im || !im.complete || !im.naturalWidth) return false;
-  g.save(); g.translate(Math.round(x), Math.round(y)); if (flip) g.scale(-1, 1);
+  g.save(); g.globalAlpha = alpha; g.translate(Math.round(x), Math.round(y)); if (flip) g.scale(-1, 1);
   g.drawImage(im, -Math.round(im.width / 2), -im.height); g.restore(); return true;
 }
-function oysterSprite(x, y, size, chomp, blink, mood = 'happy') {
-  const im = IMG[`${size < 0.45 ? 'baby' : size < 1 ? 'medium' : 'fat'}-${chomp > 0.3 ? 'chomp' : blink ? 'blink' : 'idle'}`];
-  if (im && im.complete && im.naturalWidth) {
-    const sq = 1 + chomp * 0.15;
-    ell(x, y + im.height / 2, im.width * 0.5, 3, '#0a0f18');
-    g.drawImage(im, Math.round(x - im.width * sq / 2), Math.round(y - im.height / sq / 2), Math.round(im.width * sq), Math.round(im.height / sq));
-    return;
-  }
-  const r = 5 + size * 7, sq = 1 + chomp * 0.25;
-  ell(x, y + 2, r * 1.1, r * 0.45, '#0a0f18'); // shadow
-  ell(x, y, r * sq, r * 0.8 / sq, C.deep);
-  ell(x, y - 1, r * 0.95 * sq, r * 0.7 / sq, C.gold2);
-  g.strokeStyle = C.deep; g.lineWidth = 0.8; for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(x + i * r * 0.3, y - r * 0.6); g.lineTo(x + i * r * 0.45, y + r * 0.3); g.stroke(); }
-  face(x, y, r * 0.9, chomp > 0.3 ? 'open' : mood, blink);
+function oysterSprite(x, y, size, chomp, blink) {
+  const n = `oyster-${size < 0.45 ? 'baby' : size < 1 ? 'medium' : 'fat'}-${chomp > 0.3 ? 'chomp' : blink ? 'blink' : 'idle'}`;
+  const im = IMG[n]; if (!im.complete || !im.naturalWidth) { ell(x, y, 6 + size * 7, 5 + size * 5, C.gold2); return; }
+  const sq = 1 + chomp * 0.15;
+  g.drawImage(im, Math.round(x - im.width * sq / 2), Math.round(y - im.height / sq / 2), Math.round(im.width * sq), Math.round(im.height / sq));
 }
-function boat(x, y, color) { g.fillStyle = C.wood; g.beginPath(); g.moveTo(x - 16, y); g.lineTo(x + 16, y); g.lineTo(x + 11, y + 7); g.lineTo(x - 11, y + 7); g.closePath(); g.fill(); ell(x, y - 7, 7, 8, color); }
 function arrow(x, y) { const b = Math.sin(S.t * 6) * 2; g.fillStyle = C.sand; g.beginPath(); g.moveTo(x, y - 6 + b); g.lineTo(x - 5, y - 14 + b); g.lineTo(x + 5, y - 14 + b); g.closePath(); g.fill(); text('tap', x, y - 17 + b, C.sand, 7, 'center'); }
-function float(s, x, y, color = C.gold2) { S.floaters.push({ s, x, y, life: 1, color }); }
-function pop(x, y, color, n = 8) { for (let i = 0; i < n; i++) S.particles.push({ x, y, vx: (Math.random() - 0.5) * 60, vy: -Math.random() * 60, life: 0.6, color }); }
+function float(s, x, y, color = C.gold2) { A.floaters.push({ s, x, y, life: 1, color }); }
+function pop(x, y, color, n = 8) { for (let i = 0; i < n; i++) A.particles.push({ x, y, vx: rnd(-30, 30), vy: rnd(-60, 0), life: 0.6, color }); }
+function ripple(x, y) { A.ripples.push({ x, y, r: 2, life: 1 }); }
 
 // ---- actions ----
+const spotCost = () => T.spotCost + T.spotCostStep * (S.oysters.length - 1);
 function tapOyster(o, i) {
-  if (o.size >= 1) { S.basket++; S.oysters.splice(i, 1); pop(o.x, o.y, C.gold2); float('+1', o.x, o.y - 10); if (S.step === 0) S.step = 1; }
-  else { o.size = Math.min(1, o.size + T.feedBoost); o.chomp = 1; pop(o.x, o.y - 8, C.green, 4); }
+  if (!S.oysters.includes(o)) return;
+  if (o.size >= 1) { S.basket++; S.oysters.splice(i, 1); pop(o.x, o.y, C.gold2); float('+1', o.x, o.y - 12); SFX.pop(); if (S.step === 0) S.step = 1; }
+  else { o.size = Math.min(1, o.size + T.feedBoost); o.chomp = 1; pop(o.x, o.y - 8, C.green, 4); SFX.chomp(); }
+  ripple(o.x, o.y);
 }
 function tapTub() {
   if (S.basket === 0 || S.tub.n) return;
-  S.tub.n = S.basket; S.basket = 0; S.tub.left = T.tubSeconds; pop(46, 112, '#9ad0e0'); if (S.step === 1) S.step = 2;
+  S.tub.n = S.basket; S.basket = 0; S.tub.left = T.tubSeconds; pop(60, 158, '#9ad0e0'); SFX.splash(); if (S.step === 1) S.step = 2;
 }
 function sellFrom(source) {
   if (!S.customer || S.customer.leaving) return;
-  if (source === 'tray' && S.tray) { S.tray--; }
-  else if (source === 'basket' && S.basket) { S.basket--; S.rawSold++; float('?!', S.customer.x, S.customer.y - 20, C.pink); }
+  if (source === 'tray' && S.tray) S.tray--;
+  else if (source === 'basket' && S.basket) { S.basket--; S.rawSold++; float('?!', S.customer.x, S.customer.y - 40, C.pink); }
   else return;
-  S.cash += T.price; float(`+S$${T.price}`, S.customer.x, S.customer.y - 14); pop(S.customer.x, S.customer.y - 8, C.gold);
+  S.cash += T.price; float(`+S$${T.price}`, S.customer.x, S.customer.y - 30); pop(S.customer.x, S.customer.y - 20, C.gold); SFX.coin();
   S.customer.leaving = true; S.customer.sold = true; if (S.step === 2) S.step = 3;
 }
 function tapHut() {
-  if (S.oysters.length + S.tub.n >= T.maxSpots && S.oysters.length >= T.maxSpots) return float('full', 30, 60, C.pink);
-  if (S.cash < T.spotCost) return float(`need S$${T.spotCost}`, 30, 60, C.pink);
+  if (S.oysters.length >= T.maxSpots) { SFX.nope(); return float('farm is full', 60, 60, C.pink); }
+  if (S.cash < spotCost()) { SFX.nope(); return float(`need S$${spotCost()}`, 60, 60, C.pink); }
+  SFX.pop();
   const used = new Set(S.oysters.map(o => o.x + ',' + o.y));
-  const spot = S.spots.find(p => !used.has(p[0] + ',' + p[1])); if (!spot) return;
-  S.cash -= T.spotCost; S.oysters.push({ size: 0.1, chomp: 0, x: spot[0], y: spot[1] }); pop(spot[0], spot[1], C.gold2); float('baby!', spot[0], spot[1] - 12);
+  const spot = SPOTS.find(p => !used.has(p[0] + ',' + p[1]));
+  S.cash -= spotCost(); S.oysters.push({ size: 0.1, chomp: 0, x: spot[0], y: spot[1] }); pop(spot[0], spot[1], C.gold2); float('baby!', spot[0], spot[1] - 14);
 }
-function tapNila() { if (S.nila.algae > 0.5) { S.nila.algae = 0; pop(275, 150, C.green); float('shiny', 275, 130); } }
+function tapNila() { if (S.nila.algae > 0.5) { S.nila.algae = 0; pop(440, 230, C.green, 12); float('shiny', 440, 200); SFX.splash(); } }
 
 // ---- update ----
 function update(dt) {
   S.t += dt;
   for (const o of S.oysters) { o.size = Math.min(1, o.size + T.growPerSec * dt); o.chomp = Math.max(0, o.chomp - dt * 3); }
-  if (S.tub.n && (S.tub.left -= dt) <= 0) { S.tray += S.tub.n; S.tub.n = 0; pop(46, 112, C.sand); float('clean!', 46, 95); }
-  if (!S.customer && (S.nextCustomer -= dt) <= 0) S.customer = { x: 340, y: 88, wait: T.customerWaits, leaving: false };
+  if (S.tub.n && (S.tub.left -= dt) <= 0) { S.tray += S.tub.n; S.tub.n = 0; pop(60, 158, C.sand); float('clean!', 60, 140); SFX.pop(); }
+  if (!S.customer && (S.nextCustomer -= dt) <= 0) S.customer = { x: 520, y: SURF + 10, wait: T.customerWaits, leaving: false };
   if (S.customer) {
     const c = S.customer;
-    if (c.leaving) { c.x += 50 * dt; if (c.x > 340) { S.customer = null; S.nextCustomer = T.customerEvery; } }
-    else { if (c.x > 250) c.x -= 40 * dt; else if ((c.wait -= dt) <= 0) { c.leaving = true; float('...', c.x, c.y - 14, C.pink); } }
+    if (c.leaving) { c.x += 50 * dt; if (c.x > 520) { S.customer = null; S.nextCustomer = T.customerEvery; } }
+    else if (c.x > 430) c.x -= 40 * dt; else if ((c.wait -= dt) <= 0) { c.leaving = true; float('...', c.x, c.y - 40, C.pink); }
   }
-  if (!S.inspector && (S.nextInspector -= dt) <= 0) S.inspector = { x: -30, y: 88, phase: 'in', hold: 2 };
+  if (!S.inspector && (S.nextInspector -= dt) <= 0) S.inspector = { x: -40, y: SURF + 10, phase: 'in', hold: 2.5 };
   if (S.inspector) {
     const a = S.inspector;
-    if (a.phase === 'in') { a.x += 35 * dt; if (a.x >= 178) { a.phase = 'check'; a.ok = S.rawSold === 0; if (a.ok) { S.stamps++; float('stamp!', a.x, a.y - 18); } else { S.cash = Math.max(0, S.cash - T.fine); S.rawSold = 0; float(`-S$${T.fine}`, a.x, a.y - 18, C.pink); } } }
+    if (a.phase === 'in') { a.x += 35 * dt; if (a.x >= 300) { a.phase = 'check'; a.ok = S.rawSold === 0; if (a.ok) { S.stamps++; float('stamp!', a.x, a.y - 44); SFX.stamp(); } else { S.cash = Math.max(0, S.cash - T.fine); S.rawSold = 0; float(`-S$${T.fine}`, a.x, a.y - 44, C.pink); SFX.fine(); } } }
     else if (a.phase === 'check' && (a.hold -= dt) <= 0) a.phase = 'out';
-    else if (a.phase === 'out') { a.x -= 45 * dt; if (a.x < -30) { S.inspector = null; S.nextInspector = T.inspectorEvery; } }
+    else if (a.phase === 'out') { a.x -= 45 * dt; if (a.x < -40) { S.inspector = null; S.nextInspector = T.inspectorEvery; } }
   }
   const N = S.nila; N.algae = Math.min(1, N.algae + dt / T.algaeEvery);
-  if (N.algae <= 0.5 && !S.won && (N.acc += dt) >= T.monthSeconds) { N.acc = 0; N.months++; float(`${N.months}/${T.nilaMonths}`, 275, 130); if (N.months >= T.nilaMonths) S.won = true; }
-  for (const f of S.floaters) { f.y -= 12 * dt; f.life -= dt * 0.8; }
-  S.floaters = S.floaters.filter(f => f.life > 0);
-  for (const p of S.particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 120 * dt; p.life -= dt; }
-  S.particles = S.particles.filter(p => p.life > 0);
+  if (N.algae <= 0.5 && !S.won && (N.acc += dt) >= T.monthSeconds) { N.acc = 0; N.months++; float(`${N.months}/${T.nilaMonths} months`, 440, 200); if (N.months >= T.nilaMonths) S.won = true; }
+  // ambient
+  for (const f of A.fish) { f.x += f.v * dt; if (f.x > 510) f.x = -30; if (f.x < -30) f.x = 510; if (Math.random() < 0.004) f.v = -f.v; }
+  for (const j of A.jelly) { j.y -= 4 * dt; if (j.y < 150) j.y = 262; j.x += Math.sin(S.t + j.ph) * 3 * dt; }
+  for (const b of A.gulls) { b.x += b.v * dt; if (b.x > 520) b.x = -40; if (b.x < -40) b.x = 520; }
+  for (const c of A.clouds) { c.x += c.v * dt; if (c.x > 520) c.x = -60; }
+  if (Math.random() < dt * 1.5) A.bubbles.push({ x: rnd(100, 470), y: 265, v: rnd(10, 22), r: rnd(1, 2.5) });
+  for (const b of A.bubbles) { b.y -= b.v * dt; b.x += Math.sin(S.t * 3 + b.y) * 6 * dt; }
+  A.bubbles = A.bubbles.filter(b => b.y > SURF + 4);
+  const cr = A.crab;
+  if (cr.pause > 0) cr.pause -= dt; else { cr.x += cr.dir * 9 * dt; if (cr.x > 196 || cr.x < 96) cr.dir = -cr.dir; if (Math.random() < dt * 0.15) cr.pause = 2; }
+  for (const r of A.ripples) { r.r += 30 * dt; r.life -= dt * 1.2; } A.ripples = A.ripples.filter(r => r.life > 0);
+  for (const f of A.floaters) { f.y -= 12 * dt; f.life -= dt * 0.8; } A.floaters = A.floaters.filter(f => f.life > 0);
+  for (const p of A.particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 120 * dt; p.life -= dt; } A.particles = A.particles.filter(p => p.life > 0);
 }
 
+// ---- day / night: one full cycle every T.daySeconds, starting at dusk ----
+T.daySeconds = 240;
+const KEYS = [ // dusk, night, dawn, day (then back to dusk); colours: sky top, sky mid, horizon, sea top
+  { sky: ['#0d1226', '#243054', '#c98a5a'], sea: '#2a3f63', stars: 0.5, sun: 108, sunA: 1, lamp: 0.25 },
+  { sky: ['#05070f', '#0b1024', '#1a2140'], sea: '#101a2e', stars: 1, sun: 150, sunA: 0, lamp: 0.5 },
+  { sky: ['#1a1a33', '#4a3a5a', '#e8a070'], sea: '#2f4a6a', stars: 0.2, sun: 112, sunA: 1, lamp: 0.2 },
+  { sky: ['#3a6aa8', '#6fa0d0', '#cfe3f0'], sea: '#3a6a90', stars: 0, sun: 40, sunA: 1, lamp: 0 },
+];
+function hex(c) { return [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)); }
+function mix(a, b, k) { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * k)).join(',')})`; }
+function sky() {
+  const p = (S.t % T.daySeconds) / T.daySeconds * 4, i = Math.floor(p), k = p - i, a = KEYS[i], b = KEYS[(i + 1) % 4];
+  const l = (x, y) => x + (y - x) * k;
+  return { sky: a.sky.map((c, j) => mix(c, b.sky[j], k)), sea: mix(a.sea, b.sea, k), stars: l(a.stars, b.stars), sun: l(a.sun, b.sun), sunA: l(a.sunA, b.sunA), lamp: l(a.lamp, b.lamp), night: i === 1 ? 1 - Math.abs(k - 0.5) * 2 : 0 };
+}
+
+// ---- sound: tiny synthesized cues, no files; starts on the first tap, toggle with the note in the corner ----
+let AC = null, muted = false; try { muted = localStorage.getItem('indigo-tides-muted') === '1'; } catch {}
+function audio() {
+  if (AC || muted) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  // sea wash: filtered noise with a slow swell
+  const buf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.3;
+  const src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400;
+  const gain = AC.createGain(); gain.gain.value = 0.05;
+  const lfo = AC.createOscillator(); lfo.frequency.value = 0.12; const lg = AC.createGain(); lg.gain.value = 0.03; lfo.connect(lg); lg.connect(gain.gain);
+  src.connect(lp); lp.connect(gain); gain.connect(AC.destination); src.start(); lfo.start();
+}
+function tone(f0, f1, dur, type = 'sine', vol = 0.12, delay = 0) {
+  if (!AC || muted) return;
+  const o = AC.createOscillator(), gn = AC.createGain(), t0 = AC.currentTime + delay;
+  o.type = type; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+  gn.gain.setValueAtTime(vol, t0); gn.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  o.connect(gn); gn.connect(AC.destination); o.start(t0); o.stop(t0 + dur);
+}
+const SFX = {
+  chomp: () => tone(220, 90, 0.08, 'square', 0.06),
+  pop: () => tone(500, 1200, 0.12, 'sine', 0.12),
+  coin: () => { tone(880, 880, 0.08, 'triangle', 0.1); tone(1320, 1320, 0.14, 'triangle', 0.1, 0.08); },
+  splash: () => tone(300, 120, 0.25, 'sine', 0.1),
+  stamp: () => { tone(660, 660, 0.1, 'square', 0.06); tone(990, 990, 0.2, 'square', 0.06, 0.1); },
+  fine: () => tone(200, 120, 0.4, 'sawtooth', 0.08),
+  nope: () => tone(260, 200, 0.15, 'square', 0.05),
+};
+function toggleMute() { muted = !muted; try { localStorage.setItem('indigo-tides-muted', muted ? '1' : '0'); } catch {} if (muted && AC) { AC.suspend(); } else if (AC) AC.resume(); else audio(); }
+
 // ---- draw ----
+function glow(x, y, r, color, a) { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, color); gr.addColorStop(1, 'transparent'); g.globalAlpha = a; g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); g.globalAlpha = 1; }
 function draw() {
   hits.length = 0;
-  g.fillStyle = C.sky; g.fillRect(0, 0, 320, 180);
-  ell(290, 20, 10, 10, C.gold); // sun
-  g.fillStyle = C.sea; g.fillRect(0, 78, 320, 102);
-  for (let i = 0; i < 8; i++) { const y = 84 + i * 12 + Math.sin(S.t * 2 + i) * 1.5; g.fillStyle = C.sea2; g.fillRect(0, y, 320, 2); }
-  // kelong hut (shop) + walkway
-  if (!sprite('hut-hut', 38, 84)) { g.fillStyle = C.sand; g.fillRect(14, 36, 48, 24); g.fillStyle = C.wood; g.fillRect(12, 60, 3, 24); g.fillRect(60, 60, 3, 24); }
-  text(`shop S$${T.spotCost}`, 38, 30, C.gold2, 6, 'center');
-  hit(12, 24, 52, 60, tapHut);
-  if (!sprite('hut-walkway', 103, 90)) { g.fillStyle = C.wood; g.fillRect(74, 70, 58, 3); }
-  // basket and clean tray sit on the walkway
-  if (!sprite('prop-basket', 86, 72)) { g.fillStyle = C.deep; g.fillRect(77, 60, 18, 12); }
-  for (let i = 0; i < Math.min(S.basket, 6); i++) ell(81 + (i % 3) * 5, 59 + Math.floor(i / 3) * 3, 2.2, 1.6, C.gold2);
-  text('basket', 86, 50, C.sand, 6, 'center'); if (S.basket) text(S.basket, 97, 66, C.gold2, 7);
-  hit(74, 44, 26, 30, () => sellFrom('basket'));
-  if (!sprite('prop-tray', 116, 72)) { g.fillStyle = C.sand; g.fillRect(104, 64, 24, 8); }
-  for (let i = 0; i < Math.min(S.tray, 6); i++) ell(108 + (i % 3) * 7, 66 + Math.floor(i / 3) * 3, 2.4, 1.7, C.gold2);
-  text('clean', 116, 50, C.sand, 6, 'center'); if (S.tray) text(S.tray, 130, 66, C.gold2, 7);
-  hit(102, 44, 30, 30, () => sellFrom('tray'));
-  // bathtub on a float below the hut
-  g.fillStyle = C.wood; g.fillRect(30, 122, 36, 3);
-  const tubFrame = S.tub.n ? (Math.floor(S.t * 4) % 2 ? 'prop-tub-bubble1' : 'prop-tub-bubble2') : 'prop-tub';
-  if (!sprite(tubFrame, 48, 122)) { g.fillStyle = '#cfe6ee'; g.fillRect(28, 104, 40, 16); }
-  text(S.tub.n ? `${Math.ceil(S.tub.left)}s` : 'bath', 48, 100, C.sand, 6, 'center');
-  hit(30, 94, 36, 32, tapTub);
-  // oysters in water
+  const t = S.t, D = sky();
+  // sky
+  const skyG = g.createLinearGradient(0, 0, 0, SURF); skyG.addColorStop(0, D.sky[0]); skyG.addColorStop(0.55, D.sky[1]); skyG.addColorStop(1, D.sky[2]);
+  g.fillStyle = skyG; g.fillRect(0, 0, 480, SURF);
+  for (const [x, y, p] of STARS) { g.globalAlpha = D.stars * (0.3 + 0.6 * Math.abs(Math.sin(t * 1.5 + p))) * (1 - y / 110); g.fillStyle = C.sand; g.fillRect(x, y, 1, 1); } g.globalAlpha = 1;
+  if (D.sunA > 0) { g.globalAlpha = D.sunA; glow(400, D.sun, 60, '#f0c070', 0.35 * D.sunA); ell(400, D.sun, 14, 14, '#f6d48a'); ell(400, D.sun, 11, 11, '#fbe6b0'); g.globalAlpha = 1; }
+  if (D.night > 0) { g.globalAlpha = D.night; ell(90, 36, 9, 9, '#e8e4d8'); ell(86, 33, 7, 7, D.sky[0]); glow(90, 36, 30, '#e8e4d8', 0.15 * D.night); g.globalAlpha = 1; }
+  for (const c of A.clouds) sprite(`sc-${c.k}`, c.x, c.y);
+  // distant islands
+  g.fillStyle = '#1a1f36'; g.beginPath(); g.moveTo(0, SURF); g.lineTo(20, 118); g.lineTo(60, 112); g.lineTo(110, 122); g.lineTo(140, SURF); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(300, SURF); g.lineTo(330, 120); g.lineTo(372, 116); g.lineTo(410, 124); g.lineTo(480, 118); g.lineTo(480, SURF); g.closePath(); g.fill();
+  for (const b of A.gulls) sprite(Math.floor(t * 6 + b.ph) % 2 ? 'sea-gull-a' : 'sea-gull-b', b.x, b.y + Math.sin(t * 2 + b.ph) * 3, b.v < 0);
+  // sea
+  const sea = g.createLinearGradient(0, SURF, 0, 270); sea.addColorStop(0, D.sea); sea.addColorStop(0.25, C.sea); sea.addColorStop(1, '#070b16');
+  g.fillStyle = sea; g.fillRect(0, SURF, 480, 270 - SURF);
+  // sun (or moon) path glitter
+  const gx = D.sunA > 0 ? 400 : 90, gc = D.sunA > 0 ? '#f0c070' : '#e8e4d8', ga = D.sunA > 0 ? D.sunA * (1 - Math.abs(D.sun - 108) / 70) : D.night;
+  if (ga > 0) for (let y = SURF + 2; y < SURF + 50; y += 3) for (let x = gx - 28; x < gx + 28; x += 4) { const h = Math.sin(x * 12.9898 + y * 78.233 + Math.floor(t * 6)) * 43758.5; if (h - Math.floor(h) > 0.82) { g.fillStyle = gc; g.globalAlpha = 0.5 * ga * (1 - (y - SURF) / 50); g.fillRect(x, y, 2, 1); } } g.globalAlpha = 1;
+  // surface wave lines
+  for (let i = 0; i < 4; i++) { g.fillStyle = i ? '#3b5280' : '#c9a96e'; g.globalAlpha = i ? 0.35 : 0.5; for (let x = 0; x < 480; x += 6) if (Math.sin(x * 0.06 + t * 1.6 + i * 1.7) > 0.4) g.fillRect(x, SURF + 1 + i * 4 + Math.sin(x * 0.03 + t) * 1.5, 4, 1); } g.globalAlpha = 1;
+  // seabed
+  sprite('sc-rocks', 150, 272, false, 0.75); sprite('sc-weed', 100, 272, Math.sin(t) > 0, 0.7); sprite('sc-weed', 300, 274, Math.sin(t * 0.8) > 0, 0.6); sprite('sc-rocks', 400, 276, true, 0.6);
+  for (const b of A.bubbles) { g.globalAlpha = 0.5; ell(b.x, b.y, b.r, b.r, '#9ad0e0'); } g.globalAlpha = 1;
+  for (const j of A.jelly) sprite(Math.sin(t * 2 + j.ph) > 0 ? 'sea-jelly-a' : 'sea-jelly-b', j.x, j.y, false, 0.8);
+  for (const f of A.fish) sprite(`sea-fish${f.kind}-${Math.floor(t * 5 + f.ph) % 2 ? 'a' : 'b'}`, f.x, f.y + Math.sin(t * 2 + f.ph) * 3, f.v < 0, 0.9);
+  // farm ropes and buoys
+  g.strokeStyle = '#3a2e22'; g.lineWidth = 1.2; g.beginPath();
+  for (const x of [215, 384]) { g.moveTo(x, SURF + 4); g.lineTo(x, 255); }
+  for (const y of [172, 207, 242]) { g.moveTo(215, y - 2); g.quadraticCurveTo(300, y + 4, 384, y - 2); }
+  for (const [x, y] of SPOTS) { g.moveTo(x, y - 14); g.lineTo(x, y); }
+  g.stroke();
+  for (const x of [215, 384]) sprite('sc-buoy', x, SURF + 18 + Math.sin(t * 2 + x) * 2);
+  // oysters (empty spots show as faint rope loops)
+  const used = new Set(S.oysters.map(o => o.x + ',' + o.y));
+  for (const [x, y] of SPOTS) if (!used.has(x + ',' + y)) { g.strokeStyle = '#3a2e2288'; g.beginPath(); g.arc(x, y, 4, 0, Math.PI * 2); g.stroke(); }
   S.oysters.forEach((o, i) => {
-    const bob = Math.sin(S.t * 2 + o.x) * 1.5, blink = Math.sin(S.t * 1.3 + o.x) > 0.97;
+    const bob = Math.sin(t * 2 + o.x) * 1.5, blink = Math.sin(t * 1.3 + o.x) > 0.97;
     oysterSprite(o.x, o.y + bob, o.size, o.chomp, blink);
-    if (o.size >= 1) { ell(o.x, o.y - 14 + bob, 2, 2, C.gold); }
-    hit(o.x - 12, o.y - 14, 24, 24, () => tapOyster(o, i));
+    if (o.size >= 1) { glow(o.x, o.y - 16 + bob, 6, '#f6d48a', 0.6); ell(o.x, o.y - 16 + bob, 2, 2, C.gold); }
+    hit(o.x - 14, o.y - 16, 28, 30, () => tapOyster(o, i));
   });
-  // NILA bottle under water
+  // NILA bottle
   const N = S.nila, crust = Math.min(3, Math.floor(N.months / 2));
-  if (!sprite(N.algae > 0.5 ? 'bottle-algae' : `bottle-${crust}`, 292, 176)) { g.fillStyle = '#2a3650'; g.fillRect(284, 126, 16, 50); }
-  text(N.algae > 0.5 ? 'algae!' : `${N.months}/${T.nilaMonths} mo`, 292, 122, N.algae > 0.5 ? C.green : C.sand, 6, 'center');
-  hit(276, 116, 34, 62, tapNila);
-  // customer
+  glow(440, 236, 30, N.algae > 0.5 ? '#5f9a6a' : '#c9a96e', 0.25);
+  sprite(N.algae > 0.5 ? 'bottle-algae' : `bottle-${crust}`, 440, 264);
+  text(N.algae > 0.5 ? 'algae! tap' : `NILA  ${N.months}/${T.nilaMonths} mo`, 440, 206, N.algae > 0.5 ? '#8fd39a' : C.gold2, 6, 'center');
+  hit(422, 200, 36, 68, tapNila);
+  // kelong
+  glow(40, 94, 22 + 10 * D.lamp, '#f0c070', D.lamp + 0.08 * Math.sin(t * 3)); glow(72, 93, 14 + 8 * D.lamp, '#f0c070', D.lamp * 0.8);
+  for (const x of [215, 384]) glow(x, SURF - 24, 10 + 8 * D.lamp, '#f0c070', D.lamp * 0.9);
+  sprite('hut-hut', 60, 118); text(`shop · spot S$${spotCost()}`, 60, 58, C.gold2, 6, 'center');
+  hit(34, 60, 52, 60, tapHut);
+  sprite('hut-walkway', 115, 124); sprite('hut-walkway', 173, 124);
+  const cr = A.crab; sprite(cr.pause > 0 ? 'sea-crab-b' : 'sea-crab-a', cr.x, 105 + (cr.pause > 0 ? 0 : Math.abs(Math.sin(t * 10)) * 1.5));
+  sprite('prop-basket', 120, 106);
+  for (let i = 0; i < Math.min(S.basket, 6); i++) ell(115 + (i % 3) * 5, 93 + Math.floor(i / 3) * 3, 2.2, 1.6, C.gold2);
+  text('basket', 120, 82, C.sand, 6, 'center'); if (S.basket) text(S.basket, 132, 100, C.gold2, 7);
+  hit(106, 76, 28, 32, () => sellFrom('basket'));
+  sprite('prop-tray', 170, 106);
+  for (let i = 0; i < Math.min(S.tray, 6); i++) ell(162 + (i % 3) * 7, 100 + Math.floor(i / 3) * 3, 2.4, 1.7, C.gold2);
+  text('clean', 170, 82, C.sand, 6, 'center'); if (S.tray) text(S.tray, 186, 100, C.gold2, 7);
+  hit(154, 76, 34, 32, () => sellFrom('tray'));
+  // bath on a float
+  g.fillStyle = C.wood; g.fillRect(42, 168, 36, 3);
+  sprite(S.tub.n ? (Math.floor(t * 4) % 2 ? 'prop-tub-bubble1' : 'prop-tub-bubble2') : 'prop-tub', 60, 168);
+  text(S.tub.n ? `${Math.ceil(S.tub.left)}s` : 'bath', 60, 146, C.sand, 6, 'center');
+  hit(42, 140, 36, 32, tapTub);
+  // boats
   if (S.customer) {
-    const c = S.customer, bob = Math.sin(S.t * 3) * 1.5, arrived = !c.leaving && c.x <= 250;
-    const pose = c.leaving ? (c.sold ? 'happy' : 'wait') : 'coin';
-    if (!sprite(`customer-${pose}`, c.x, c.y + 8 + bob, true)) { boat(c.x, c.y + bob, C.pink); face(c.x, c.y - 7, 7); if (arrived) { ell(c.x - 14, c.y - 20, 8, 6, C.sand); ell(c.x - 14, c.y - 20, 3, 3, C.gold); } }
+    const c = S.customer, bob = Math.sin(t * 3) * 1.5;
+    sprite(`customer-${c.leaving ? (c.sold ? 'happy' : 'wait') : 'coin'}`, c.x, c.y + 8 + bob, true);
   }
-  // inspector
   if (S.inspector) {
-    const a = S.inspector, bob = Math.sin(S.t * 3) * 1.5;
-    const pose = a.phase === 'check' ? (a.ok ? 'pleased' : 'frown') : 'neutral';
-    if (!sprite(`inspector-${pose}`, a.x, a.y + 8 + bob)) { boat(a.x, a.y, '#8fb3c9'); face(a.x, a.y - 7, 7, pose === 'frown' ? 'stern' : 'happy'); text('SFA', a.x, a.y + 6, C.sand, 5, 'center'); }
+    const a = S.inspector, bob = Math.sin(t * 3) * 1.5;
+    sprite(`inspector-${a.phase === 'check' ? (a.ok ? 'pleased' : 'frown') : 'neutral'}`, a.x, a.y + 8 + bob);
   }
-  // tutorial arrows
-  if (S.step === 0 && S.oysters[0]) arrow(S.oysters[0].x, S.oysters[0].y - 10);
-  if (S.step === 1 && S.basket) arrow(48, 94);
-  if (S.step === 2 && S.tray && S.customer && !S.customer.leaving && S.customer.x <= 250) arrow(116, 44);
-  // hud
-  g.fillStyle = C.ink + 'aa'; g.fillRect(0, 0, 320, 12);
-  text(`S$${S.cash}`, 4, 9, C.gold2, 8); text(`stamps ${S.stamps}`, 316, 9, C.sand, 7, 'right');
-  for (const p of S.particles) { g.fillStyle = p.color; g.fillRect(p.x, p.y, 2, 2); }
-  for (const f of S.floaters) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, 7, 'center'); g.globalAlpha = 1; }
+  // ripples, particles, floaters
+  for (const r of A.ripples) { g.globalAlpha = r.life * 0.6; g.strokeStyle = C.sand; g.beginPath(); g.ellipse(r.x, r.y, r.r, r.r * 0.4, 0, 0, Math.PI * 2); g.stroke(); } g.globalAlpha = 1;
+  for (const p of A.particles) { g.fillStyle = p.color; g.fillRect(p.x, p.y, 2, 2); }
+  for (const f of A.floaters) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, 7, 'center'); g.globalAlpha = 1; }
+  // tutorial
+  if (S.step === 0 && S.oysters[0]) arrow(S.oysters[0].x, S.oysters[0].y - 12);
+  if (S.step === 1 && S.basket) arrow(60, 140);
+  if (S.step === 2 && S.tray && S.customer && !S.customer.leaving && S.customer.x <= 430) arrow(170, 76);
+  // vignette + hud
+  const v = g.createRadialGradient(240, 135, 160, 240, 135, 330); v.addColorStop(0, 'transparent'); v.addColorStop(1, '#000000aa'); g.fillStyle = v; g.fillRect(0, 0, 480, 270);
+  g.fillStyle = '#0c0c0e99'; g.fillRect(0, 0, 480, 14);
+  text(`S$${S.cash}`, 6, 10, C.gold2, 9); text(`${S.oysters.length}/${T.maxSpots} oysters`, 240, 10, C.sand, 7, 'center'); text(`stamps ${S.stamps}`, 456, 10, C.sand, 7, 'right');
+  text(muted ? '♪̸' : '♪', 472, 10, muted ? '#777' : C.gold2, 9, 'center'); hit(462, 0, 18, 14, toggleMute);
   if (S.won) {
-    if (IMG.win.complete && IMG.win.naturalWidth) g.drawImage(IMG.win, 0, 0); else { g.fillStyle = '#0c0c0ed0'; g.fillRect(0, 0, 320, 180); }
-    text('Six months beneath the waves.', 160, 22, C.gold2, 11, 'center');
-    text('Your NILA bottle is ready.', 160, 36, C.sand, 8, 'center');
-    g.fillStyle = C.ink + 'aa'; g.fillRect(110, 158, 100, 14); text('[ Reserve a bottle ]', 160, 168, C.gold, 8, 'center');
+    if (IMG.win.complete && IMG.win.naturalWidth) g.drawImage(IMG.win, 0, 0, 480, 270); else { g.fillStyle = '#0c0c0ed0'; g.fillRect(0, 0, 480, 270); }
+    text('Six months beneath the waves.', 240, 34, C.gold2, 15, 'center'); text('Your NILA bottle is ready.', 240, 52, C.sand, 10, 'center');
+    g.fillStyle = C.ink + 'aa'; g.fillRect(170, 236, 140, 20); text('[ Reserve a bottle ]', 240, 250, C.gold, 10, 'center');
   }
 }
 
 cv.addEventListener('pointerdown', (e) => {
   const r = cv.getBoundingClientRect();
-  const x = (e.clientX - r.left) * 320 / r.width, y = (e.clientY - r.top) * 180 / r.height;
+  const x = (e.clientX - r.left) * 480 / r.width, y = (e.clientY - r.top) * 270 / r.height;
   const h = [...hits].reverse().find(h => x >= h.x && x < h.x + h.w && y >= h.y && y < h.y + h.h);
-  if (h) { h.fn(); save(); }
+  audio();
+  if (h) { h.fn(); save(); } else if (y > SURF) { ripple(x, y); SFX.splash(); }
 });
 let last = performance.now();
 (function loop(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; update(dt); draw(); requestAnimationFrame(loop); })(last);
