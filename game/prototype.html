@@ -93,9 +93,9 @@ Object.assign(S, { t: daySeconds * 0.75, pick: null, pickFish: null, build: null
 const F = Object.assign({ tr: null, tc: null, queue: [], walk: 0, back: false, flip: false, moving: false }, S.farmer); S.farmer = F;
 const cam = S.cam || { x: 60, y: 150 }; S.cam = cam;
 const A = { fish: [], jelly: [], bubbles: [], ripples: [], floaters: [], particles: [], gulls: [], clouds: [], hops: [] };
-for (let i = 0; i < 14; i++) A.fish.push({ kind: 1 + (i % 3), x: rnd(-500, 500), y: rnd(0, 500), v: rnd(10, 26) * (Math.random() < 0.5 ? 1 : -1), ph: rnd(0, 6) });
+for (let i = 0; i < 8; i++) A.fish.push({ kind: 1 + (i % 3), x: rnd(-500, 500), y: rnd(0, 500), v: rnd(8, 18) * (Math.random() < 0.5 ? 1 : -1), ph: rnd(0, 6) });
 for (let i = 0; i < 3; i++) A.jelly.push({ x: rnd(-400, 400), y: rnd(100, 450), ph: rnd(0, 6) });
-for (let i = 0; i < 3; i++) A.gulls.push({ x: rnd(0, W), y: rnd(20, 120), v: rnd(14, 22) * (i % 2 ? -1 : 1), ph: rnd(0, 6) });
+for (let i = 0; i < 1; i++) A.gulls.push({ x: rnd(0, W), y: rnd(30, 70), v: 12, ph: rnd(0, 6) });
 [['cloud1', 40, 40, 3], ['cloud2', 300, 70, 2], ['cloud3', 520, 30, 4]].forEach(([k, x, y, v]) => A.clouds.push({ k, x, y, v }));
 
 function load() { try { return JSON.parse(localStorage.getItem('indigo-farm-v2')); } catch { return null; } }
@@ -385,10 +385,10 @@ function update(dt) {
 
 // ---- day / night ----
 const KEYS = [ // dusk, night, dawn, day: sea deep, sea shallow, overlay colour, overlay alpha, lamp
-  { sea: '#2a7fb0', shallow: '#4fb3d6', tint: '#ff9a4a', ta: 0.14, lamp: 0.3 },
-  { sea: '#1e4a80', shallow: '#2d6aa8', tint: '#1a2a6e', ta: 0.28, lamp: 0.6 },
-  { sea: '#3a9ac8', shallow: '#62c6e0', tint: '#ffc080', ta: 0.12, lamp: 0.2 },
-  { sea: '#3fb0d8', shallow: '#6fd8ea', tint: '#cfe3f0', ta: 0.0, lamp: 0 },
+  { sea: '#1f8aa8', shallow: '#7fe0e0', tint: '#ff9a4a', ta: 0.14, lamp: 0.3 },
+  { sea: '#14506a', shallow: '#2a8aa0', tint: '#1a2a6e', ta: 0.28, lamp: 0.6 },
+  { sea: '#22a0c0', shallow: '#8fe8ea', tint: '#ffc080', ta: 0.12, lamp: 0.2 },
+  { sea: '#1fb0d0', shallow: '#a6f4f0', tint: '#cfe3f0', ta: 0.0, lamp: 0 },
 ];
 const hex = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
 const mix = (a, b, k) => `rgb(${hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * k)).join(',')})`;
@@ -411,6 +411,39 @@ function tone(f0, f1, dur, type = 'sine', vol = 0.12, delay = 0) {
 const SFX = { tok: () => tone(900, 300, 0.05, 'square', 0.05), chomp: () => tone(220, 90, 0.08, 'square', 0.06), pop: () => tone(500, 1200, 0.12, 'sine', 0.12), coin: () => { tone(880, 880, 0.08, 'triangle', 0.1); tone(1320, 1320, 0.14, 'triangle', 0.1, 0.08); },
   splash: () => tone(300, 120, 0.25, 'sine', 0.1), stamp: () => { tone(660, 660, 0.1, 'square', 0.06); tone(990, 990, 0.2, 'square', 0.06, 0.1); }, nope: () => tone(260, 200, 0.15, 'square', 0.05) };
 function toggleMute() { muted = !muted; try { localStorage.setItem('indigo-tides-muted', muted ? '1' : '0'); } catch {} if (muted && AC) AC.suspend(); else if (AC) AC.resume(); else audio(); }
+
+// ---- water, MapleStory-style: flat saturated blue, a few soft lighter patches, sparse thin white ripple lines
+// drifting slowly, and tiny twinkling sparkles. No noise, no dark troughs. Everything is in world space so it scrolls with the camera.
+const RIP = Array.from({ length: 220 }, (_, i) => { const h = n => { const v = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453; return v - Math.floor(v); }; return { x: h(1) * 2400 - 1200, y: h(2) * 1400 - 400, len: 18 + h(3) * 40, ph: h(4) * 6.28, sp: 4 + h(5) * 6, k: h(6) }; });
+const SPARK = Array.from({ length: 50 }, (_, i) => { const h = n => { const v = Math.sin(i * 7.77 + n * 3.33) * 12345.678; return v - Math.floor(v); }; return { x: h(1) * 2400 - 1200, y: h(2) * 1400 - 400, ph: h(3) * 6.28, r: 1.5 + h(4) * 1.5 }; });
+const PATCH = Array.from({ length: 10 }, (_, i) => { const h = n => { const v = Math.sin(i * 5.55 + n * 9.99) * 9876.5; return v - Math.floor(v); }; return { x: h(1) * 2400 - 1200, y: h(2) * 1400 - 400, r: 80 + h(3) * 120, ph: h(4) * 6.28 }; });
+// sunlight caustics on the lagoon floor: a wavy lattice of thin bright lines, 12 baked looping frames
+const CAUSTIC = (() => { const N = 12, w = 128, h = 64, TAU = Math.PI * 2, out = [];
+  for (let f = 0; f < N; f++) { const t = f / N * TAU, sm = document.createElement('canvas'); sm.width = w; sm.height = h; const sg = sm.getContext('2d'), id = sg.createImageData(w, h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const a = Math.abs(Math.sin(TAU * 2 * x / w + 1.5 * Math.sin(TAU * y / h + t) + 0.7 * Math.sin(TAU * 3 * y / h - 2 * t) + t)), b = Math.abs(Math.sin(TAU * 2 * y / h + 1.5 * Math.sin(TAU * x / w - t) + 0.7 * Math.sin(TAU * 3 * x / w + 2 * t) + 2 * t)), m = Math.min(a, b), i = (y * w + x) * 4; id.data[i] = id.data[i + 1] = id.data[i + 2] = 255; id.data[i + 3] = m < 0.06 ? 100 : m < 0.14 ? 40 : 0; }
+    sg.putImageData(id, 0, 0); const big = document.createElement('canvas'); big.width = w * 2; big.height = h * 2; const bg = big.getContext('2d'); bg.imageSmoothingEnabled = false; bg.drawImage(sm, 0, 0, w * 2, h * 2); out.push(big); }
+  return out; })();
+function drawWater(t, D) {
+  g.fillStyle = D.sea; g.fillRect(0, 0, W, H);
+  // soft lighter patches, breathing slowly
+  for (const p of PATCH) { const [x, y] = scr(p.x + Math.sin(t * 0.1 + p.ph) * 20, p.y); if (x < -p.r || x > W + p.r || y < -p.r || y > H + p.r) continue; const gr = g.createRadialGradient(x, y, 0, x, y, p.r); gr.addColorStop(0, D.shallow); gr.addColorStop(1, 'transparent'); g.globalAlpha = 0.18 + 0.08 * Math.sin(t * 0.3 + p.ph); g.fillStyle = gr; g.fillRect(x - p.r, y - p.r, p.r * 2, p.r * 2); }
+  // shallower water around the kelong and the raft
+  for (const [r, c, rad] of [[3, 3, 190], [R0 + S.n / 2, C0 + S.n / 2, 80 + S.n * 24]]) { const w = center(r, c), [x, y] = scr(w.x, w.y); const gr = g.createRadialGradient(x, y, rad * 0.35, x, y, rad * 2); gr.addColorStop(0, D.shallow); gr.addColorStop(1, 'transparent'); g.globalAlpha = 0.7; g.fillStyle = gr; g.fillRect(x - rad * 2, y - rad * 2, rad * 4, rad * 4); }
+  g.globalAlpha = 1;
+  const sunlit = Math.max(0, 1 - D.ta * 2.5); if (sunlit > 0) { const fr = CAUSTIC[Math.floor(t * 5) % CAUSTIC.length], ox = -((cam.x % 256) + 256) % 256, oy = -((cam.y % 128) + 128) % 128; g.save(); g.translate(ox, oy); g.globalAlpha = 0.22 * sunlit; g.fillStyle = g.createPattern(fr, 'repeat'); g.fillRect(-ox, -oy, W, H); g.restore(); g.globalAlpha = 1; }
+  // life below the surface: small, dim, blue-tinted
+  for (const f of A.fish) { const [x, y] = scr(f.x, f.y), d = 0.5 + 0.5 * Math.sin(f.ph); sprite(tinted(`sea-fish${f.kind}-${Math.floor(t * 4 + f.ph) % 2 ? 'a' : 'b'}`, '#1b5a8a'), x, y + Math.sin(t * 2 + f.ph) * 2, { flip: f.v < 0, alpha: 0.25 + 0.25 * d, scale: 0.6 + 0.3 * d }); }
+  for (const j of A.jelly) { const [x, y] = scr(j.x, j.y); sprite(tinted(Math.sin(t * 2 + j.ph) > 0 ? 'sea-jelly-a' : 'sea-jelly-b', '#1b5a8a'), x, y, { alpha: 0.35, scale: 0.8 }); }
+  for (const b of A.bubbles) { const [x, y] = scr(b.x, b.y); g.globalAlpha = 0.3 * Math.min(1, b.life); ell(x, y, b.r, b.r, '#e8f4ff'); } g.globalAlpha = 1;
+  // thin white ripple lines: each drifts right, wobbles a pixel, fades in and out
+  g.strokeStyle = '#ffffff'; g.lineWidth = 1;
+  for (const p of RIP) { const a = 0.5 + 0.5 * Math.sin(t * 0.8 + p.ph); if (a < 0.15) continue; const wx = p.x + ((t * p.sp + p.k * 500) % 500) - 250, [x, y] = scr(wx, p.y); if (x < -60 || x > W + 60 || y < -10 || y > H + 10) continue;
+    g.globalAlpha = 0.38 * a; g.beginPath(); for (let i = 0; i <= 4; i++) { const px = Math.round(x + i * p.len / 4), py = Math.round(y + Math.sin(t * 2 + p.ph + i * 1.3)) + 0.5; i ? g.lineTo(px, py) : g.moveTo(px, py); } g.stroke(); }
+  // sparkles: tiny plus-shaped glints that twinkle, mostly by day
+  const sun = Math.max(0, 1 - D.ta * 3) * 0.9 + D.lamp * 0.3; g.fillStyle = '#ffffff';
+  if (sun > 0) for (const p of SPARK) { const a = Math.max(0, Math.sin(t * 1.7 + p.ph)); if (a < 0.6) continue; const [x, y] = scr(p.x, p.y); if (x < 0 || x > W || y < 0 || y > H) continue; g.globalAlpha = sun * (a - 0.6) * 2.5; g.fillRect(Math.round(x) - p.r, Math.round(y), p.r * 2 + 1, 1); g.fillRect(Math.round(x), Math.round(y) - p.r, 1, p.r * 2 + 1); }
+  g.globalAlpha = 1;
+}
 
 // ---- draw ----
 function groundTile(r, c, x, y, D, t) {
@@ -453,9 +486,6 @@ function groundTile(r, c, x, y, D, t) {
       for (const [, , x1, y1, x2, y2] of EDGES) for (let k = 0; k <= 8; k++) { const u = k / 8, w = Math.sin(t * 2 + k * 1.3 + r * 3 + c * 5); if (w > -0.2) { g.globalAlpha = 0.25 + 0.35 * w; g.fillRect(Math.round(x + x1 + (x2 - x1) * u + w * 2), Math.round(y + y1 + (y2 - y1) * u + w), 3, 1); } }
       g.globalAlpha = 1;
     }
-    const h = Math.sin(r * 12.9898 + c * 78.233) * 43758.5, k = h - Math.floor(h), h2 = Math.sin(r * 7.3 + c * 3.1) * 1234.5, k2 = h2 - Math.floor(h2);
-    if (Math.sin(t * 1.2 + k * 20) > 0.3) { g.fillStyle = '#4a6a90'; g.globalAlpha = 0.5; g.fillRect(Math.round(x - 14 + k * 20), Math.round(y - 4 + Math.sin(t + k) * 3), 10, 1); g.globalAlpha = 1; }
-    if (Math.sin(t * 0.9 + k2 * 20) > 0.5) { g.fillStyle = D.shallow; g.globalAlpha = 0.6; g.fillRect(Math.round(x - 8 + k2 * 16), Math.round(y + 3 + Math.cos(t + k2) * 3), 6, 1); g.globalAlpha = 1; }
   }
 }
 function drawRaftFrame(D) {
@@ -531,9 +561,6 @@ function drawWorld(t, D) {
   // ground
   for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) { const [x, y] = tilePos(r, c); if (x < -TW || x > W + TW || y < -TH || y > H + TH) continue; groundTile(r, c, x, y, D, t); }
   // under the surface
-  for (const b of A.bubbles) { const [x, y] = scr(b.x, b.y); g.globalAlpha = 0.4 * Math.min(1, b.life); ell(x, y, b.r, b.r, '#9ad0e0'); } g.globalAlpha = 1;
-  for (const j of A.jelly) { const [x, y] = scr(j.x, j.y); sprite(Math.sin(t * 2 + j.ph) > 0 ? 'sea-jelly-a' : 'sea-jelly-b', x, y, { alpha: 0.6 }); }
-  for (const f of A.fish) { const [x, y] = scr(f.x, f.y); const tl = tileAt(x, y); if (tl && land(tl.r, tl.c)) continue; sprite(`sea-fish${f.kind}-${Math.floor(t * 5 + f.ph) % 2 ? 'a' : 'b'}`, x, y + Math.sin(t * 2 + f.ph) * 3, { flip: f.v < 0, alpha: 0.75 }); }
   drawRaftFrame(D);
   if (S.pick) { const [x, y] = tilePos(S.pick.r, S.pick.c); g.strokeStyle = C.sand; g.lineWidth = 1.5; g.globalAlpha = 0.6 + 0.4 * Math.sin(t * 6); diamond(x, y); g.stroke(); g.globalAlpha = 1; }
   if (S.build) { const it = item(S.build); g.globalAlpha = 0.25; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (canPlace(it, r, c)) { const [x, y] = tilePos(r, c); diamond(x, y); g.fillStyle = C.gold2; g.fill(); } g.globalAlpha = 1; }
@@ -617,12 +644,12 @@ function drawQuests() {
 }
 function draw() {
   hits.length = 0; const t = S.t, D = sky();
-  g.fillStyle = D.sea; g.fillRect(0, 0, W, H);
+  drawWater(t, D);
   drawWorld(t, D);
   // time of day tint, then sky-layer life (gulls, clouds) in screen space
   g.fillStyle = D.tint; g.globalAlpha = D.ta; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
   for (const c of A.clouds) sprite(`sc-${c.k}`, c.x, c.y, { alpha: 0.5, scale: 1.5 });
-  for (const b of A.gulls) sprite(Math.floor(t * 6 + b.ph) % 2 ? 'sea-gull-a' : 'sea-gull-b', b.x, b.y + Math.sin(t * 2 + b.ph) * 3, { flip: b.v < 0 });
+  for (const b of A.gulls) sprite(Math.floor(t * 4 + b.ph) % 2 ? 'sea-gull-a' : 'sea-gull-b', b.x, b.y + Math.sin(t * 1.5 + b.ph) * 2, { flip: b.v < 0, scale: 0.7, alpha: 0.85 });
   const v = g.createRadialGradient(W / 2, H / 2, 220, W / 2, H / 2, 440); v.addColorStop(0, 'transparent'); v.addColorStop(1, '#00000044'); g.fillStyle = v; g.fillRect(0, 0, W, H);
   // panels and hud
   if (S.pick) drawPicker(SP, sp => tinted('oyster-fat-idle', sp.tint), plant);
