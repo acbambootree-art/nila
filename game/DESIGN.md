@@ -12,14 +12,16 @@ Why it works: real sea-aged bottles come up crusted with oysters and barnacles. 
 
 Farm-sim, real clock, drag to look around, tap to act. Oysters grow while the tab is closed, so a visit is a minute or two and the game runs for days. Three earlier versions (turn-based grey-box, a real-time feed/bath/sell scene, a one-screen raft) tested as confusing, shallow or too thin (2026-11-03); this replaced them.
 
-1. **Plant**: tap an empty raft plot, pick a species from the strip, pay the spat price. The farmer walks over and drops it in.
+1. **Plant**: tap an empty tile in a net pen, pick a species from the strip, pay the spat price. The farmer walks over and drops it in.
 2. **Wait**: each species has a real-clock timer: Rock 1 min, Pacific 5 min, Kumamoto 30 min, Pearl 4 h, Belon 12 h. A bar under each oyster shows progress; tap a growing one to see the time left.
 3. **Harvest**: a ready oyster bounces with a gold dot. Tap it, the farmer walks over, coins and XP. Leave it twice its grow time past ready and it withers (grey shell, tap to clear, no payout). The shed doubles that grace.
 4. **Build**: every item does something, shown in the build bar: lantern (withers 25% slower), bench (+1 quest a day), palm (+5% sales each, max 3), flag (sampan 20% faster), cat (rare finds 2× likelier), market (+10% sales), shed (withers 2× slower), and two pens: a fish cage on open sea and a crab pen on the platform. An empty fish cage opens a picker of what Singapore kelongs actually rear and wet markets sell: seabass (20 min, S$20 → S$90), golden pomfret (1 h, S$50 → S$240), golden snapper (3 h, S$120 → S$600), grouper (8 h, S$300 → S$1600); each is its own album entry and sampan catches are one of them too. Pens are feed → wait → collect, like a second crop; every job has a visible work beat before it completes: the farmer (or worker) stands beside the target, faces it, and shows a work sprite; where none exists yet a code-drawn tool is the fallback: a hammer that swings with a tok-tok sound and sawdust for fixing planks, a tipping bucket and pellets for feeding, a bobbing basket with sparkles for collecting and harvesting, an oyster lowered into the water for planting (`WORK` table).
-5. **Level up and expand**: XP unlocks species and buildings; the raft grows 3×3 → 7×7 for coins at level gates.
+5. **Level up and expand**: XP unlocks species and buildings. The farm grows the way the real one does, by bolting on another walkway: a dashed outline below and to the right of the farm shows the next pen row and pen column with its price (S$150 lv2, S$500 lv3, S$1500 lv5, S$4000 lv7). Start 2 pens, max 12. Every pen is 2×2 tiles; each tile takes an oyster crop, or the whole pen takes a fish pen, crab pen or the NILA cellar.
+
+   **Shed upgrades** (shed panel, bought once each): More drums (S$400, lv2, planks break half as often), Bigger shed (S$600, lv3, hire more than one worker), Generator (S$1200, lv5, walkway lamps at night, everything grows 10% faster), Ubin jetty (S$2500, lv6, a pier and the 4 h bumboat market run to Pulau Ubin).
 6. **Quests**: three a day, drawn from what the player can actually do ("Harvest 9 Rock", "Collect from pens ×2", "Build anything"), paid in coins and XP.
 7. **Album**: a collection book of every species, pen catch and bottle, plus two rare harvest drops (pearl 1-in-20, gold shell 1-in-100) that pay a bonus. First discovery of anything gets a banner.
-8. **Sampan**: an idle trip from the deck. Pay to send it out for 2 or 8 hours; come back for a crate of coins, fish for the album and a chance at a rare. Something is always "due" when the player returns.
+8. **Bumboat**: an idle trip from the mooring by the shed platform. Pay to send it out for 2 or 8 hours (or the 4 h Ubin market run once the jetty is built); come back for a crate of coins, fish for the album and a chance at a rare. Something is always "due" when the player returns.
 
 Palette (2026-11-03): tropical day is the default look: turquoise sea, lime grass, cream sand, warm cliff faces; dusk is gold, night is deep blue rather than black. Game starts at day.
 
@@ -48,13 +50,7 @@ On return, a toast says how many oysters finished or withered, and how many plan
 
 ## Screen
 
-640×360 logical pixels scaled up, isometric 64×32 tiles on a 16×16 map you drag around. The kelong sits top-left: a timber platform on stilts over open water, like the real Singapore kelongs (planks in code, dark stilt faces and posts under the lower edges, hut as a 2×2 object), a one-tile deck joins it to the raft, the raft grows toward the lower right, and open sea around it is where fish cages and the cellar go. Ground tiles are drawn in code; the farmer, buildings, pens and withered oyster are AI-generated then sliced (`sprites/farmer-*`, `bld-*`, `pen-*`, `sp-*`). Top strip: cash, level with XP bar, raft size, bottles, quests and build buttons, mute. Day/night is a colour tint over the whole scene plus lantern and buoy glows.
-
-Dusk the whole time: gradient sky, twinkling stars, a low sun with a glitter path on the water, drifting clouds, island silhouettes, gulls. Under the surface: fish of three kinds, jellyfish, rising bubbles, seaweed and rocks on the bed, a crab on the walkway, lamp glow on the hut, ripples where you tap, vignette at the edges. All ambient life is cosmetic and never saved.
-
-Time passes: a full dusk → night → dawn → day cycle every 4 minutes. At night the hut lamp, window and buoy lamps glow and a moon lights the water; by day the sky is blue and the stars are gone.
-
-Sound is synthesized in the browser (no audio files): a low sea wash under everything, a chomp when feeding, a pop on harvest, a two-note coin on a sale, a splash for the bath, a chime for a clean inspection, a buzz for a fine. It starts on the first tap and the note icon in the corner mutes it.
+640×360 logical pixels, rendered at an integer multiple for sharp text, isometric 64×32 tiles on a 16×16 map you drag around. Modelled on the real farm off Pulau Ubin (photo `Ourfarm.HEIC`, 2026-11-04): everything floats. The shed platform sits west (grey sun-bleached planks on blue plastic drums, the blue plywood shed with a rusty tin roof as a 2×2 object, a spare drum, the generator once built); the farm grid runs east (walkway lanes every third row and column, 2×2 net pens between them with black mesh and a timber rail where the net hangs). The bumboat moors below the platform and motors out to the lower left. Pulau Ubin's shoreline (rainforest hills, palms, mangrove roots, two stilt houses) sits on the horizon past the north edge, with sky behind it. Ground tiles are drawn in code; characters, shed, generator, drums, bumboat, crates and the shoreline are AI-generated then sliced (`sprites/farmer-*`, `wk-*`, `shed-*`, `boat-bumboat`, `bg-ubin`).
 
 ## Art direction (custom pixel art)
 
