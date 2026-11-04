@@ -210,7 +210,7 @@ function save() { if (SAVE_OFF) return; try { const { t, pick, pickFish, build, 
 // ---- sprites ----
 const IMG = {};
 ['oyster-baby-idle', 'oyster-baby-blink', 'oyster-medium-idle', 'oyster-medium-blink', 'oyster-fat-idle', 'oyster-fat-blink', 'sp-withered', 'sp-pearl', 'sp-gold', 'sea-crab-a', 'customer-wait', 'customer-happy',
-  'hut-hut', 'bbq-grill', 'bbq-table', 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', ...[1, 2, 3, 4].flatMap(n => ['idle', 'walk', 'photo'].map(f => `guest${n}-${f}`)), 'shed-tier3', 'shed-tier4', 'stock-prawn-a', 'stock-prawn-b', 'stock-lobster', 'stock-mussels', 'stock-trap', 'dec2-rack', 'dec2-lanterns', 'dec2-mahjong', 'dec2-sofa', 'dec2-beacon', 'dec2-neon', 'lounge-hammock-empty', ...['chair', 'hammock', 'bench'].flatMap(k => ['farmer', 'harvester', 'keeper', 'carpenter'].map(w => `lounge-${k}-${w}`)), 'cellar-crate-0', 'cellar-crate-1', 'cellar-crate-2', 'cellar-buoy', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
+  'hut-hut', 'bbq-grill', 'bbq-table', 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', ...[1, 2, 3, 4, 5, 6, 7, 8].map(n => `buyer-${n}`), ...[1, 2, 3, 4].flatMap(n => ['idle', 'walk', 'photo'].map(f => `guest${n}-${f}`)), 'shed-tier3', 'shed-tier4', 'stock-prawn-a', 'stock-prawn-b', 'stock-lobster', 'stock-mussels', 'stock-trap', 'dec2-rack', 'dec2-lanterns', 'dec2-mahjong', 'dec2-sofa', 'dec2-beacon', 'dec2-neon', 'lounge-hammock-empty', ...['chair', 'hammock', 'bench'].flatMap(k => ['farmer', 'harvester', 'keeper', 'carpenter'].map(w => `lounge-${k}-${w}`)), 'cellar-crate-0', 'cellar-crate-1', 'cellar-crate-2', 'cellar-buoy', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
   ...['carpenter', 'keeper', 'harvester'].flatMap(w => ['front-idle', 'front-walk', 'back-idle', 'back-walk', 'work-a', 'work-b', 'idle-fish', 'idle-rest', 'idle-mend', 'swim-a', 'swim-b', 'swim-play', 'swim-float'].map(f => `wk-${w}-${f}`)), 'farmer-idle-fish', 'farmer-idle-rest', 'farmer-idle-mend', 'farmer-swim-a', 'farmer-swim-b', 'farmer-swim-play', 'farmer-swim-float',
   'bld-stall', 'bld-shed', 'bld-lantern', 'bld-flag', 'bld-palm', 'bld-bench', 'bld-cat', 'pen-fishcage-empty', 'pen-fishcage-full', 'pen-crabpen-empty', 'pen-crabpen-full',
   'fish-seabass', 'fish-pomfret', 'fish-snapper', 'fish-grouper', 'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-gull-a', 'sea-gull-b', 'sea-jelly-a', 'sea-jelly-b', 'sc-cloud1', 'sc-cloud2', 'sc-cloud3',
@@ -222,7 +222,7 @@ fit(); addEventListener('resize', fit);
 const hits = [];
 const hit = (x, y, w, h, fn) => hits.push({ x, y, w, h, fn });
 const ready = n => { const im = IMG[n]; return im && im.complete && im.naturalWidth ? im : null; };
-function text(s, x, y, color = C.sand, size = 8, align = 'left') { size = Math.max(size, 7); g.font = `${size}px monospace`; g.textAlign = align; g.fillStyle = '#0c0c0e'; g.fillText(s, x + 1, y + 1); g.fillStyle = color; g.fillText(s, x, y); g.textAlign = 'left'; }
+function text(s, x, y, color = C.sand, size = 8, align = 'left') { size = Math.max(size, 7); g.font = `${size}px monospace`; g.textAlign = align; if (color !== C.ink) { g.fillStyle = '#0c0c0e'; g.fillText(s, x + 1, y + 1); } g.fillStyle = color; g.fillText(s, x, y); g.textAlign = 'left'; }
 function ell(x, y, rx, ry, color) { g.fillStyle = color; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill(); }
 // a sprite with one rectangular part animated: the rest is drawn still, the part is redrawn by fn (in sprite-local pixels)
 function spritePart(name, x, y, part, fn) {
@@ -906,7 +906,16 @@ function sendBoat(i) {
 
 // ---- orders: buyers round Singapore want particular stock by a deadline, and pay a bonus on top of the normal price.
 // Anything harvested, collected or caught counts, by you or the crew. Up to three open (four with the Market). ----
-const BUYERS = ['Ah Huat Seafood', 'Changi Village zi char', 'Tekka wet market', 'Ubin kampung kitchen', 'NILA tasting bar', 'Chilli crab shop', 'Marina hotel kitchen', 'Kelong auntie next door'];
+const BUYERS = [ // who asks: their shop, their name, how they ask and how they thank you (portraits buyer-1…8)
+  { shop: 'Ah Huat Seafood', who: 'Uncle Huat', ask: 'Eh boss! My stall needs {n} {item}. Can send in {time}?', thanks: 'Steady lah! Here, your money.' },
+  { shop: 'Changi Village zi char', who: 'Chef Ah Seng', ask: 'Weekend crowd coming! I need {n} {item} for my wok within {time}. Can or not?', thanks: 'Shiok! The wok hei will be perfect.' },
+  { shop: 'Tekka wet market', who: 'Auntie Rosnah', ask: 'Customers keep asking for {item}! {n} please, in {time} ya?', thanks: 'Terima kasih! Sold out already!' },
+  { shop: 'Ubin kampung kitchen', who: 'Ah Ma Lim', ask: 'Ah boy, I am cooking for the whole kampung tonight. {n} {item} in {time}, ok?', thanks: 'Good boy! Come eat with us next time.' },
+  { shop: 'NILA tasting bar', who: 'Mei', ask: "We're pairing tonight's NILA with {item}. Could you send {n} within {time}?", thanks: 'A perfect pairing. Our guests loved them.' },
+  { shop: 'Chilli crab shop', who: 'Chef Raju', ask: 'My chilli sauce needs friends! {n} {item} in {time}, can?', thanks: 'Wah, so fresh! You are the best, my friend.' },
+  { shop: 'Marina hotel kitchen', who: 'Chef Laurent', ask: "The banquet needs {n} {item} within {time}. Only your kelong's quality will do.", thanks: 'Magnifique! The banquet was a triumph.' },
+  { shop: 'Kelong auntie next door', who: 'Auntie Kim', ask: 'Aiyo, my nets came up empty! {n} {item} in {time}? I pay you back nicely.', thanks: 'You saved me! Next round of kopi on me.' },
+];
 const ORDER_NAMES = { crabs: 'crab haul', mussels: 'mussel haul', prawns: 'prawn haul', lobsters: 'lobster haul' };
 function newOrder() {
   const opts = [];
@@ -915,18 +924,41 @@ function newOrder() {
   for (const id of ['crabpen', 'mussels', 'prawns', 'lobsters']) if (has(id)) { const pn = item(id).pen; opts.push({ item: pn.what, name: ORDER_NAMES[pn.what], unit: pn.time, sell: pn.sell, xp: pn.xp, n: 1 + Math.floor(Math.random() * 2) }); }
   const o = opts[Math.floor(Math.random() * opts.length)]; if (!o) return null;
   const secs = (o.oyster ? o.unit * 1.5 : o.unit * (o.n + 0.5)) + 300; // time to grow it, with slack
-  return { who: BUYERS[Math.floor(Math.random() * BUYERS.length)], item: o.item, name: o.oyster || o.n === 1 || /bass$/.test(o.name) ? o.name : o.name + 's', n: o.n, got: 0, cash: Math.round(o.sell * o.n * (o.oyster ? 0.8 : 0.6)), xp: Math.round(o.xp * o.n * 0.5), due: Date.now() + secs * 1000 };
+  const b = Math.floor(Math.random() * BUYERS.length);
+  return { b, who: BUYERS[b].shop, secs, item: o.item, name: o.oyster || o.n === 1 || /bass$/.test(o.name) ? o.name : o.name + 's', n: o.n, got: 0, cash: Math.round(o.sell * o.n * (o.oyster ? 0.8 : 0.6)), xp: Math.round(o.xp * o.n * 0.5) };
 }
 let orderTick = 0;
 function stepOrders(dt) {
   if ((orderTick -= dt) > 0) return; orderTick = 1; const now = Date.now(); S.orders = S.orders || [];
   for (const o of [...S.orders]) if (now > o.due) { S.orders.splice(S.orders.indexOf(o), 1); float(`${o.who} gave up waiting`, W / 2, 46, C.pink, 8, true); S.orderNext = Math.min(S.orderNext || now, now + 30e3); }
-  if (S.level >= 2 && S.orders.length < (has('stall') ? 4 : 3) && now >= (S.orderNext || 0)) { const o = newOrder(); if (o) { S.orders.push(o); float(`New order: ${o.who} wants ${o.n} ${o.name}`, W / 2, 46, C.gold2, 8, true); SFX.pop(); } S.orderNext = now + rnd(60, 150) * 1000; }
+  if (S.level >= 2 && !S.offer && !S.won && S.orders.length < (has('stall') ? 4 : 3) && now >= (S.orderNext || 0)) { const o = newOrder(); if (o) { S.offer = o; SFX.coin(); } S.orderNext = now + rnd(60, 150) * 1000; }
+}
+let TOAST = null;
+function acceptOffer() { const o = S.offer; S.offer = null; o.due = Date.now() + o.secs * 1000; S.orders.push(o); SFX.stamp(); float(`order taken: ${o.n} ${o.name} for ${o.who}`, W / 2, 46, C.gold2, 8, true); save(); }
+function declineOffer() { S.offer = null; S.orderNext = Date.now() + 60e3; SFX.chomp(); save(); }
+const askText = o => BUYERS[o.b].ask.replace('{n}', o.n).replace('{item}', o.name).replace('{time}', fmt(o.secs));
+function drawOffer() { // the buyer's card: portrait, who they are, what they ask, and two answers
+  const o = S.offer; if (!o || MINI || S.won) return; const bw = 380, bh = 132, bx = W / 2 - bw / 2, by = 70, B = BUYERS[o.b];
+  hit(0, 0, W, H, () => {}); // a card in the way: nothing behind it takes the tap
+  g.fillStyle = '#05080cb0'; g.fillRect(0, 0, W, H); g.fillStyle = '#0f1824f2'; g.fillRect(bx, by, bw, bh); g.strokeStyle = C.gold; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  g.fillStyle = '#1a2a40'; g.fillRect(bx + 10, by + 10, 84, 84); g.strokeStyle = C.deep; g.strokeRect(bx + 10.5, by + 10.5, 83, 83);
+  const im = ready(`buyer-${o.b + 1}`); if (im) { const sc = Math.min(80 / im.width, 80 / im.height), bob = Math.sin(S.t * 3) * 1; g.drawImage(im, Math.round(bx + 52 - im.width * sc / 2), Math.round(by + 92 - im.height * sc + bob), Math.round(im.width * sc), Math.round(im.height * sc)); }
+  text(B.who, bx + 104, by + 22, C.gold, 9); text(B.shop, bx + 104, by + 33, C.grey, 7);
+  wrap(`"${askText(o)}"`, bw - 118).forEach((l, i) => text(l, bx + 104, by + 50 + i * 10, C.sand, 7));
+  text(`Bonus +S$${o.cash} +${o.xp}xp on top of the sale`, bx + 104, by + 88, C.gold2, 7);
+  const btn = (x, w, label, on, fn) => { g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, by + bh - 26, w, 16); text(label, x + w / 2, by + bh - 15, on ? C.ink : C.sand, 7, 'center'); hit(x, by + bh - 26, w, 16, fn); };
+  btn(bx + 104, 130, "Can! I'll do it", true, acceptOffer); btn(bx + 244, 126, 'Sorry, not this time', false, declineOffer);
+}
+function drawToast() { // the buyer pops up again to say thanks
+  const k = TOAST; if (!k) return; if (k.t > 4.5) { TOAST = null; return; } const a = Math.min(1, k.t * 4, (4.5 - k.t) * 2), x = 8, y = 40, w = 250;
+  g.globalAlpha = a; g.fillStyle = '#0f1824f2'; g.fillRect(x, y, w, 50); g.strokeStyle = C.gold; g.strokeRect(x + 0.5, y + 0.5, w - 1, 49);
+  const im = k.b !== undefined && ready(`buyer-${k.b + 1}`); if (im) { const sc = Math.min(44 / im.width, 44 / im.height); g.drawImage(im, Math.round(x + 26 - im.width * sc / 2), Math.round(y + 48 - im.height * sc), Math.round(im.width * sc), Math.round(im.height * sc)); }
+  text(k.who, x + 52, y + 13, C.gold, 8); wrap(`"${k.text}"`, w - 60).slice(0, 2).forEach((l, i) => text(l, x + 52, y + 25 + i * 9, C.sand, 7)); text(`+S$${k.cash} +${k.xp}xp`, x + w - 8, y + 13, C.gold2, 7, 'right'); g.globalAlpha = 1;
 }
 function orderProgress(id) {
   const o = (S.orders || []).find(q => q.item === id && q.got < q.n); if (!o) return; o.got++;
   if (o.got < o.n) return; S.orders.splice(S.orders.indexOf(o), 1); S.cash += o.cash; S.stats.orders = (S.stats.orders || 0) + 1;
-  float(`Order done for ${o.who}! +S$${o.cash} +${o.xp}xp`, W / 2, 60, C.gold, 10, true); SFX.stamp(); gainXp(o.xp); S.orderNext = Date.now() + rnd(40, 90) * 1000;
+  TOAST = { b: o.b, text: o.b !== undefined ? BUYERS[o.b].thanks : 'Thank you!', who: o.b !== undefined ? BUYERS[o.b].who : o.who, cash: o.cash, xp: o.xp, t: 0 }; SFX.stamp(); gainXp(o.xp); S.orderNext = Date.now() + rnd(40, 90) * 1000;
 }
 
 // ---- a fishing spot: every half minute or so a patch of open water by the deck boils with fish. Tap it, then tap again
@@ -1073,7 +1105,7 @@ function checkQuests() {
 // ---- update ----
 function update(dt) {
   if (press && press.touch && !press.drag && !press.held && performance.now() - press.t0 > 420) { press.held = true; hover = { x: press.x, y: press.y }; } // touch: hold to see a name tag or a tooltip
-  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepOrders(dt); stepSpot(dt); stepTour(dt); stepStorm(dt); stepFest(dt); stepSea(dt); stepOtters(dt); stepHcrab(dt); stepDinner(dt); stepActor(dt, F); idle(F, dt); for (const w of WK) { w.speed = has('dog') ? 1.2 : 1; stepActor(dt, w); think(w, dt); idle(w, dt); }
+  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepOrders(dt); if (TOAST) TOAST.t += dt; stepSpot(dt); stepTour(dt); stepStorm(dt); stepFest(dt); stepSea(dt); stepOtters(dt); stepHcrab(dt); stepDinner(dt); stepActor(dt, F); idle(F, dt); for (const w of WK) { w.speed = has('dog') ? 1.2 : 1; stepActor(dt, w); think(w, dt); idle(w, dt); }
   const bed = S.objs.find(o => o.id === 'dog'); if (bed && !DOG) DOG = actor({ r: bed.r, c: bed.c, speed: 1.9 }); if (!bed) DOG = null;
   const home = S.objs.find(o => o.id === 'cat'); if (home && !CAT) CAT = actor({ r: home.r, c: home.c, speed: 0.7, pose: 'sleep' }); if (!home) CAT = null;
   if (DOG && (!PLAY || PLAY.phase === 'gather')) stepActor(dt, DOG); if (DOG && !PLAY) dogThink(DOG, dt, bed);
@@ -1390,7 +1422,8 @@ function drawEntity(e, x, y, t, D) {
     if (s.loaded || s.paid) sprite('shed-crates', bx + 8, by + 4 + bob, { scale: 0.55 });
     if (s.phase === 'wait' && !s.loaded) text('buyer waiting', bx, by - 34, C.sand, 7, 'center'); return; }
   if (e.kind === 'dog') { const d = DOG, n = d.moving ? `dog-run-${Math.floor(d.walk * 8) % 2 ? 'a' : 'b'}` : `dog-${d.pose || 'sit'}`, hop = d.moving ? -Math.abs(Math.sin(d.walk * 16)) * 2 : 0;
-    ell(x, y + 3, 10, 3, '#00000044'); sprite(n, x, y + 4 + hop, { flip: d.flip });
+    const inBed = !d.moving && S.objs.some(o => o.id === 'dog' && o.r === Math.round(d.r) && o.c === Math.round(d.c)); // lying in his own bed: sink into it, no extra shadow
+    if (!inBed) ell(x, y + 3, 10, 3, '#00000044'); sprite(n, x, y + (inBed ? 1 : 4) + hop, { flip: d.flip });
     if (d.moving && Math.random() < 0.2) A.particles.push({ x: x + (d.flip ? 8 : -8), y: y + 2, vx: rnd(-6, 6), vy: rnd(-8, -2), life: 0.4, color: '#c8c2b4' }); return; }
   if (e.kind === 'tank') { // depuration tank: bubbling while it works, a gold dot and a count once oysters are clean to sell
     const n = S.tank.length, clean = S.tank.filter(isClean).length; ell(x, y + 6, 30, 10, '#00000033');
@@ -1530,8 +1563,8 @@ function drawWorld(t, D) {
   if (TOUR) { ents0.push({ kind: 'tour', r: DOCK.r, c: DOCK.c }); if (TOUR.phase === 'wait') TOUR.guests.forEach(v => ents0.push({ kind: 'guest', v, r: v.r, c: v.c })); }
   if (OTTERS) { if (OTTERS.swim) { const [r, c] = rcOf(OTTERS.x, OTTERS.y); ents0.push({ kind: 'otterswim', r, c }); } else OTTERS.pack.forEach((o, i) => ents0.push({ kind: 'otter', o, i, r: o.r, c: o.c })); }
   if (HCRAB && HCRAB.phase === 'pen') ents0.push({ kind: 'hcrab', r: HCRAB.r, c: HCRAB.c });
-  if (DINNER) { ents0.push({ kind: 'grill', r: DINNER.r, c: DINNER.c }); if (DINNER.table) ents0.push({ kind: 'dtable', r: DINNER.table[0], c: DINNER.table[1] }); DINNER.stools.forEach(([r, c], i) => ents0.push({ kind: 'stool', i, r: r - 0.01, c })); } if (CAT) ents0.push({ kind: 'cat', r: CAT.r, c: CAT.c }); for (const n of NUTS) ents0.push({ kind: 'nut', n, r: n.r, c: n.c });
-  const ents = [...ents0, ...(S.sale ? [{ kind: 'buyer', r: DOCK.r, c: DOCK.c }] : []), ...(DOG ? [{ kind: 'dog', r: DOG.r, c: DOG.c }] : []), { kind: 'hut', r: HUT.r, c: up('bigshed') ? 3 : HUT.c }, { kind: 'tank', r: TANK.r, c: TANK.c }, { kind: 'farmer', r: F.r + (F.working === 'lounge' ? 0.02 : 0), c: F.c }, ...WK.map(w => ({ kind: 'worker', w, r: w.r + (w.working === 'lounge' ? 0.02 : 0), c: w.c })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => { const k = item(o.id).on === 'pen' ? 0.5 : 0; return { kind: 'obj', o, r: o.r + k, c: o.c + k }; })];
+  if (DINNER) { ents0.push({ kind: 'grill', r: DINNER.r, c: DINNER.c }); if (DINNER.table) ents0.push({ kind: 'dtable', r: DINNER.table[0], c: DINNER.table[1] }); DINNER.stools.forEach(([r, c], i) => ents0.push({ kind: 'stool', i, r: r - 0.01, c })); } if (CAT) ents0.push({ kind: 'cat', r: CAT.r + 0.03, c: CAT.c }); for (const n of NUTS) ents0.push({ kind: 'nut', n, r: n.r, c: n.c });
+  const ents = [...ents0, ...(S.sale ? [{ kind: 'buyer', r: DOCK.r, c: DOCK.c }] : []), ...(DOG ? [{ kind: 'dog', r: DOG.r + 0.03, c: DOG.c }] : []), { kind: 'hut', r: HUT.r, c: up('bigshed') ? 3 : HUT.c }, { kind: 'tank', r: TANK.r, c: TANK.c }, { kind: 'farmer', r: F.r + (F.working === 'lounge' ? 0.02 : 0), c: F.c }, ...WK.map(w => ({ kind: 'worker', w, r: w.r + (w.working === 'lounge' ? 0.02 : 0), c: w.c })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => { const k = item(o.id).on === 'pen' ? 0.5 : 0; return { kind: 'obj', o, r: o.r + k, c: o.c + k }; })];
   for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (S.plots[r][c]) ents.push({ kind: 'plot', p: S.plots[r][c], r, c });
   ents.sort((a, b) => (a.r + a.c) - (b.r + b.c));
   for (const e of ents) { const p = center(e.r, e.c), [x, y] = scr(p.x, p.y); if (x < -120 || x > W + 120 || y < -140 || y > H + 60) continue; drawEntity(e, x, y, t, D); }
@@ -1692,7 +1725,7 @@ function draw() {
   if (S.panel === 'boat') drawBoatPanel();
   if (S.panel === 'hut') drawHutPanel();
   if (S.panel === 'tank') drawTankPanel();
-  drawMini(); drawBanners();
+  drawMini(); drawBanners(); drawToast(); drawOffer();
   for (const f of A.floaters) if (f.ui) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, f.size, 'center'); } g.globalAlpha = 1;
   g.fillStyle = '#0c0c0eb0'; g.fillRect(0, 0, W, 18);
   text(`S$${S.cash}`, 8, 13, C.gold2, 11);
