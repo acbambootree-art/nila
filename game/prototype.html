@@ -46,9 +46,20 @@ ITEMS.push(
   { tab: 'decor', id: 'pot',     name: 'Bougainvillea', cost: 90,  xp: 6,  lvl: 1, on: 'land', sprite: 'dec-pot',     charm: 3, note: '+3 charm', desc: 'A pot of pink bougainvillea. Charm makes the farm nicer to visit: every charm point adds 0.5% to sales, up to +20%.' },
   { tab: 'decor', id: 'flowers', name: 'Papaya',        cost: 120, xp: 8,  lvl: 1, on: 'land', sprite: 'dec-flowers', charm: 3, note: '+3 charm', desc: 'A bucket of hibiscus and a potted papaya. +3 charm (0.5% sales each).' },
   { tab: 'decor', id: 'chimes',  name: 'Wind chimes',   cost: 140, xp: 8,  lvl: 2, on: 'land', sprite: 'dec-chimes',  charm: 4, note: '+4 charm', desc: 'Shell chimes that tinkle in the breeze. +4 charm (0.5% sales each).' },
-  { tab: 'decor', id: 'chair',   name: 'Deck chair',    cost: 160, xp: 10, lvl: 2, on: 'land', sprite: 'dec-chair',   charm: 4, note: '+4 charm', desc: 'A deck chair under a beach umbrella. +4 charm (0.5% sales each).' },
-  { tab: 'decor', id: 'hammock', name: 'Hammock',       cost: 220, xp: 12, lvl: 2, on: 'land', sprite: 'dec-hammock', charm: 6, note: '+6 charm', desc: 'A striped hammock between two posts. +6 charm (0.5% sales each).' },
+  { tab: 'decor', id: 'chair',   name: 'Deck chair',    cost: 160, xp: 10, lvl: 2, on: 'land', sprite: 'dec-chair',   scale: 1.35, charm: 4, note: '+4 charm', desc: 'A deck chair under a beach umbrella. +4 charm (0.5% sales each).' },
+  { tab: 'decor', id: 'hammock', name: 'Hammock',       cost: 220, xp: 12, lvl: 2, on: 'land', sprite: 'lounge-hammock-empty', scale: 1.35, charm: 6, note: '+6 charm', desc: 'A striped hammock between two posts. +6 charm (0.5% sales each).' },
   { tab: 'decor', id: 'kayak',   name: 'Kayaks',        cost: 260, xp: 14, lvl: 3, on: 'land', sprite: 'dec-kayak',   charm: 6, note: '+6 charm', desc: 'Two kayaks on a rack, for paddling round the pens. +6 charm (0.5% sales each).' },
+  // more to farm as you level: the stock Singapore kelongs actually grow
+  { tab: 'farm',  id: 'mussels',  name: 'Mussel lines',  cost: 200, xp: 15, lvl: 4, on: 'pen', sprite: 'stock-mussels', icon: 'stock-mussels', pen: { feed: 20, time: 40 * 60, sell: 110, xp: 20, what: 'mussels' }, note: 'mussels 40m', desc: 'Ropes of green mussels hung from a bamboo frame, the way Singapore kelongs grow them. Seed it for S$20, wait 40 minutes, collect S$110.' },
+  { tab: 'farm',  id: 'prawns',   name: 'Prawn pen',     cost: 450, xp: 30, lvl: 6, on: 'pen', sprite: 'stock-prawn-a', icon: 'stock-prawn-a', pen: { feed: 50, time: 90 * 60, sell: 300, xp: 50, what: 'prawns' }, note: 'prawns 1.5h', desc: 'Tiger prawns in a fine-mesh pen. Stock it for S$50, wait 90 minutes, collect S$300.' },
+  { tab: 'farm',  id: 'lobsters', name: 'Lobster traps', cost: 900, xp: 60, lvl: 9, on: 'pen', sprite: 'stock-lobster', icon: 'stock-lobster', pen: { feed: 120, time: 3 * 3600, sell: 800, xp: 100, what: 'lobsters' }, note: 'lobsters 3h', desc: 'Spiny lobsters raised in wooden traps. Stock it for S$120, wait three hours, collect S$800.' },
+  // decor that opens up as you level
+  { tab: 'decor', id: 'rack',     name: 'Drying rack',   cost: 280,  xp: 15, lvl: 4,  on: 'land', sprite: 'dec2-rack',     charm: 6,  note: '+6 charm',  desc: 'Salted fish drying in the sun on a bamboo rack, kampung style. +6 charm (0.5% sales each).' },
+  { tab: 'decor', id: 'redlanterns', name: 'Red lanterns', cost: 350, xp: 18, lvl: 5, on: 'land', sprite: 'dec2-lanterns', charm: 7,  note: '+7 charm',  desc: 'Three red lanterns on a pole, glowing at night. +7 charm (0.5% sales each).' },
+  { tab: 'decor', id: 'mahjong',  name: 'Mahjong table', cost: 500,  xp: 25, lvl: 6,  on: 'land', sprite: 'dec2-mahjong',  charm: 9,  note: '+9 charm',  desc: 'A mahjong table with four red stools, for long evenings on the kelong. +9 charm (0.5% sales each).' },
+  { tab: 'decor', id: 'sofa',     name: 'Rattan sofa',   cost: 650,  xp: 30, lvl: 7,  on: 'land', sprite: 'dec2-sofa',     charm: 10, note: '+10 charm', desc: 'A rattan sofa and a little table with a pot of tea. +10 charm (0.5% sales each).' },
+  { tab: 'decor', id: 'beacon',   name: 'Beacon',        cost: 900,  xp: 45, lvl: 9,  on: 'land', sprite: 'dec2-beacon',   charm: 10, note: '+10 charm', desc: 'A little striped lighthouse that sweeps its lamp across the water at night. +10 charm (0.5% sales each).' },
+  { tab: 'decor', id: 'neon',     name: 'NILA sign',     cost: 1500, xp: 80, lvl: 11, on: 'land', sprite: 'dec2-neon',     charm: 15, note: '+15 charm', desc: 'A neon NILA sign on two posts, glowing pink and gold after dark. +15 charm (0.5% sales each).' },
   { tab: 'none',  id: 'generator', name: 'Generator',   cost: 0,   xp: 0,  lvl: 99, on: 'land', sprite: 'shed-gen',   note: 'lights · +10% growth', desc: 'Runs the walkway lamps and speeds growth 10%.' },
 );
 const LOOKS = [ // shed panel, third row: one-off touches that make the place nicer; each adds charm
@@ -73,12 +84,16 @@ const UPGRADES = [ // shed upgrades, bought once each from the shed panel
   { id: 'jetty',     name: 'Ubin jetty',  cost: 2500, lvl: 6, desc: 'A pier for the bumboat. Unlocks the 4 h market run to Pulau Ubin.' },
 ];
 const up = id => !!(S.up && S.up[id]);
+const TIERS = { 6: 'Kelong house', 10: 'Grand kelong house' }; // the bigger shed grows on its own at these levels
+const shedTier = () => !up('bigshed') ? 1 : S.level >= 10 ? 4 : S.level >= 6 ? 3 : 2;
+const shedName = () => ['', 'The shed', 'The big shed', 'The kelong house', 'The grand kelong house'][shedTier()];
 const ALBUM = [ // collection book entries; counts live in S.album
   ...SP.map(s => ({ id: s.id, name: s.name, icon: () => tinted('oyster-fat-idle', s.tint) })),
   ...FISH.map(f => ({ id: f.id, name: f.name, icon: () => ready(`fish-${f.id}`) })), { id: 'crabs', name: 'Crabs', icon: () => ready('sea-crab-a') }, { id: 'bottle', name: 'NILA', icon: () => ready('cellar-crate-2') },
   { id: 'rarepearl', name: 'Pearl drop', icon: () => ready('sp-pearl'), rare: true }, { id: 'gold', name: 'Gold shell', icon: () => ready('sp-gold'), rare: true },
   { id: 'turtle', name: 'Hawksbill', icon: () => ready('sea2-turtle-a') }, { id: 'shark', name: 'Blacktip', icon: () => ready('sea2-shark') }, { id: 'dolphin', name: 'Pink dolphin', icon: () => ready('sea2-dolphin') },
   { id: 'dugong', name: 'Dugong', icon: () => ready('sea2-dugong'), rare: true }, { id: 'otter', name: 'Otters', icon: () => ready('otter-stand') }, { id: 'hcrab', name: 'Horseshoe crab', icon: () => ready('hcrab-a') },
+  { id: 'mussels', name: 'Green mussels', icon: () => ready('stock-mussels') }, { id: 'prawns', name: 'Tiger prawns', icon: () => ready('stock-prawn-a') }, { id: 'lobsters', name: 'Lobster', icon: () => ready('stock-lobster') },
   { id: 'coconut', name: 'Coconut', icon: () => ready('nut') }, { id: 'croc', name: 'Crocodile', icon: () => ready('croc-lie'), rare: true },
 ];
 const RARE = { rarepearl: { odds: 0.05, cash: 60, sprite: 'sp-pearl', label: 'pearl' }, gold: { odds: 0.01, cash: 400, sprite: 'sp-gold', label: 'GOLD' } }; // per harvest
@@ -179,7 +194,7 @@ function save() { try { const { t, pick, pickFish, build, panel, tab, moveSel, .
 // ---- sprites ----
 const IMG = {};
 ['oyster-baby-idle', 'oyster-baby-blink', 'oyster-medium-idle', 'oyster-medium-blink', 'oyster-fat-idle', 'oyster-fat-blink', 'sp-withered', 'sp-pearl', 'sp-gold', 'sea-crab-a', 'customer-wait', 'customer-happy',
-  'hut-hut', 'bbq-grill', 'bbq-table', 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', 'cellar-crate-0', 'cellar-crate-1', 'cellar-crate-2', 'cellar-buoy', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
+  'hut-hut', 'bbq-grill', 'bbq-table', 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', 'shed-tier3', 'shed-tier4', 'stock-prawn-a', 'stock-prawn-b', 'stock-lobster', 'stock-mussels', 'stock-trap', 'dec2-rack', 'dec2-lanterns', 'dec2-mahjong', 'dec2-sofa', 'dec2-beacon', 'dec2-neon', 'lounge-hammock-empty', ...['chair', 'hammock', 'bench'].flatMap(k => ['farmer', 'harvester', 'keeper', 'carpenter'].map(w => `lounge-${k}-${w}`)), 'cellar-crate-0', 'cellar-crate-1', 'cellar-crate-2', 'cellar-buoy', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
   ...['carpenter', 'keeper', 'harvester'].flatMap(w => ['front-idle', 'front-walk', 'back-idle', 'back-walk', 'work-a', 'work-b', 'idle-fish', 'idle-rest', 'idle-mend', 'swim-a', 'swim-b', 'swim-play', 'swim-float'].map(f => `wk-${w}-${f}`)), 'farmer-idle-fish', 'farmer-idle-rest', 'farmer-idle-mend', 'farmer-swim-a', 'farmer-swim-b', 'farmer-swim-play', 'farmer-swim-float',
   'bld-stall', 'bld-shed', 'bld-lantern', 'bld-flag', 'bld-palm', 'bld-bench', 'bld-cat', 'pen-fishcage-empty', 'pen-fishcage-full', 'pen-crabpen-empty', 'pen-crabpen-full',
   'fish-seabass', 'fish-pomfret', 'fish-snapper', 'fish-grouper', 'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-gull-a', 'sea-gull-b', 'sea-jelly-a', 'sea-jelly-b', 'sc-cloud1', 'sc-cloud2', 'sc-cloud3',
@@ -208,10 +223,10 @@ const ANIM = {
   flag:    (x, y, ph) => spritePart('bld-flag', x, y, [19, 0, 25, 44], wave(4.5, 4)), // a big, slow billow that swells and eases with the breeze
   lantern: (x, y, ph) => spritePart('bld-lantern', x, y, [14, 9, 23, 52], swing(26, 11, 0.07, 1.7, ph)),
   chimes:  (x, y, ph) => spritePart('dec-chimes', x, y, [8, 6, 13, 42], swing(15, 7, 0.12, 2.1, ph)),
-  hammock: (x, y, ph) => spritePart('dec-hammock', x, y, [5, 10, 32, 22], swing(21, 10, 0.05, 1.3, ph)),
+  hammock: (x, y, ph) => { g.save(); g.translate(x, y); g.scale(1.35, 1.35); const ok = spritePart('lounge-hammock-empty', 0, 0, [5, 6, 52, 30], swing(31, 6, 0.04, 1.3, ph)); g.restore(); return ok; },
   pot:     (x, y, ph) => spritePart('dec-pot', x, y, [0, 0, 34, 26], sway(0.8, 1.6, ph, 0.3)),
   flowers: (x, y, ph) => spritePart('dec-flowers', x, y, [0, 0, 41, 30], sway(1, 1.4, ph, 0.3)),
-  chair:   (x, y, ph) => spritePart('dec-chair', x, y, [0, 0, 33, 16], sway(0.6, 1.8, ph)),
+  chair:   (x, y, ph) => { g.save(); g.translate(x, y); g.scale(1.35, 1.35); const ok = spritePart('dec-chair', 0, 0, [0, 0, 33, 16], sway(0.6, 1.8, ph)); g.restore(); return ok; },
 };
 function sprite(name, x, y, { flip = false, alpha = 1, scale = 1 } = {}) {
   const im = typeof name === 'string' ? ready(name) : name; if (!im) return false;
@@ -320,7 +335,7 @@ function idle(a, dt) {
 }
 // off duty with the animals and the decor: pet the dog or the cat, nap in the hammock, lounge in the deck chair or on the bench,
 // water the plants, take a kayak out for a paddle
-const SEATS = { bench: { dy: -9, s: 0.72 }, chair: { dy: -7, s: 0.7 }, hammock: { dy: -15, s: 0.72, swing: true } };
+const SEATS = { bench: { s: 0.55 }, chair: { s: 1.35 }, hammock: { s: 1.35, swing: true } }; // drawn as the piece with that person in it (lounge-<piece>-<who>)
 function besideFree(r, c, a) { const nb = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([i, j]) => [r + i, c + j]).filter(([i, j]) => walkable(i, j) && !hutTile(i, j) && !objAt(i, j) && !taken(i, j, a)); return nb.sort((p, q) => Math.hypot(p[0] - a.r, p[1] - a.c) - Math.hypot(q[0] - a.r, q[1] - a.c)).find(([i, j]) => path(Math.round(a.r), Math.round(a.c), i, j)); }
 function useSomething(a) {
   const r0 = Math.round(a.r), c0 = Math.round(a.c), near = (r, c) => Math.hypot(r - a.r, c - a.c) < 9, opts = [];
@@ -668,11 +683,15 @@ function harvest(r, c, who = F) {
   float('into the tank', hx, hy, '#9ad0e0', 8); float(`+${sp.xp}xp`, hx, hy + 10, '#9ad0e0', 7); SFX.pop();
   S.stats.harvest[sp.id] = (S.stats.harvest[sp.id] || 0) + 1; collect(sp.id); rollRare(wp.x, wp.y); if (S.step === 1) S.step = 2; gainXp(sp.xp); checkQuests();
 }
+// what opens up at a level, and the next level that opens anything (shown when you hover the level bar)
+const unlocksAt = L => [...SP, ...FISH, ...ITEMS.filter(i => i.tab !== 'none'), ...UPGRADES, ...LOOKS].filter(s => s.lvl === L).map(s => s.name).concat(TIERS[L] ? [TIERS[L]] : []);
+const nextUnlock = () => { for (let L = S.level + 1; L <= S.level + 20; L++) { const u = unlocksAt(L); if (u.length) return { L, u }; } return null; };
 function gainXp(n) {
   S.xp += n;
   for (let i = 0; S.xp >= lvlXp(S.level + 1); i++) {
-    S.level++; const u = [...SP.filter(s => s.lvl === S.level), ...ITEMS.filter(s => s.lvl === S.level)].map(s => s.name);
+    S.level++; const u = unlocksAt(S.level);
     float(`Level ${S.level}!` + (u.length ? `  ${u.join(', ')} unlocked` : ''), W / 2, 60 + i * 14, C.gold, 11, true); SFX.levelup();
+    if (TIERS[S.level]) { const [x, y] = tilePos(HUT.r, HUT.c); if (up('bigshed')) { float(`the shed is now a ${TIERS[S.level].toLowerCase()}!`, x + 60, y - 120, C.gold, 10); pop(x + 60, y - 60, C.gold2, 24); } else float('build the Bigger shed and it will grow too', W / 2, 88 + i * 14, C.sand, 8, true); }
   }
 }
 // growing the farm = bolting on another walkway lane, which opens a new row or column of pens
@@ -1128,13 +1147,37 @@ function drawKayak(a, pre, t) {
   g.save(); g.translate(Math.round(sx), Math.round(sy - 12 + bob)); g.rotate(ang); g.fillStyle = '#c8a070'; g.fillRect(-15, 0, 30, 1); g.fillStyle = '#f0c040'; g.fillRect(-18, -1, 4, 3); g.fillRect(14, -1, 4, 3); g.restore();
   if (moving && Math.random() < 0.25) A.particles.push({ x: sx + (Math.sin(sw.stroke * 4) > 0 ? 16 : -16), y: sy + 2, vx: rnd(-8, 8), vy: rnd(-20, -6), life: 0.4, color: '#e8f4ff' });
 }
+// the newer pens: mussel ropes under a bamboo pole, tiger prawns darting about, spiny lobsters by their traps; they fill out as they grow
+const STOCK = { mussels: 1, prawns: 1, lobsters: 1 };
+function drawStock(id, o, x, y, t) {
+  const k = o.fed ? Math.min(1, (Date.now() - o.fed) / 1000 / penSpec(o).time) : 0, ph = o.r * 1.3 + o.c, under = (n, sx, sy, a, sc = 1, flip = false) => sprite(tinted(n, '#1b5a8a'), sx, sy, { alpha: a, scale: sc, flip }), wet = (n, sx, sy, sc = 1, flip = false) => { sprite(n, sx, sy, { alpha: 0.85, scale: sc, flip }); sprite(tinted(n, '#1b5a8a'), sx, sy, { alpha: 0.3, scale: sc, flip }); }; // just under the surface: own colours, a little blue
+  if (id === 'mussels') {
+    for (const s of [-1, 1]) { ell(x + s * 40, y + 2, 6, 3, '#00000033'); ell(x + s * 40, y, 6, 3.5, '#3a7ac8'); ell(x + s * 40 - 1, y - 1, 3, 1.5, '#7ab0e8'); } // floats
+    const rope = [-27, -9, 9, 27];
+    for (const dx of rope) { const sway = Math.sin(t * 0.8 + ph + dx) * 1.2, rx = x + dx + sway;
+      if (o.fed) under('stock-mussels', rx, y + 30, 0.55 + 0.25 * k, 0.55 + 0.45 * k); else { g.strokeStyle = '#c8b890'; g.globalAlpha = 0.6; g.lineWidth = 1; g.beginPath(); g.moveTo(rx, y - 2); g.lineTo(rx, y + 14); g.stroke(); g.globalAlpha = 1; } }
+    g.strokeStyle = '#6a4a2a'; g.lineWidth = 4; g.beginPath(); g.moveTo(x - 42, y - 3); g.lineTo(x + 42, y - 3); g.stroke(); g.strokeStyle = '#c8a060'; g.lineWidth = 2; g.beginPath(); g.moveTo(x - 42, y - 4); g.lineTo(x + 42, y - 4); g.stroke();
+    g.fillStyle = '#6a4a2a'; for (let i = -40; i <= 40; i += 16) g.fillRect(x + i, y - 5, 1, 3); // bamboo nodes
+    return;
+  }
+  g.save(); g.beginPath(); g.moveTo(x, y - 30); g.lineTo(x + 62, y); g.lineTo(x, y + 30); g.lineTo(x - 62, y); g.closePath(); g.clip();
+  if (id === 'prawns') { const n = o.fed ? 3 + Math.round(5 * k) : 0, fr = Math.floor(t * 5) % 2 ? 'a' : 'b';
+    for (let i = 0; i < n; i++) { const q = i * 2.3 + ph, dart = Math.sin(t * 0.7 + q), px = x + Math.sin(t * 0.45 + q) * 38 + dart * 4, py = y - 14 + (i % 4) * 8 + Math.sin(t * 1.3 + q) * 3;
+      wet(`stock-prawn-${fr}`, px, py, 1, Math.cos(t * 0.45 + q) > 0); } }
+  if (id === 'lobsters') { for (const [dx, dy] of [[-22, 6], [22, -4]]) under('stock-trap', x + dx, y + dy + 8, 0.75, 1);
+    const n = o.fed ? 1 + Math.round(2 * k) : 0;
+    for (let i = 0; i < n; i++) { const q = i * 2.1 + ph, lx = x + Math.sin(t * 0.12 + q) * 30, ly = y + 2 + Math.cos(t * 0.1 + q) * 10; wet('stock-lobster', lx, ly + 14, 0.75, Math.cos(t * 0.12 + q) > 0); } }
+  g.restore();
+  if (id === 'lobsters') for (const [dx, dy] of [[-22, 6], [22, -4]]) { const bx = x + dx + 8, by = y + dy - 8 + Math.sin(t * 1.5 + dx) * 1; g.strokeStyle = '#d8c8a0'; g.globalAlpha = 0.5; g.lineWidth = 1; g.beginPath(); g.moveTo(x + dx, y + dy); g.lineTo(bx, by); g.stroke(); g.globalAlpha = 1; ell(bx, by, 3, 2.5, '#f08a2a'); } // marker floats on the trap ropes
+}
 // a fresh board carried on the shoulder, angled down behind
 function plank(x, y, flip) {
   g.save(); g.translate(x + (flip ? -9 : 9), y - 24); g.rotate(flip ? 0.45 : -0.45); g.fillStyle = '#5a3a24'; g.fillRect(-17, -2, 34, 5); g.fillStyle = '#d9b07a'; g.fillRect(-16, -1, 32, 3); g.fillStyle = '#9a7048'; g.fillRect(-10, 0, 6, 1); g.fillRect(4, -1, 7, 1); g.restore();
 }
 function drawEntity(e, x, y, t, D) {
   if (e.kind === 'hut') { // the blue plywood shed with a rusty tin roof; it grows with the Bigger shed upgrade
-    const big = up('bigshed'), [fx, fy] = scr(big ? 64 : 0, big ? 128 : 96), im = ready(big ? 'shed-big' : 'shed-small'), [ax, ay] = big ? [67, 154] : [74, 135], top = big ? 160 : 140;
+    const tier = shedTier(), big = tier >= 2, [fx, fy] = scr(big ? 64 : 0, big ? 128 : 96), [nm, ax, ay, top] = [null, ['shed-small', 74, 135, 140], ['shed-big', 67, 154, 160], ['shed-tier3', 67, 199, 205], ['shed-tier4', 67, 194, 200]][tier], im = ready(nm);
+    if (tier === 4) glow(fx + 60, fy - 100, 80, '#ff7040', D.lamp * 0.55); // the lanterns along the eaves
     if (im) g.drawImage(im, Math.round(fx - ax), Math.round(fy - ay)); else sprite('hut-hut', x, y + 10, { scale: 2 });
     glow(fx + (big ? 0 : 24), fy - 48, 22 + 12 * D.lamp, '#f0c070', D.lamp);
     if (giftReady()) { const by = fy - top - Math.abs(Math.sin(t * 4)) * 3; x = big ? fx + 40 : fx; glow(x, by, 8, '#f6d48a', 0.7); ell(x, by, 2.5, 2.5, C.gold); text('gift! tap', x, by - 8, C.gold, 7, 'center'); } return; }
@@ -1197,7 +1240,7 @@ function drawEntity(e, x, y, t, D) {
       if ((laugh || toast) && u < 0.7) mood(x + d * 10, y - 52 + by, laugh ? 'laugh' : 'heart', u);
       else if (beat === 2 && u > 0.5 && Math.floor(T / 10.4) % 2) mood(x + d * 10, y - 52, 'yum', u - 0.5);
       return; }
-    if (a.working === 'lounge' && !a.moving) { const q = a.queue[0], st = q && q.seat; if (st) { const sw = st.swing ? Math.sin(S.t * 1.3 + st.ph) * 1.6 : 0; sprite(n, x + sw, y + 2 + st.dy + Math.sin(a.walk * 1.2) * 0.4, { flip: a.flip, scale: st.s }); if (Math.floor(a.walk / 3) % 3 === 1) mood(x + 12, y - 30 + st.dy, 'heart', (a.walk % 3) / 3); return; } }
+    if (a.working === 'lounge' && !a.moving && a.queue[0] && a.queue[0].seat) return; // drawn in the chair / hammock / bench itself
     if (a.working === 'pet') { const pat = Math.abs(Math.sin(a.walk * 6)); sprite(n, x, y + 4, { flip: a.flip }); g.fillStyle = '#f0c8a0'; g.fillRect(Math.round(x + (a.flip ? -11 : 9)), Math.round(y - 8 + pat * 3), 3, 2); mood(x + (a.flip ? -10 : 10), y - 50, 'heart', Math.min(0.69, (a.walk % 2.2) / 2.2)); return; }
     if (a.working === 'watch') { sprite(n, x, y + 2 - Math.abs(Math.sin(a.walk * 3)) * (Math.floor(a.walk) % 3 === 0 ? 2 : 0), { flip: a.flip }); if ((a.walk % 3) < 2.1) mood(x + (a.flip ? -10 : 10), y - 52, Math.floor(a.walk / 3) % 2 ? 'laugh' : 'heart', (a.walk % 3) / 3); return; }
     if (a.working === 'water') { sprite(n, x, y + 2, { flip: a.flip }); tool('bucket', x + (a.flip ? -8 : 8), y - 14, a.walk * 0.6 + 0.3, a.flip); return; }
@@ -1224,7 +1267,7 @@ function drawEntity(e, x, y, t, D) {
     return;
   }
   if (e.kind === 'obj') {
-    const o = e.o, it = item(o.id); if (it.id !== 'cellar' && it.id !== 'crabpen') ell(x, y + 5, it.pen ? 30 : it.id === 'cat' || it.id === 'dog' ? 9 : 16, it.pen ? 12 : it.id === 'cat' || it.id === 'dog' ? 3 : 6, '#00000044');
+    const o = e.o, it = item(o.id); if (it.id !== 'cellar' && it.id !== 'crabpen' && !STOCK[it.id]) ell(x, y + 5, it.pen ? 30 : it.id === 'cat' || it.id === 'dog' ? 9 : 16, it.pen ? 12 : it.id === 'cat' || it.id === 'dog' ? 3 : 6, '#00000044');
     if (it.id === 'cellar') { // a crate of NILA bottles on a rope under a marker buoy: it sinks in, gathers barnacles and weed over the six months, then comes up
       const age = o.fed ? (Date.now() - o.fed) / 1000 : 0, mo = Math.min(6, Math.floor(age / 3600)), done = o.fed && mo >= 6, bob = Math.sin(t * 1.6 + o.c) * 1.2;
       const bx = x + 26, by = y - 4 + bob; // the buoy, off to one side of the pen
@@ -1242,6 +1285,7 @@ function drawEntity(e, x, y, t, D) {
     if (it.pen) { const done = o.fed && Date.now() - o.fed >= penSpec(o).time * 1000;
       if (it.id === 'fishcage') for (const [fx, fy] of [[-50, 0], [50, 0], [0, -25], [0, 25]]) { ell(x + fx, y + fy + 1, 4, 2, '#00000044'); ell(x + fx, y + fy - 1, 3.5, 3, '#f08a2a'); ell(x + fx - 1, y + fy - 2, 1.5, 1, '#ffc080'); }
       else if (it.id === 'crabpen') { sprite('pen-crabpen-empty', x, y + 30, { scale: 1.8 }); }
+      else if (STOCK[it.id]) drawStock(it.id, o, x, y, t);
       else sprite(`${it.sprite}-${o.fed ? 'full' : 'empty'}`, x, y + 14);
       if (o.fed && it.id === 'fishcage') { g.save(); g.beginPath(); g.moveTo(x, y - 26); g.lineTo(x + 54, y); g.lineTo(x, y + 26); g.lineTo(x - 54, y); g.closePath(); g.clip();
         for (let i = 0; i < 7; i++) { const ph = i * 1.9 + o.r, fx = Math.sin(t * 0.5 + ph) * 34, v = Math.cos(t * 0.5 + ph), fy = y - 12 + i * 4 + Math.sin(t * 2 + ph) * 1.5, im = tinted(o.sp ? `fish-${o.sp}` : `sea-fish${1 + i % 3}-a`, '#2a7a9a'); if (!im) continue;
@@ -1251,12 +1295,19 @@ function drawEntity(e, x, y, t, D) {
       if (o.fed && it.id === 'crabpen') { const im = tinted('sea-crab-a', '#5a4630'); if (im) for (const k of crabsOf(o)) { const w = Math.round(im.width * 0.7), h = Math.round(im.height * 0.7), cx = Math.round(x + k.dx + k.shift), cy = Math.round(y - 18 + k.dy);
           ell(cx, cy, 6, 2, '#00000033'); g.save(); g.translate(cx, cy); if (k.face) g.scale(-1, 1); g.drawImage(im, -Math.round(w / 2), -h, w, h); g.restore(); } }
       const ty = it.id === 'crabpen' ? y - 92 : y - 30;
-      if (done) { glow(x, ty, 10, '#f6d48a', 0.7); ell(x, ty - Math.abs(Math.sin(t * 4)) * 3, 3, 3, C.gold); } else if (!o.fed) text(it.id === 'fishcage' ? 'tap: stock' : 'tap: feed', x, ty + 4, C.sand, 7, 'center'); return; }
+      if (done) { glow(x, ty, 10, '#f6d48a', 0.7); ell(x, ty - Math.abs(Math.sin(t * 4)) * 3, 3, 3, C.gold); } else if (!o.fed) text(it.id === 'fishcage' || STOCK[it.id] ? (it.id === 'mussels' ? 'tap: seed' : 'tap: stock') : 'tap: feed', x, ty + 4, C.sand, 7, 'center'); return; }
     if (it.id === 'dog') { sprite('dog-bed', x, y + 6); return; }
     if (it.id === 'generator') { sprite('shed-gen', x, y + 10); if (Math.random() < 0.05) A.particles.push({ x: x + 8, y: y - 44, vx: rnd(-4, 4), vy: -15, gr: -4, life: 1, color: '#9a9a9a' }); return; }
+    const sitter = SEATS[it.id] && [F, ...WK].find(a => a.working === 'lounge' && !a.moving && Math.round(a.r) === o.r && Math.round(a.c) === o.c);
+    if (sitter) { const st = SEATS[it.id], ph = o.r * 1.7 + o.c * 2.3, sw = st.swing ? Math.sin(S.t * 1.3 + ph) * 1.2 : 0, im = ready(`lounge-${it.id}-${sitter.id || 'farmer'}`);
+      if (im) { sprite(im, x + sw, y + 10, { scale: st.s }); if (Math.floor(sitter.walk / 3) % 3 === 1) mood(x + 12, y + 10 - im.height * st.s - 4, 'heart', (sitter.walk % 3) / 3); return; } }
     if (ANIM[it.id] && ANIM[it.id](x, y + 10, o.r * 1.7 + o.c * 2.3)) return;
     if (it.id === 'cat') { sprite('dog-bed', x, y + 6, { scale: 0.7 }); return; } // her basket; the cat herself wanders
-    sprite(it.sprite, x, y + 10, { scale: it.scale || 1 }); if (it.id === 'lantern') glow(x + 8, y - 52, 20 + 14 * D.lamp, '#f0c070', D.lamp + 0.05); return;
+    sprite(it.sprite, x, y + 10, { scale: it.scale || 1 });
+    if (it.id === 'redlanterns') glow(x, y - 16, 22 + 10 * D.lamp, '#ff5a3a', D.lamp * 0.8 + 0.05);
+    if (it.id === 'neon') glow(x, y - 14, 26, '#ff6ab0', (D.lamp * 0.7 + 0.08) * (Math.random() < 0.02 ? 0.3 : 1));
+    if (it.id === 'beacon') { glow(x, y - 28, 12 + 8 * D.lamp, '#fff0a0', D.lamp + 0.1); if (D.lamp > 0.2) { const a = S.t * 0.8; g.save(); g.globalAlpha = 0.12 * D.lamp; g.fillStyle = '#fff6c0'; g.beginPath(); g.moveTo(x, y - 28); g.arc(x, y - 28, 140, a, a + 0.25); g.closePath(); g.fill(); g.restore(); } }
+    if (it.id === 'lantern') glow(x + 8, y - 52, 20 + 14 * D.lamp, '#f0c070', D.lamp + 0.05); return;
   }
   if (e.kind === 'plot') {
     const p = e.p, sp = species(p.sp), f = growth(p);
@@ -1337,7 +1388,7 @@ function drawBuild() {
   list.forEach((it, i) => {
     const x = x0 + i * w + w / 2, locked = S.level < it.lvl, sel = S.build === it.id;
     if (sel) { g.fillStyle = '#c9a96e33'; g.fillRect(x - w / 2, cy, w, 74); }
-    g.globalAlpha = locked ? 0.3 : 1; const nm = it.pen && !it.pen.win ? `${it.sprite}-full` : it.id === 'cellar' ? 'cellar-crate-0' : it.sprite, im = ready(nm);
+    g.globalAlpha = locked ? 0.3 : 1; const nm = it.icon || (it.pen && !it.pen.win ? `${it.sprite}-full` : it.id === 'cellar' ? 'cellar-crate-0' : it.sprite), im = ready(nm);
     if (im) { const s = Math.min(1, 34 / im.height, (w - 8) / im.width); g.drawImage(im, Math.round(x - im.width * s / 2), Math.round(cy + 38 - im.height * s), Math.round(im.width * s), Math.round(im.height * s)); }
     text(it.name, x, cy + 49, locked ? C.grey : C.sand, 6, 'center'); text(locked ? `lv ${it.lvl}` : `S$${it.cost}`, x, cy + 59, locked ? C.grey : S.cash < it.cost ? C.pink : C.gold2, 6, 'center'); text(it.note, x, cy + 69, locked ? C.grey : '#9ad0e0', 6, 'center'); g.globalAlpha = 1;
     hit(x - w / 2, cy, w, 74, () => { if (locked) { SFX.nope(); return float(`level ${it.lvl}`, x, y0 - 6, C.pink, 8, true); } S.build = sel ? null : it.id; SFX.pop(); });
@@ -1360,7 +1411,7 @@ function drawHutPanel() {
   const cap = up('bigshed') ? 3 : 1, row1 = [{ name: 'Daily gift', sub: giftReady() ? `S$${25 * S.level} · +10xp · tap to claim` : 'claimed · back tomorrow', desc: 'Free coins once a real day. Worth more at higher levels.', fn: claimGift, ok: giftReady() },
     ...WORKERS.map((k, i) => { const hired = WK.some(w => w.id === k.id), locked = S.level < k.lvl, full = !hired && WK.length >= cap; return { name: k.name, sub: hired ? 'hired, working for you' : locked ? `unlocks at level ${k.lvl}` : full ? 'needs a bigger shed' : `hire for S$${k.cost}, once`, desc: k.desc, fn: () => hire(i), ok: !hired && !locked && !full && S.cash >= k.cost, id: k.id }; })];
   const card = u => ({ name: u.name, sub: up(u.id) ? 'built' : S.level < u.lvl ? `unlocks at level ${u.lvl}` : `build for S$${u.cost}`, desc: u.desc, fn: () => buyUpgrade(u), ok: !up(u.id) && S.level >= u.lvl && S.cash >= u.cost, done: up(u.id) }), row2 = UPGRADES.map(card), row3 = LOOKS.map(card);
-  const w = 156, h = 64, x0 = W / 2 - 2 * w, y0 = 22; panelBox(x0 - 6, y0, 4 * w + 12, 3 * h + 66); text('The shed', W / 2, y0 + 14, C.gold2, 8, 'center'); text('Upgrades', x0 + 6, y0 + 22 + h + 16, C.gold2, 7); text(`Looks  ·  charm ${charm()} = +${Math.round(Math.min(20, charm() * 0.5))}% sales`, x0 + 6, y0 + 22 + 2 * (h + 22) - 6, C.gold2, 7);
+  const w = 156, h = 64, x0 = W / 2 - 2 * w, y0 = 22; panelBox(x0 - 6, y0, 4 * w + 12, 3 * h + 66); text(shedName(), W / 2, y0 + 14, C.gold2, 8, 'center'); text('Upgrades', x0 + 6, y0 + 22 + h + 16, C.gold2, 7); text(`Looks  ·  charm ${charm()} = +${Math.round(Math.min(20, charm() * 0.5))}% sales`, x0 + 6, y0 + 22 + 2 * (h + 22) - 6, C.gold2, 7);
   [[row1, y0 + 22], [row2, y0 + 22 + h + 22], [row3, y0 + 22 + 2 * (h + 22)]].forEach(([cards, cy]) => cards.forEach((k, i) => {
     const x = x0 + i * w + 6, tx = x + (k.id ? 34 : 6); g.fillStyle = k.done ? '#1f3a2a' : '#1a2a40'; g.fillRect(x, cy, w - 12, h);
     if (k.id) sprite(`wk-${k.id}-front-idle`, x + 17, cy + 58);
@@ -1413,7 +1464,8 @@ function draw() {
   text(`S$${S.cash}`, 8, 13, C.gold2, 11);
   const a = lvlXp(S.level), b = lvlXp(S.level + 1), k = (S.xp - a) / (b - a);
   text(`Lv ${S.level}`, 150, 13, C.sand, 9, 'right'); g.fillStyle = '#2b3a50'; g.fillRect(156, 6, 80, 6); g.fillStyle = '#9ad0e0'; g.fillRect(156, 6, Math.round(80 * k), 6); text(`${S.xp}/${b}`, 242, 13, C.grey, 7);
-  text(`${S.farm.a * S.farm.b} pens`, 300, 13, C.sand, 8, 'center'); if (S.bottles) text(`🍾 ${S.bottles}`, 350, 13, C.gold2, 8, 'center');
+  text(`${S.farm.a * S.farm.b} pens`, 300, 13, C.sand, 8, 'center');
+  if (hover && hover.y < 18 && hover.x > 110 && hover.x < 280 && !S.panel) { const n = nextUnlock(); tooltip(n ? `Next, at level ${n.L}` : 'Everything unlocked', n ? n.u.join(', ') : 'You have the lot. Keep farming!', 70, `${b - S.xp} xp to go`); } if (S.bottles) text(`🍾 ${S.bottles}`, 350, 13, C.gold2, 8, 'center');
   const btn = (x, label, on, fn) => { g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, 3, 54, 12); text(label, x + 27, 12, on ? C.ink : C.sand, 7, 'center'); hit(x, 0, 54, 18, fn); };
   btn(410, 'album', S.panel === 'album', () => { S.panel = S.panel === 'album' ? null : 'album'; S.build = null; SFX.pop(); });
   btn(470, 'quests', S.panel === 'quests', () => { S.panel = S.panel === 'quests' ? null : 'quests'; S.build = null; SFX.pop(); });
