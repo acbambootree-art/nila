@@ -72,7 +72,8 @@ Every level opens something, so there is always a next thing to look forward to.
   - If the storm arrives first, the farm is only partly protected: broken planks and growth setbacks scale with how much got done, and lashed pens keep their growth.
   - Ropes come off once the storm passes.
 - **Phones**:
-  - The game keeps its 16:9 shape and fits the screen both ways, edge to edge on phones and clear of the notch.
+  - On touch screens the view widens to the screen's shape (640 to 800 game pixels wide, always 360 tall), so wide phones get more sea instead of black side bars; the right-hand top-bar buttons stay pinned to the right edge. Desktop keeps 16:9. It fits both ways, edge to edge on phones and clear of the notch.
+  - iPhone: web pages can't go full screen, so the first visit shows a "Play full screen" card (open in Safari → Share → Add to Home Screen → open from the icon) and the full-screen icon reopens it. It warns that a farm started in the browser doesn't carry over to the home-screen app.
   - Held upright on a phone, it asks to be turned sideways, with a "play upright anyway" option.
   - A fullscreen button sits next to the camera; on Android it also locks the screen to landscape.
   - `manifest.webmanifest` and the `icon-*.png` kelong-house icons make "Add to Home Screen" open the game full screen in landscape.

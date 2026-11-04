@@ -14,11 +14,11 @@
   html, body { margin: 0; background: #0c0c0e; height: 100%; overscroll-behavior: none; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   #wrap { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
   /* the game keeps its 16:9 shape and fits the screen both ways: as wide as it can be without running off the bottom */
-  canvas { width: min(1280px, calc(100vw - 32px), calc((100dvh - 32px) * 16 / 9)); height: auto; image-rendering: pixelated; display: block; touch-action: none; border-radius: 6px; box-shadow: 0 20px 60px #000a; }
+  canvas { width: min(1280px, calc(100vw - 32px), calc((100dvh - 32px) * var(--ar, 16 / 9))); height: auto; image-rendering: pixelated; display: block; touch-action: none; border-radius: 6px; box-shadow: 0 20px 60px #000a; }
   /* phones and small screens: edge to edge, clear of the notch */
   @media (max-width: 960px), (max-height: 540px) {
     #wrap { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-    canvas { width: min(calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 16 / 9)); border-radius: 0; box-shadow: none; }
+    canvas { width: min(calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * var(--ar, 16 / 9))); border-radius: 0; box-shadow: none; }
   }
   /* held upright on a phone: ask to turn it sideways */
   #rotate { display: none; position: fixed; inset: 0; z-index: 9; background: #0c0c0e; color: #f5f0e8; font: 15px/1.5 ui-monospace, monospace; text-align: center; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 32px; box-sizing: border-box; }
@@ -323,7 +323,7 @@ const RARE = { rarepearl: { odds: 0.05, cash: 60, sprite: 'sp-pearl', label: 'pe
 const DOCK = { r: 7, c: 4 }; // where the buyer's boat ties up
 const BOAT = { r: 7, c: 2, trips: [{ h: 2, cost: 30, cash: 150, xp: 20, name: 'Fishing run' }, { h: 8, cost: 100, cash: 800, xp: 90, name: 'Overnight run' }, { h: 4, cost: 200, cash: 1600, xp: 150, name: 'Ubin market', jetty: true }] };
 const NILA_LINK = 'https://nila.wine';
-const W = 640, H = 360, TW = 64, TH = 32, MAP = 22, daySeconds = 300, WALK = 2.6;
+let W = 640; const H = 360, TW = 64, TH = 32, MAP = 22, daySeconds = 300, WALK = 2.6;
 const lvlXp = L => L <= 1 ? 0 : Math.round(30 * Math.pow(L - 1, 1.7));
 const C = { sand: '#f5f0e8', gold: '#c9a96e', gold2: '#d4bc8a', deep: '#a8884f', ink: '#0c0c0e', pink: '#f1c4cf', green: '#5f9a6a', wood: '#6b4f3a', wood2: '#8a6a4a', grey: '#8a9ab0' };
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -482,7 +482,13 @@ const IMG = {};
 ].forEach(n => { const im = new Image(); im.src = `sprites/${n}.png?v=${ART}`; IMG[n] = im; });
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 // backing store at an integer multiple of 640×360 so text renders sharp; sprites stay blocky via nearest sampling
-function fit() { const k = Math.min(4, Math.max(1, Math.ceil(cv.getBoundingClientRect().width * devicePixelRatio / W))); cv.width = W * k; cv.height = H * k; g.setTransform(k, 0, 0, k, 0, 0); g.imageSmoothingEnabled = false; }
+const IOS = /iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const HOMEAPP = navigator.standalone === true || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+const HOMETIP_OK = IOS && !HOMEAPP && !document.fullscreenEnabled;
+let HOMETIP = false; try { HOMETIP = HOMETIP_OK && !localStorage.getItem('indigo-tides-hometip'); } catch {}
+function fitW() { // touch screens: as wide as the screen's shape allows, so wide phones get more sea instead of black bars
+  W = matchMedia('(pointer: coarse)').matches ? Math.round(Math.min(800, Math.max(640, H * innerWidth / innerHeight)) / 2) * 2 : 640; document.documentElement.style.setProperty('--ar', W / H); }
+function fit() { fitW(); const k = Math.min(4, Math.max(1, Math.ceil(cv.getBoundingClientRect().width * devicePixelRatio / W))); cv.width = W * k; cv.height = H * k; g.setTransform(k, 0, 0, k, 0, 0); g.imageSmoothingEnabled = false; }
 fit(); addEventListener('resize', fit);
 const hits = [];
 const hit = (x, y, w, h, fn) => hits.push({ x, y, w, h, fn });
@@ -2465,6 +2471,15 @@ function drawTutCoach(y) { // the coach card under the top bar: step, title, wha
   for (let i = 0; i < TUT_N; i++) { g.fillStyle = i < S.step ? C.gold : i === S.step ? C.sand : '#2b3a50'; g.fillRect(x + 8 + i * 10, y + h - 5, 7, 2); }
   return y + h + 2;
 }
+function drawHomeTip() { // how to play full screen on an iPhone (shown once on the first visit, and from the full-screen icon)
+  if (!HOMETIP) return; const w = 360, x = W / 2 - w / 2, y = 54;
+  const lines = ['iPhones only play games full screen from the home screen. Takes 10 seconds:', '', '1. Opened this inside another app? Tap the compass or ••• and choose Open in Safari.', '2. In Safari, tap Share, then Add to Home Screen.', '3. Open Indigo Tides from the new icon.', '', 'Do it before you start: a farm begun here won\'t carry over to the home-screen app.'];
+  const body = lines.flatMap(l => l ? wrap(l, w - 28) : ['']), h = 56 + body.length * 10;
+  hit(0, 0, W, H, () => {}); g.fillStyle = '#05080cc8'; g.fillRect(0, 0, W, H); g.fillStyle = '#0f1824f2'; g.fillRect(x, y, w, h); g.strokeStyle = C.gold; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  text('Play full screen', W / 2, y + 18, C.gold, 10, 'center'); body.forEach((l, i) => text(l, x + 14, y + 36 + i * 10, /^\d\./.test(l) ? C.sand : C.grey, 7));
+  const bw = 120, bx = W / 2 - bw / 2, by = y + h - 22; g.fillStyle = '#2b3a50'; g.fillRect(bx, by, bw, 15); text('Play here for now', W / 2, by + 11, C.sand, 7, 'center');
+  hit(bx, by, bw, 15, () => { HOMETIP = false; try { localStorage.setItem('indigo-tides-hometip', '1'); } catch {} SFX.pop(); });
+}
 function drawTutCard() { // the welcome card on a new farm, and the "you're done" card
   if (!TUT_CARD) return; const intro = TUT_CARD === 'intro', w = 340, x = W / 2 - w / 2, y = 70;
   const lines = intro ? ['Welcome to your kelong! You\'ll learn the basics in 6 quick steps:', '1. Plant oysters   2. Harvest them   3. Clean and sell', '4. Send the boat   5. Build a fish cage   6. Hire crew', '', 'While you learn, everything grows 3× faster. Buyers start sending orders once you finish.']
@@ -2522,7 +2537,7 @@ function draw() {
   if (S.panel === 'story') drawStory();
   drawInfo(); drawMini(); drawBanners(); drawBuildChips(); drawToast();
   for (const f of A.floaters) if (f.ui) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, f.size, 'center'); } g.globalAlpha = 1;
-  drawEcoUI(); drawRelease(); drawAway(); drawStreak(); drawQuiz(); drawCloudChoice(); drawOffer(); drawTutCard(); drawLearn(); drawTrickUI(); // cards go over the floating messages, so text never lands on them
+  drawEcoUI(); drawRelease(); drawAway(); drawStreak(); drawQuiz(); drawCloudChoice(); drawOffer(); drawTutCard(); drawLearn(); drawHomeTip(); drawTrickUI(); // cards go over the floating messages, so text never lands on them
   g.fillStyle = '#0c0c0eb0'; g.fillRect(0, 0, W, 18);
   text(`S$${S.cash}`, 8, 13, C.gold2, 11);
   const a = lvlXp(S.level), b = lvlXp(S.level + 1), k = (S.xp - a) / (b - a);
@@ -2533,20 +2548,20 @@ function draw() {
   hit(110, 0, 170, 18, () => { nextTip = performance.now() + 4000; SFX.pop(); });
   if (((hover && hover.y < 18 && hover.x > 110 && hover.x < 280) || nextTip > performance.now()) && !S.panel) { const n = nextUnlock(); tooltip(n ? `Next, at level ${n.L}` : 'Everything unlocked', n ? n.u.join(', ') : 'You have the lot. Keep farming!', 70, `${b - S.xp} xp to go`); } if (S.bottles) text(`🍾 ${S.bottles}`, 350, 13, C.gold2, 8, 'center');
   const btn = (x, label, on, fn) => { g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, 3, 46, 12); text(label, x + 23, 12, on ? C.ink : C.sand, 7, 'center'); hit(x, 0, 46, 18, fn); };
-  btn(376, 'story', S.panel === 'story', () => { S.panel = S.panel === 'story' ? null : 'story'; S.build = null; SFX.pop(); });
-  btn(424, 'album', S.panel === 'album', () => { S.panel = S.panel === 'album' ? null : 'album'; S.build = null; SFX.pop(); });
-  btn(474, 'board', S.panel === 'quests', () => { S.panel = S.panel === 'quests' ? null : 'quests'; S.build = null; SFX.pop(); });
-  if ((S.orders || []).length) { const hot = S.orders.some(o => o.due - Date.now() < 300e3); ell(518, 5, 4, 4, hot ? C.pink : C.gold); text(`${S.orders.length}`, 518, 8, C.ink, 7, 'center'); } // open orders, pink if one is about to lapse
-  if (S.step === 4 && S.level >= 2 && S.panel !== 'build') { g.strokeStyle = C.gold; g.lineWidth = 2; g.globalAlpha = 0.6 + 0.4 * Math.sin(S.t * 6); g.strokeRect(521, 1, 52, 16); g.globalAlpha = 1; g.lineWidth = 1; }
-  btn(524, 'build', S.panel === 'build', () => { S.panel = S.panel === 'build' ? null : 'build'; S.build = null; S.pick = null; SFX.pop(); });
-  g.fillStyle = C.sand; g.fillRect(584, 6, 12, 8); g.fillStyle = '#0c0c0e'; g.beginPath(); g.arc(590, 10, 2.5, 0, 7); g.fill(); g.fillStyle = C.sand; g.fillRect(587, 4, 4, 2); hit(576, 0, 22, 18, () => { PHOTO_MODE = true; closePanels(); SFX.tok(); }); // camera: photo mode
-  if (document.fullscreenEnabled) { const fs = !!document.fullscreenElement; g.strokeStyle = C.sand; g.lineWidth = 1; for (const [a, b] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const x = 600 + a * 8, y = 5 + b * 8; g.beginPath(); g.moveTo(x + (fs ? 0 : a ? -3 : 3), y + 0.5); g.lineTo(x + 0.5, y + 0.5); g.lineTo(x + 0.5, y + (fs ? 0 : b ? -3 : 3)); g.stroke(); } hit(598, 0, 14, 18, toggleFull); } // fullscreen
-  text(muted ? '♪̸' : '♪', 626, 13, muted ? '#777' : C.gold2, 11, 'center'); hit(614, 0, 26, 18, toggleMute);
+  btn(376 + (W - 640), 'story', S.panel === 'story', () => { S.panel = S.panel === 'story' ? null : 'story'; S.build = null; SFX.pop(); });
+  btn(424 + (W - 640), 'album', S.panel === 'album', () => { S.panel = S.panel === 'album' ? null : 'album'; S.build = null; SFX.pop(); });
+  btn(474 + (W - 640), 'board', S.panel === 'quests', () => { S.panel = S.panel === 'quests' ? null : 'quests'; S.build = null; SFX.pop(); });
+  if ((S.orders || []).length) { const hot = S.orders.some(o => o.due - Date.now() < 300e3); ell(518 + (W - 640), 5, 4, 4, hot ? C.pink : C.gold); text(`${S.orders.length}`, 518 + (W - 640), 8, C.ink, 7, 'center'); } // open orders, pink if one is about to lapse
+  if (S.step === 4 && S.level >= 2 && S.panel !== 'build') { g.strokeStyle = C.gold; g.lineWidth = 2; g.globalAlpha = 0.6 + 0.4 * Math.sin(S.t * 6); g.strokeRect(521 + (W - 640), 1, 52, 16); g.globalAlpha = 1; g.lineWidth = 1; }
+  btn(524 + (W - 640), 'build', S.panel === 'build', () => { S.panel = S.panel === 'build' ? null : 'build'; S.build = null; S.pick = null; SFX.pop(); });
+  { const o = W - 640; g.fillStyle = C.sand; g.fillRect(584 + o, 6, 12, 8); g.fillStyle = '#0c0c0e'; g.beginPath(); g.arc(590 + o, 10, 2.5, 0, 7); g.fill(); g.fillStyle = C.sand; g.fillRect(587 + o, 4, 4, 2); } hit(576 + (W - 640), 0, 22, 18, () => { PHOTO_MODE = true; closePanels(); SFX.tok(); }); // camera: photo mode
+  if (document.fullscreenEnabled || HOMETIP_OK) { const fs = !!document.fullscreenElement; g.strokeStyle = C.sand; g.lineWidth = 1; for (const [a, b] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const x = 600 + (W - 640) + a * 8, y = 5 + b * 8; g.beginPath(); g.moveTo(x + (fs ? 0 : a ? -3 : 3), y + 0.5); g.lineTo(x + 0.5, y + 0.5); g.lineTo(x + 0.5, y + (fs ? 0 : b ? -3 : 3)); g.stroke(); } hit(598 + (W - 640), 0, 14, 18, document.fullscreenEnabled ? toggleFull : () => { HOMETIP = true; SFX.pop(); }); } // fullscreen (iPhone: how to get it)
+  text(muted ? '♪̸' : '♪', 626 + (W - 640), 13, muted ? '#777' : C.gold2, 11, 'center'); hit(614 + (W - 640), 0, 26, 18, toggleMute);
   if (S.won) {
     if (ready('win')) g.drawImage(IMG.win, 0, 0, W, H); else { g.fillStyle = '#0c0c0ed0'; g.fillRect(0, 0, W, H); }
     text('Six months beneath the waves.', W / 2, 44, C.gold2, 18, 'center'); text('Your NILA bottle is ready.', W / 2, 66, C.sand, 11, 'center');
     g.fillStyle = C.ink + 'cc'; g.fillRect(20, 320, 140, 24); text('Reserve a bottle', 90, 336, C.gold, 10, 'center'); hit(20, 320, 140, 24, () => window.open(NILA_LINK, '_blank'));
-    g.fillRect(480, 320, 140, 24); text('Keep farming', 550, 336, C.sand, 10, 'center'); hit(480, 320, 140, 24, () => { S.won = false; });
+    g.fillRect(W - 160, 320, 140, 24); text('Keep farming', W - 90, 336, C.sand, 10, 'center'); hit(W - 160, 320, 140, 24, () => { S.won = false; });
   }
 }
 
