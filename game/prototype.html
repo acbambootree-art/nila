@@ -799,10 +799,11 @@ function stockFish(o, f, who = F) {
   const [x, y] = tilePos(o.r, o.c);
   if (S.level < f.lvl) { SFX.nope(); return float(`level ${f.lvl}`, x, y - 30, C.pink); }
   if (S.cash < f.cost) { SFX.nope(); return float("Not enough $", x, y - 30, C.pink); }
-  S.cash -= f.cost; S.pickFish = null; SFX.pop();
-  goBeside(o.r, o.c, () => { o.fed = Date.now(); o.sp = f.id; pop(x, y - 10, '#9ad0e0', 6); float(`${f.name} stocked`, x, y - 30, C.sand); SFX.splash(); }, who, 'feed');
+  S.cash -= f.cost; S.pickFish = null; o.sp = f.id; SFX.pop(); // remembered now, so the keeper restocks your choice
+  goBeside(o.r, o.c, () => { if (o.fed) { S.cash += f.cost; return; } o.fed = Date.now(); o.sp = f.id; pop(x, y - 10, '#9ad0e0', 6); float(`${f.name} stocked`, x, y - 30, C.sand); SFX.splash(); }, who, 'feed');
 }
 const bestFish = () => FISH.filter(f => f.lvl <= S.level && f.cost <= S.cash).sort((a, b) => b.sell - a.sell)[0];
+const keeperFish = o => { const f = o.sp && fishOf(o.sp); return f ? (f.cost <= S.cash ? f : null) : bestFish(); }; // the fish you last chose; best affordable only for a cage never chosen
 
 // ---- kelong upkeep: planks rot over real time; tap a hole to send someone to fix it ----
 function breakPlanks() {
@@ -896,9 +897,9 @@ function think(w, dt) {
   } else if (w.id === 'carpenter') {
     const j = S.broken.map(([r, c]) => ({ r, c })).sort(near)[0]; if (j && S.cash >= FIX) fixPlank(j.r, j.c, w);
   } else {
-    const done = o => o.fed && Date.now() - o.fed >= penSpec(o).time * 1000, canStock = o => o.id === 'fishcage' ? !!bestFish() : S.cash >= penSpec(o).feed;
+    const done = o => o.fed && Date.now() - o.fed >= penSpec(o).time * 1000, canStock = o => o.id === 'fishcage' ? !!keeperFish(o) : S.cash >= penSpec(o).feed;
     const j = S.objs.filter(o => item(o.id).pen && !item(o.id).pen.win && (done(o) || (!o.fed && canStock(o)))).sort(near)[0];
-    if (!j) return; if (!done(j) && j.id === 'fishcage') stockFish(j, bestFish(), w); else tapObj(j, w);
+    if (!j) return; if (!done(j) && j.id === 'fishcage') stockFish(j, keeperFish(j), w); else tapObj(j, w);
   }
 }
 
