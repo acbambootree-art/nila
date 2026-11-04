@@ -708,9 +708,9 @@ function spawnOtters() {
   const cages = S.objs.filter(o => o.id === 'fishcage' && o.fed), cage = cages[Math.floor(Math.random() * cages.length)];
   let tr, tc; if (cage) [tr, tc] = nearestWalkable(cage.r, cage.c); else { const lanes = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (lane(r, c) && walkable(r, c)) lanes.push([r, c]); if (!lanes.length) return false; [tr, tc] = lanes[Math.floor(Math.random() * lanes.length)]; }
   const e = edgeNear(tr, tc); if (!e || CROC) return false;
-  const w = center(e.sr, e.sc), out = center(e.sr + (e.sr - e.r) * 7, e.sc + (e.sc - e.c) * 7), n = Math.random() < 0.5 ? 3 : 2;
+  const w = center(e.sr, e.sc), out = center(e.sr + (e.sr - e.r) * 7, e.sc + (e.sc - e.c) * 7), n = 5 + Math.floor(Math.random() * 5); // a romp: two parents and their pups, 5 to 9 in all
   OTTERS = { phase: 'in', swim: true, t: 0, x: out.x, y: out.y, ox: out.x, oy: out.y, wx: w.x, wy: w.y, edge: e, tr, tc, cage, seen: false,
-    pack: Array.from({ length: n }, (_, i) => Object.assign(actor({ r: e.r, c: e.c, speed: 1.5 }), { pup: i > 0 })) };
+    pack: Array.from({ length: n }, (_, i) => Object.assign(actor({ r: e.r, c: e.c, speed: 1.5 }), { pup: i > 1 })) };
   return true;
 }
 const otterAt = (r, c) => !!OTTERS && !OTTERS.swim && OTTERS.pack.some(o => Math.round(o.r) === r && Math.round(o.c) === c);
@@ -738,13 +738,19 @@ function stepOtters(dt) {
 function drawOtter(e, x, y, t) {
   const k = OTTERS;
   if (e.kind === 'otterswim') { const [sx, sy] = scr(k.x, k.y), right = (k.phase === 'in' ? k.wx - k.ox : k.ox - k.wx) > 0;
-    k.pack.forEach((o, i) => { const ox = sx + (right ? -1 : 1) * i * 16, oy = sy + (i % 2 ? 5 : -3); g.globalAlpha = 0.35; ell(ox, oy + 1, 12, 3, '#e8f4ff'); g.globalAlpha = 1; sprite('otter-swim', ox, oy + 3 + Math.sin(t * 3 + i) * 1, { flip: right, scale: o.pup ? 0.75 : 1 }); });
+    k.spots = []; k.pack.forEach((o, i) => { const ox = sx + (right ? -1 : 1) * (i * 10 + (i % 3) * 3), oy = sy + ((i * 7) % 3 - 1) * 7 + Math.sin(t * 1.3 + i) * 1.5; k.spots.push([ox, oy]); g.globalAlpha = 0.35; ell(ox, oy + 1, 12, 3, '#e8f4ff'); g.globalAlpha = 1; sprite('otter-swim', ox, oy + 3 + Math.sin(t * 3 + i) * 1, { flip: right, scale: o.pup ? 0.75 : 1 }); });
     return; }
   const o = e.o, s = o.pup ? 0.72 : 1, moving = o.moving;
   let n = moving ? `otter-walk-${Math.floor(o.walk * 9) % 2 ? 'a' : 'b'}` : 'otter-stand', hop = moving ? -Math.abs(Math.sin(o.walk * 18)) * 1.5 : 0;
   if (!moving && k.phase === 'eat' && !o.pup) n = 'otter-eat';
   if (!moving && (k.phase === 'eat' || k.phase === 'play') && o.pup) { n = Math.floor(t * 1.2 + e.i) % 3 ? 'otter-stand' : 'otter-walk-b'; hop = n === 'otter-walk-b' ? -Math.abs(Math.sin(t * 6)) * 2 : 0; }
-  ell(x, y + 2, 8 * s, 2.5 * s, '#00000044'); sprite(n, x, y + 3 + hop, { flip: !o.flip, scale: s });
+  ell(x, y + 2, 8 * s, 2.5 * s, '#00000044'); sprite(n, x, y + 3 + hop, { flip: !o.flip, scale: s }); o.sx = x; o.sy = y;
+}
+function tapOtters(sx, sy) { // in the water: learn about them; on the deck: shoo them off the fish (and the card, the first time)
+  const k = OTTERS; if (!k) return false; const pts = k.swim ? (k.spots || []) : k.pack.map(o => [o.sx, o.sy]);
+  if (!pts.some(([x, y]) => x !== undefined && Math.hypot(sx - x, sy - y + 4) < 14)) return false;
+  if (k.swim) { if (!k.seen) { k.seen = true; collect('otter'); } float(`a romp of ${k.pack.length} smooth-coated otters!`, sx, sy - 22, C.sand, 7); SFX.chirp(); openLearn('otter'); return true; }
+  shooOtters(); if (!(S.learned && S.learned.otter)) openLearn('otter'); return true;
 }
 
 // ---- a horseshoe crab wanders into an oyster pen now and then; whoever's free (or you, if you tap it) lifts it out and
@@ -2367,6 +2373,7 @@ cv.addEventListener('pointerup', e => {
   if (S.pick || S.pickFish) { S.pick = null; S.pickFish = null; return; }
   const an = nutAir(x, y); if (an) { catchNut(an); return; }
   if (tapDog(x, y)) return;
+  if (tapOtters(x, y)) return;
   if (tapEco(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
   if (tapSpot(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
   if (tapSea(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;

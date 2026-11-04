@@ -123,7 +123,8 @@ On return, a toast says how many oysters finished or withered, and how many plan
 
 **Sea life passing by**: every 2–5 minutes one Singapore sea animal swims past the farm, along the south edge or down the west side of the platform (usually whichever is nearer the camera). Hawksbill turtle (most common; it comes up for a breath every few seconds), blacktip reef shark (just the black-tipped fin above a dim shadow, with a wake), a pod of three pink Indo-Pacific humpback dolphins taking turns to leap, and the rare dugong from the Chek Jawa seagrass rolling its back up. The first time each comes into view the nearest crew member calls it out and it goes in the album. Tap one for a line about it. Sprites `sea2-*`.
 
-**Otters** (every 5–12 minutes): a family of two or three smooth-coated otters swims to the edge plank nearest a stocked fish cage, scampers along the walkway, looks round, and the lead otter sits and eats a fish (S$10) unless the dog runs at them first (it always tries) or you tap them ("shoo!"). With no stocked cage they have a look round and leave. Sprites `otter-*`.
+**Otters** (every 5–12 minutes): a romp of 5–9 smooth-coated otters (two parents and their pups, as Singapore's families travel) swims to the edge plank nearest a stocked fish cage, scampers along the walkway, looks round, and the lead otter sits and eats a fish (S$10) unless the dog runs at them first (it always tries) or you tap them ("shoo!"). With no stocked cage they have a look round and leave. Sprites `otter-*`.
+Tap them while they swim in or out to see the otter fact card; tap them on the deck to shoo them off the fish (the card also opens the first time).
 
 **Horseshoe crab** (every 3–7 minutes): one crawls into an oyster pen. After a few seconds the nearest free crew member lifts it out and carries it back to the sea (+3xp, album); tap it to have the farmer do it. Sprites `hcrab-*`.
 
