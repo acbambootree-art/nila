@@ -41,6 +41,21 @@ Every level opens something, so there is always a next thing to look forward to.
 - **Quiz and learning report**: ten questions from the fact cards (seven "what is this?" from the photo, three "how is it doing?" from the status); best score saved, 5 XP a right answer. "Copy my learning report" puts a plain-text summary on the clipboard for a teacher: level, sea health, chapter, which cards are learned, quiz best and the conservation tally. There's no teacher dashboard: the game runs on the player's device with no server.
 - **Chek Jawa trip** (second location, from level 4, S$40, from the story panel): a low-tide scene of the Chek Jawa boardwalk, mangroves and seagrass flats (`sprites/bg-chekjawa.jpg`). Eight creatures to find (sea stars, mudskippers, fiddler crabs, a horseshoe crab, a clam, otters), three bits of litter, and three spots to plant seagrass shoots. With the seagrass project funded and the sea healthy, a dugong often grazes offshore. Tapping opens the creature's fact card the first time.
 - **New album entries and cards**: knobbly sea star, mudskipper, fiddler crab, hard clam, tape seagrass and spotted seahorse (27 cards in all), plus a Low-tide explorer set. Their cards have real Commons photos too (the seagrass one is by Ria Tan of wildsingapore), so all 27 cards show a photo.
+- **Coming back every day** (2026-11-04):
+  - **Upgrades** (Build › Upgrade): oyster rafts, fish cages, crab pens, mussel lines, prawn pens, lobster traps, the bumboat, and each hand's tools (harvester's baskets, keeper's feed scoops, carpenter's toolbox) go from level 1 to 5.
+    - Each level costs the item's base price × 4, 10, 25 then 60, and takes real time to build: 10 min, 1 h, 3 h, 8 h. Levels unlock at player level 3, 6, 9 and 12.
+    - One upgrade at a time, two at three stars. A chip at top left counts down; it finishes even while the game is closed.
+    - Effects: pens grow 10% faster and sell 15% higher a level; the boat's trips are 12% shorter with crates 20% bigger; feed and fish stock cost 10% less; plank fixes cost 15% less and planks last 15% longer; the harvester works 10% quicker.
+    - Upgraded pens look it: extra floats at level 2, a red pennant at 3, a solar lamp that glows at night at 4, a gold shimmer at 5.
+  - **Daily streak** (replaces the daily gift): a card on the first visit each real day.
+    - Rewards: day 1 coins, 2 XP, 3 more coins, 4 Joji treats (+8 bond) and +5 sea health, 5 more coins, 6 more XP, and a chest on day 7 (coins plus 24 hours of +20% sales). They scale with level.
+    - Miss a day and the week starts again; nothing earned is lost. The shed's first card opens it too.
+  - **Crew work while away**: for up to 8 hours after you leave, the harvester harvests and sells whatever ripens, and the pen keeper collects and restocks pens, paying the feed from the takings.
+    - The welcome-back card shows what they did, and says when they stopped at the 8-hour cap.
+  - **Market day**: every Saturday one kind of stock sells for double (oysters, crabs, fish, prawns, lobsters or mussels, changing each week), with a banner.
+  - **Visitor of the week**: each week one of hawksbill turtles, pink dolphins, blacktip sharks or dugongs passes far more often; dugongs need less sea health that week. Shown in the sea tooltip and story panel.
+  - **Kelong rating** (1–5 stars, on the shed panel, the upgrade panel and the story panel): farm size 15%, sea health 20%, upgrades 25%, album 15%, fact cards 10%, story 15%.
+    - Perks: three stars opens a second build crew, four make tour tips 25% bigger, five make everything sell 10% higher. Gaining a star is announced.
 - **Seabirds**: black-naped terns, the white seabirds of Singapore's waters (true gulls are rare here), replace the old cartoon gull.
   - 2 of them, 3 when sea health is above 60, 4 above 85. They circle over the open water by the deck, flapping then gliding, with a shadow below.
   - They dive headfirst for fish (a splash, and often they come up with one), rest on a few old wooden stakes standing in the water off the deck (calling now and then), and bob on the water.

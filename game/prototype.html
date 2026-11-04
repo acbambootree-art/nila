@@ -130,6 +130,66 @@ const WORKERS = [ // hired at the hut; one-off cost, they work forever
 const WAGE = { harvester: 20, keeper: 30, carpenter: 25 };
 const wageOf = w => Math.round((WAGE[w.id] || 20) * (1 + S.level / 5));
 let payDay = null;
+// ---- upgrades: every pen type, the bumboat and each hand's tools go from level 1 to 5. each level costs more and takes real time to
+// build (10 min, 1 h, 3 h, 8 h), one at a time (two at three stars). pens grow faster and sell higher, the boat runs quicker and
+// brings bigger crates, and the tools make the crew cheaper and quicker ----
+const UPG = [
+  { id: 'u-oysters', name: 'Oyster rafts', base: 120, fx: 'oysters grow 10% faster and sell 15% higher a level' },
+  { id: 'u-fishcage', name: 'Fish cages', item: 'fishcage', fx: 'fish grow 10% faster and sell 15% higher a level' },
+  { id: 'u-crabpen', name: 'Crab pens', item: 'crabpen', fx: 'crabs grow 10% faster and sell 15% higher a level' },
+  { id: 'u-mussels', name: 'Mussel lines', item: 'mussels', fx: 'mussels grow 10% faster and sell 15% higher a level' },
+  { id: 'u-prawns', name: 'Prawn pens', item: 'prawns', fx: 'prawns grow 10% faster and sell 15% higher a level' },
+  { id: 'u-lobsters', name: 'Lobster traps', item: 'lobsters', fx: 'lobsters grow 10% faster and sell 15% higher a level' },
+  { id: 'u-boat', name: 'Bumboat', base: 300, fx: 'trips 12% shorter and crates 20% bigger a level' },
+  { id: 'u-basket', name: "Harvester's baskets", base: 220, crew: 'harvester', fx: 'the harvester works 10% quicker a level' },
+  { id: 'u-scoop', name: "Keeper's feed scoops", base: 260, crew: 'keeper', fx: 'pen feed and fish stock cost 10% less a level' },
+  { id: 'u-tools', name: "Carpenter's toolbox", base: 240, crew: 'carpenter', fx: 'plank fixes cost 15% less and planks last 15% longer a level' },
+];
+const UPG_COST = [0, 0, 4, 10, 25, 60], UPG_TIME = [0, 0, 600, 3600, 3 * 3600, 8 * 3600], UPG_LVL = [0, 0, 3, 6, 9, 12];
+const upl = id => (S.upl || {})[id] || 1;
+const upgBase = u => u.base || item(u.item).cost;
+const upgCost = u => Math.round(upgBase(u) * UPG_COST[upl(u.id) + 1]);
+const penMul = id => { const L = upl(`u-${id}`); return { grow: 1 + 0.1 * (L - 1), sell: 1 + 0.15 * (L - 1) }; };
+const feedMul = () => 1 - 0.1 * (upl('u-scoop') - 1);
+const fixCost = () => Math.round(FIX * (1 - 0.15 * (upl('u-tools') - 1)));
+const buildSlots = () => 1 + (rating().stars >= 3 ? 1 : 0);
+function startUpgrade(u) {
+  const L = upl(u.id), to = L + 1, b = S.building || (S.building = []); if (L >= 5) return;
+  if (S.level < UPG_LVL[to]) { SFX.nope(); return float(`level ${UPG_LVL[to]} needed`, W / 2, 300, C.pink, 8, true); }
+  if (u.item && !has(u.item)) { SFX.nope(); return float(`build a ${item(u.item).name.toLowerCase()} first`, W / 2, 300, C.pink, 8, true); }
+  if (u.crew && !WK.some(w => w.id === u.crew)) { SFX.nope(); return float(`hire the ${WORKERS.find(k => k.id === u.crew).name.toLowerCase()} first`, W / 2, 300, C.pink, 8, true); }
+  if (b.some(q => q.id === u.id)) return; if (b.length >= buildSlots()) { SFX.nope(); return float(buildSlots() < 2 ? 'one upgrade at a time (two once your kelong has three stars)' : 'both work crews are busy', W / 2, 300, C.pink, 8, true); }
+  const cost = upgCost(u); if (S.cash < cost) { SFX.nope(); return float('not enough coins', W / 2, 300, C.pink, 8, true); }
+  S.cash -= cost; b.push({ id: u.id, to, done: Date.now() + UPG_TIME[to] * 1000, cost }); float(`${u.name}: upgrade to level ${to} started, ready in ${fmt(UPG_TIME[to])}`, W / 2, 120, C.gold2, 8, true); SFX.stamp(); save();
+}
+function stepUpgrades() {
+  const b = S.building; if (!b || !b.length) return;
+  for (const q of [...b]) if (Date.now() >= q.done) { b.splice(b.indexOf(q), 1); S.upl = S.upl || {}; S.upl[q.id] = q.to; const u = UPG.find(k => k.id === q.id); float(`${u.name} upgraded to level ${q.to}!`, W / 2, 110, C.gold, 10, true); SFX.levelup(); gainXp(Math.round(q.cost / 30)); for (let i = 0; i < 20; i++) A.particles.push({ x: W / 2 + rnd(-50, 50), y: 110, vx: rnd(-60, 60), vy: rnd(-80, -20), life: 0.8, color: i % 2 ? '#f6d48a' : '#ffffff' }); save(); }
+}
+function drawPenLevel(L, x, y, t, D) { // what an upgraded pen looks like: more floats, a pennant, a solar lamp, then a gold shimmer
+  if (L < 2) return;
+  for (const [dx, dy] of [[-27, -13], [27, -13], [-27, 13], [27, 13]]) { ell(x + dx, y + dy + 1, 3.5, 1.5, '#00000044'); ell(x + dx, y + dy - 1, 3, 2.5, '#f0a030'); ell(x + dx - 1, y + dy - 2, 1.2, 0.8, '#ffd080'); }
+  if (L >= 3) { const px = x, py = y - 26, f = Math.sin(t * 5) * 1.5; g.fillStyle = '#6a5438'; g.fillRect(px - 1, py - 18, 2, 18); g.fillStyle = '#d04040'; g.beginPath(); g.moveTo(px + 1, py - 18); g.lineTo(px + 10, py - 15 + f); g.lineTo(px + 1, py - 12); g.fill(); }
+  if (L >= 4) { const lx = x + 50, ly = y; g.fillStyle = '#5c584f'; g.fillRect(lx - 1, ly - 16, 2, 16); g.fillStyle = '#2a4a6a'; g.fillRect(lx - 4, ly - 19, 8, 3); glow(lx, ly - 15, 10 + 6 * D.lamp, '#fff0b0', D.lamp * 0.9); }
+  if (L >= 5 && Math.random() < 0.05) A.particles.push({ x: x + rnd(-40, 40), y: y + rnd(-18, 10), vx: 0, vy: -12, gr: 0, life: 0.8, color: '#f6d48a' });
+}
+function drawBuildChips() { // what's being built, top left
+  const b = S.building; if (!b || !b.length || S.panel) return; let y = FEST ? 36 : 22;
+  for (const q of b) { const u = UPG.find(k => k.id === q.id), left = Math.max(0, (q.done - Date.now()) / 1000), s2 = `⚒ ${u.name} → Lv${q.to} · ${fmt(left)}`; g.font = '7px monospace'; const w = g.measureText(s2).width + 12; g.fillStyle = '#0c0c0ed9'; g.fillRect(6, y, w, 12); g.fillStyle = '#d4bc8a55'; g.fillRect(6, y + 10, w * (1 - left / UPG_TIME[q.to]), 2); text(s2, 12, y + 9, C.gold2, 7); y += 14; }
+}
+function drawUpgrades() {
+  const x0 = 12, y0 = 22, pw = W - 24, ph = H - 30; panelBox(x0, y0, pw, ph);
+  [['farm', 'Farm'], ['decor', 'Decor'], ['move', 'Move'], ['upgrade', 'Upgrade']].forEach(([id, label], i) => { const x = x0 + 6 + i * 60, on = S.tab === id; g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, y0 + 4, 54, 12); text(label, x + 27, y0 + 13, on ? C.ink : C.sand, 7, 'center'); hit(x, y0, 54, 18, () => { S.tab = id; S.build = null; SFX.pop(); }); });
+  const busy = (S.building || []).length, r = rating(); text(`building ${busy}/${buildSlots()} · ${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)} kelong`, x0 + pw - 10, y0 + 13, C.gold2, 7, 'right');
+  const cw = (pw - 18) / 2, ch = 52;
+  UPG.forEach((u, i) => { const x = x0 + 6 + (i % 2) * (cw + 6), y = y0 + 22 + Math.floor(i / 2) * (ch + 4), L = upl(u.id), maxed = L >= 5, q = (S.building || []).find(k => k.id === u.id), to = L + 1;
+    const lock = maxed ? '' : S.level < UPG_LVL[to] ? `level ${UPG_LVL[to]}` : u.item && !has(u.item) ? `build one first` : u.crew && !WK.some(w => w.id === u.crew) ? 'hire them first' : '';
+    g.fillStyle = q ? '#2a3a1a' : maxed ? '#1f3a2a' : '#1a2a40'; g.fillRect(x, y, cw, ch); text(u.name, x + 6, y + 12, C.sand, 8); text('★'.repeat(L) + '☆'.repeat(5 - L), x + cw - 6, y + 12, C.gold, 8, 'right');
+    wrap(u.fx, cw - 12).slice(0, 2).forEach((l, j) => text(l, x + 6, y + 23 + j * 8, C.grey, 7));
+    const st = q ? `building level ${q.to}: ${fmt((q.done - Date.now()) / 1000)}` : maxed ? 'fully upgraded' : lock ? `level ${to} unlocks at ${lock}` : `to level ${to}: S$${upgCost(u)} · ${fmt(UPG_TIME[to])}`;
+    text(st, x + 6, y + ch - 6, q ? C.gold2 : maxed ? '#9ee6a8' : lock ? C.grey : S.cash >= upgCost(u) ? C.gold2 : C.pink, 7);
+    if (!q && !maxed && !lock) { g.fillStyle = C.gold2; g.fillRect(x + cw - 62, y + ch - 16, 56, 12); text('Upgrade', x + cw - 34, y + ch - 7, C.ink, 7, 'center'); hit(x, y, cw, ch, () => startUpgrade(u)); } });
+}
 // crew experience: every job they take on counts; each level makes them a little quicker to pick up the next one
 const crewLv = w => Math.min(5, 1 + Math.floor(((S.crew || {})[w.id] || 0) / 40));
 const crewExp = w => { S.crew = S.crew || {}; const before = crewLv(w); S.crew[w.id] = (S.crew[w.id] || 0) + 1; if (crewLv(w) > before) { float(`${WORKERS.find(k => k.id === w.id).name} is now level ${crewLv(w)}: works faster`, W / 2, 110, C.gold2, 8, true); SFX.levelup(); } };
@@ -506,11 +566,12 @@ const species = id => SP.find(s => s.id === id);
 const item = id => ITEMS.find(i => i.id === id);
 const objAt = (r, c) => { const p = penOf(r, c), [rr, cc] = p ? [p.r0, p.c0] : [r, c]; return S.objs.find(o => o.r === rr && o.c === cc); };
 const penEmpty = p => !S.objs.some(o => o.r === p.r0 && o.c === p.c0) && [0, 1].every(i => [0, 1].every(j => !S.plots[p.r0 + i][p.c0 + j]));
-const penSpec = o => { const it = item(o.id), f = it.id === 'fishcage' && o.sp && fishOf(o.sp), b = f ? { feed: f.cost, time: f.time, sell: f.sell, xp: f.xp, what: f.id } : it.pen; const c = festMul(b.what) !== 1 ? { ...b, sell: Math.round(b.sell * festMul(b.what)) } : b; return up('generator') ? { ...c, time: c.time / 1.1 } : c; };
+const penSpec = o => { const it = item(o.id), f = it.id === 'fishcage' && o.sp && fishOf(o.sp), b = f ? { feed: f.cost, time: f.time, sell: f.sell, xp: f.xp, what: f.id } : it.pen, m = penMul(it.id); return { ...b, feed: Math.round(b.feed * feedMul()), sell: Math.round(b.sell * festMul(b.what) * m.sell), time: b.time / (up('generator') ? 1.1 : 1) / m.grow }; }; // upgrades, festivals, market day and the generator all fold in here
 const has = id => S.objs.some(o => o.id === id), count = id => S.objs.filter(o => o.id === id).length;
-const growth = p => (Date.now() - p.at) / 1000 / species(p.sp).time * (up('generator') ? 1.1 : 1);
+const oyMul = () => penMul('oysters').sell * (marketDay() && marketDay().what === 'oysters' ? 2 : 1); // oyster sale price: raft upgrades and market day
+const growth = p => (Date.now() - p.at) / 1000 / species(p.sp).time * (up('generator') ? 1.1 : 1) * penMul('oysters').grow;
 const withered = p => growth(p) >= 1 + 2 * (has('shed') ? 2 : 1) * (has('lantern') ? 1.25 : 1);
-const sellMul = () => ((has('stall') ? 1.1 : 1) + (FEST ? 0.1 : 0) + 0.05 * Math.min(3, count('palm')) + Math.min(0.2, charm() * 0.005)) * seaMul();
+const sellMul = () => (S.boostUntil > Date.now() ? 1.2 : 1) * (rating().stars >= 5 ? 1.1 : 1) * ((has('stall') ? 1.1 : 1) + (FEST ? 0.1 : 0) + 0.05 * Math.min(3, count('palm')) + Math.min(0.2, charm() * 0.005)) * seaMul();
 
 // ---- farmer: walks in a straight line to the task tile, then does it ----
 // ponytail: no pathfinding; island + deck + raft are convex enough that straight lines rarely cross open sea. BFS if it bothers anyone.
@@ -652,7 +713,7 @@ const actorRC = a => { if (a.swim && (a.working === 'swim' || a.working === 'kay
 const rcOf = (wx, wy) => { const u = wx / (TW / 2), v = (wy - TH / 2) / (TH / 2); return [(v - u) / 2, (v + u) / 2]; }; // world px to (fractional) tile
 let SEA = null, seaWait = rnd(90, 200);
 function spawnSea(kind) {
-  if (!kind) { let n = Math.random() * 100; kind = Object.keys(SEALIFE).find(k => (n -= SEALIFE[k].w) < 0) || 'turtle'; if (kind === 'dugong' && S.sea < 60) kind = 'turtle'; if (up('p-seagrass') && S.sea >= 70 && Math.random() < 0.25) kind = 'dugong'; } // dugongs only come to a healthy strait
+  if (!kind) { let n = Math.random() * 100; kind = Object.keys(SEALIFE).find(k => (n -= SEALIFE[k].w) < 0) || 'turtle'; if (Math.random() < 0.45) kind = SEA_WEEK; if (kind === 'dugong' && S.sea < (SEA_WEEK === 'dugong' ? 45 : 60)) kind = 'turtle'; if (up('p-seagrass') && S.sea >= 70 && Math.random() < 0.25) kind = 'dugong'; } // dugongs only come to a healthy strait
   // past the south edge of everything, or down the west side of the platform: usually whichever passes nearer what you're looking at
   const R = Math.max(PR(), FR0 + 3 * S.farm.a, ...Object.keys(S.deck).map(k => Math.floor(k / MAP))) + 2.6, routes = [[center(R, -6), center(R, MAP + 5)], [center(-3, -2.6), center(MAP + 5, -2.6)]];
   const off = ([a, b]) => Math.abs((b.y - a.y) * cam.x - (b.x - a.x) * cam.y + b.x * a.y - b.y * a.x) / Math.hypot(b.x - a.x, b.y - a.y);
@@ -1088,7 +1149,7 @@ function stepActor(dt, F) {
 let INFO = null;
 function infoOf(r, c) {
   const gen = up('generator') ? 1.1 : 1, p = penTile(r, c) && S.plots[r] && S.plots[r][c];
-  if (p && !withered(p) && growth(p) < 1) { const sp = species(p.sp); return { id: sp.id, name: `${sp.name} oysters`, icon: tinted('oyster-fat-idle', sp.tint), prog: growth(p), left: (1 - growth(p)) * sp.time / gen, sell: Math.round(sp.sell * sellMul()), xp: sp.xp }; }
+  if (p && !withered(p) && growth(p) < 1) { const sp = species(p.sp); return { id: sp.id, name: `${sp.name} oysters`, icon: tinted('oyster-fat-idle', sp.tint), prog: growth(p), left: (1 - growth(p)) * sp.time / gen / penMul('oysters').grow, sell: Math.round(sp.sell * sellMul() * oyMul()), xp: sp.xp }; }
   const o = objAt(r, c), it = o && item(o.id); if (!it || !it.pen || !o.fed) return null; const pen = penSpec(o), left = pen.time - (Date.now() - o.fed) / 1000; if (left <= 0) return null;
   const al = ALBUM.find(a => a.id === pen.what); return { id: pen.what, name: pen.win ? 'NILA bottles ageing' : it.id === 'fishcage' ? `${al ? al.name : 'Fish'} (fish cage)` : al ? al.name : it.name, icon: al && al.icon(), prog: 1 - left / pen.time, left, sell: pen.win ? 0 : Math.round(pen.sell * sellMul()), xp: pen.xp };
 }
@@ -1215,15 +1276,15 @@ function stockFish(o, f, who = F) {
   const [x, y] = tilePos(o.r, o.c);
   if (S.level < f.lvl) { SFX.nope(); return float(`level ${f.lvl}`, x, y - 30, C.pink); }
   if (S.cash < f.cost) { SFX.nope(); return float("Not enough $", x, y - 30, C.pink); }
-  S.cash -= f.cost; S.pickFish = null; o.sp = f.id; SFX.pop(); // remembered now, so the keeper restocks your choice
-  goBeside(o.r, o.c, () => { if (o.fed || o.sp !== f.id) { S.cash += f.cost; return; } o.fed = Date.now(); pop(x, y - 10, '#9ad0e0', 6); float(`${f.name} stocked`, x, y - 30, C.sand); SFX.splash(); }, who, 'feed'); // already stocked, or you picked a different fish since: refund this one
+  const fc = Math.round(f.cost * feedMul()); if (S.cash < fc) { SFX.nope(); return float("Not enough $", x, y - 30, C.pink); } S.cash -= fc; S.pickFish = null; o.sp = f.id; SFX.pop(); // remembered now, so the keeper restocks your choice
+  goBeside(o.r, o.c, () => { if (o.fed || o.sp !== f.id) { S.cash += fc; return; } o.fed = Date.now(); pop(x, y - 10, '#9ad0e0', 6); float(`${f.name} stocked`, x, y - 30, C.sand); SFX.splash(); }, who, 'feed'); // already stocked, or you picked a different fish since: refund this one
 }
 const bestFish = () => FISH.filter(f => f.lvl <= S.level && f.cost <= S.cash).sort((a, b) => b.sell - a.sell)[0];
 const keeperFish = o => { const f = o.sp && fishOf(o.sp); return f ? (f.cost <= S.cash ? f : null) : bestFish(); }; // the fish you last chose; best affordable only for a cage never chosen
 
 // ---- kelong upkeep: planks rot over real time; tap a hole to send someone to fix it ----
 function breakPlanks() {
-  const ms = BREAK_MS * (up('drums') ? 2 : 1);
+  const ms = BREAK_MS * (up('drums') ? 2 : 1) * (1 + 0.15 * (upl('u-tools') - 1));
   while (Date.now() - S.lastBreak >= ms) {
     S.lastBreak += ms; if (S.broken.length >= MAX_BROKEN) continue;
     const cand = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if ((land(r, c) || lane(r, c)) && !hutTile(r, c) && !objAt(r, c) && !isBroken(r, c)) cand.push([r, c]);
@@ -1232,13 +1293,35 @@ function breakPlanks() {
 }
 function fixPlank(r, c, who = F) {
   const [x, y] = tilePos(r, c);
-  if (S.cash < FIX) { SFX.nope(); return float("Not enough $", x, y - 30, C.pink); }
-  S.cash -= FIX; SFX.pop();
+  if (S.cash < fixCost()) { SFX.nope(); return float("Not enough $", x, y - 30, C.pink); }
+  S.cash -= fixCost(); SFX.pop();
   goBeside(r, c, () => { S.broken = S.broken.filter(([i, j]) => i !== r || j !== c); pop(x, y, '#b8824f', 8); float('fixed', x, y - 24, C.sand); float('+3xp', ...head(who), '#9ad0e0', 7); SFX.stamp(); gainXp(3); }, who, 'fix');
 }
 
 // ---- hut: home; a once-a-day gift so there is always a reason to come back ----
-const giftReady = () => S.giftDay !== new Date().toDateString();
+// ---- daily streak: a reward every day you come back, building to a chest on day 7. miss a day and the week starts again, but
+// nothing you've earned is lost. day 7 also gives 24 hours of +20% sales ----
+const STREAK = [{ t: 'coins', k: 1 }, { t: 'xp', k: 1 }, { t: 'coins', k: 2 }, { t: 'joji' }, { t: 'coins', k: 3 }, { t: 'xp', k: 2 }, { t: 'chest' }];
+const dayKey = (d = 0) => new Date(Date.now() - d * 864e5).toDateString();
+const giftReady = () => !S.streak || S.streak.last !== dayKey();
+const streakDay = () => (S.streak && S.streak.last === dayKey(1) ? S.streak.n % 7 : 0) + 1; // the day you're about to claim
+const streakLabel = (r, L = S.level) => r.t === 'coins' ? `S$${30 * L * r.k}` : r.t === 'xp' ? `${15 * L * r.k} XP` : r.t === 'joji' ? 'Joji treats + sea health' : 'Chest: S$ + 24h +20% sales';
+let STREAKUI = false;
+function claimStreak() {
+  if (!giftReady()) return; const d = streakDay(), r = STREAK[d - 1], L = S.level;
+  if (r.t === 'coins') S.cash += 30 * L * r.k; else if (r.t === 'xp') gainXp(15 * L * r.k); else if (r.t === 'joji') { S.bond = Math.min(100, (S.bond || 0) + 8); seaBump(5); } else { S.cash += 180 * L; S.boostUntil = Date.now() + 864e5; }
+  S.streak = { last: dayKey(), n: d }; STREAKUI = false; float(`Day ${d} reward: ${streakLabel(r, L)}!`, W / 2, 110, C.gold, 10, true); SFX.levelup(); for (let i = 0; i < 24; i++) A.particles.push({ x: W / 2 + rnd(-60, 60), y: 120, vx: rnd(-60, 60), vy: rnd(-90, -20), life: 0.8, color: i % 2 ? '#f6d48a' : '#9ee6a8' }); save();
+}
+function drawStreak() {
+  if (!STREAKUI || AWAY || S.offer || MINI || QUIZ) return; const d = streakDay(), bw = 440, bh = 150, bx = W / 2 - bw / 2, by = 70, ok = giftReady();
+  hit(0, 0, W, H, () => {}); g.fillStyle = '#05080cc0'; g.fillRect(0, 0, W, H); g.fillStyle = '#0f1824f6'; g.fillRect(bx, by, bw, bh); g.strokeStyle = C.gold; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  text(ok ? `Welcome to the kelong! Day ${d} of your streak` : `Day ${S.streak.n} claimed. See you tomorrow!`, bx + 12, by + 18, C.gold, 10); text('Come back each day for a bigger reward. Miss a day and the week starts again (you keep what you earned).', bx + 12, by + 30, C.grey, 7);
+  STREAK.forEach((r, i) => { const x = bx + 12 + i * 60, y = by + 40, n = i + 1, done = ok ? n < d : n <= S.streak.n, now = ok && n === d; g.fillStyle = now ? '#3a3010' : done ? '#1f3a2a' : '#1a2a40'; g.fillRect(x, y, 56, 70); if (now) { g.strokeStyle = C.gold; g.strokeRect(x + 0.5, y + 0.5, 55, 69); }
+    text(`Day ${n}`, x + 28, y + 12, now ? C.gold : C.sand, 7, 'center'); const ic = r.t === 'chest' ? ready('cellar-crate-2') : r.t === 'joji' ? ready('dog-happy') : r.t === 'xp' ? ready('sp-pearl') : ready('sp-gold'); if (ic) { const sc = Math.min(1, 28 / ic.width, 26 / ic.height); g.drawImage(ic, Math.round(x + 28 - ic.width * sc / 2), Math.round(y + 44 - ic.height * sc), Math.round(ic.width * sc), Math.round(ic.height * sc)); }
+    wrap(streakLabel(r), 52).slice(0, 2).forEach((l, j) => text(l, x + 28, y + 54 + j * 8, done ? '#9ee6a8' : C.sand, 7, 'center')); if (done) text('✓', x + 48, y + 12, '#9ee6a8', 8, 'center'); });
+  const btn = (x, w, label, gold, fn) => { g.fillStyle = gold ? C.gold2 : '#2b3a50'; g.fillRect(x, by + bh - 26, w, 16); text(label, x + w / 2, by + bh - 15, gold ? C.ink : C.sand, 7, 'center'); hit(x, by + bh - 26, w, 16, fn); };
+  if (ok) btn(bx + bw - 152, 140, `Claim day ${d}`, true, claimStreak); btn(bx + 12, 80, ok ? 'Later' : 'Close', false, () => { STREAKUI = false; });
+}
 function tapTank() { S.panel = S.panel === 'tank' ? null : 'tank'; S.build = null; SFX.pop(); }
 // selling: the buyer's boat motors in to the dock below the platform while the oysters are carried down in a crate,
 // they are loaded aboard, the coins land, and the boat motors off
@@ -1251,7 +1334,7 @@ function sellTank(who = F) {
   S.sale = { phase: 'arrive', t: 0, loaded: false, paid: false, cash: 0, n: 0 }; SFX.splash();
   goBeside(TANK.r, TANK.c, () => {
     const clean = S.tank.filter(isClean); if (!clean.length) { S.sale.abort = true; return; } S.tank = S.tank.filter(o => !isClean(o));
-    S.sale.n = clean.length; S.sale.cash = clean.reduce((t, o) => t + Math.round(species(o.sp).sell * sellMul()), 0); who.carry = true; save();
+    S.sale.n = clean.length; S.sale.cash = clean.reduce((t, o) => t + Math.round(species(o.sp).sell * sellMul() * oyMul()), 0); who.carry = true; save();
     goBeside(DOCK.r, DOCK.c, () => { who.carry = false; S.sale.loaded = true; SFX.chomp(); }, who, 'feed');
   }, who, 'collect');
 }
@@ -1272,11 +1355,7 @@ function upgradeTank() {
   S.cash -= nx.cost; S.tankLv++; S.panel = null; float(`tank holds ${nx.cap} now`, x, y - 50, C.gold, 10); pop(x, y - 20, C.gold2, 12); SFX.stamp(); gainXp(Math.round(nx.cost / 20)); save();
 }
 function tapHut() { S.panel = S.panel === 'hut' ? null : 'hut'; S.build = null; SFX.pop(); }
-function claimGift() {
-  const [x, y] = tilePos(HUT.r, HUT.c); S.panel = null;
-  if (!giftReady()) { SFX.chomp(); return float('come back tomorrow', x, y - 40, C.sand); }
-  goBeside(HUT.r, HUT.c, () => { const cash = 25 * S.level, xp = 10; S.giftDay = new Date().toDateString(); S.cash += cash; float(`daily gift! +S$${cash}`, x, y - 50, C.gold, 10); float(`+${xp}xp`, x, y - 40, '#9ad0e0', 7); pop(x, y - 20, C.gold2, 12); SFX.coin(); gainXp(xp); }, F, 'collect');
-}
+function claimGift() { S.panel = null; STREAKUI = true; SFX.pop(); } // the daily streak card
 
 function hire(i) {
   const k = WORKERS[i], [x, y] = tilePos(HUT.r, HUT.c);
@@ -1304,14 +1383,14 @@ function buyUpgrade(u) {
 // workers look for a job every 1.5s when idle; nearest job first
 function think(w, dt) {
   if (DINNER && !DINNER.fade) return; // dinner: the work can wait
-  if (w.queue.some(q => !q.idle) || (w.think -= dt) > 0) return; w.think = 1.5 * (S.unpaid ? 2 : 1) * (1 - 0.08 * (crewLv(w) - 1)); // unpaid: half pace; experienced: quicker
+  if (w.queue.some(q => !q.idle) || (w.think -= dt) > 0) return; w.think = 1.5 * (S.unpaid ? 2 : 1) * (1 - 0.08 * (crewLv(w) - 1)) * (w.id === 'harvester' ? 1 - 0.1 * (upl('u-basket') - 1) : 1); // unpaid: half pace; experienced: quicker
   const near = (a, b) => Math.hypot(a.r - w.r, a.c - w.c) - Math.hypot(b.r - w.r, b.c - w.c);
   if (w.id === 'harvester') {
     const jobs = []; S.plots.forEach((row, r) => row.forEach((p, c) => { if (p && (withered(p) || (growth(p) >= 1 && !tankFull()))) jobs.push({ r, c }); }));
     const j = jobs.sort(near)[0]; if (!j) { if (S.tank.some(isClean)) sellTank(w); return; }
     crewExp(w); go(j.r, j.c, () => { const p = S.plots[j.r][j.c]; if (!p) return; if (withered(p)) { S.plots[j.r][j.c] = null; pop(...tilePos(j.r, j.c), C.grey, 6); } else harvest(j.r, j.c, w); }, w, 'harvest');
   } else if (w.id === 'carpenter') {
-    const j = S.broken.map(([r, c]) => ({ r, c })).sort(near)[0]; if (j && S.cash >= FIX) { crewExp(w); fixPlank(j.r, j.c, w); }
+    const j = S.broken.map(([r, c]) => ({ r, c })).sort(near)[0]; if (j && S.cash >= fixCost()) { crewExp(w); fixPlank(j.r, j.c, w); }
   } else {
     const done = o => o.fed && Date.now() - o.fed >= penSpec(o).time * 1000, canStock = o => o.id === 'fishcage' ? !!keeperFish(o) : S.cash >= penSpec(o).feed;
     const j = S.objs.filter(o => item(o.id).pen && !item(o.id).pen.win && (done(o) || (!o.fed && S.pickFish !== o && canStock(o)))).sort(near)[0]; // not a cage you're choosing a fish for
@@ -1329,13 +1408,13 @@ function boatPos() {
   return null;
 }
 const boatHome = () => { const b = S.boat; return !b.out || (Date.now() - b.out) / 1000 >= BOAT.trips[b.trip].h * 3600 * (has('flag') ? 0.8 : 1) + SAIL; };
-const boatLeft = () => S.boat.out ? BOAT.trips[S.boat.trip].h * 3600 * (has('flag') ? 0.8 : 1) - (Date.now() - S.boat.out) / 1000 : 0;
+const boatLeft = () => S.boat.out ? BOAT.trips[S.boat.trip].h * 3600 * (has('flag') ? 0.8 : 1) * (1 - 0.12 * (upl('u-boat') - 1)) - (Date.now() - S.boat.out) / 1000 : 0;
 function tapBoat() {
   const [x, y] = tilePos(BOAT.r, BOAT.c), b = S.boat;
   if (!b.out) { S.panel = S.panel === 'boat' ? null : 'boat'; SFX.pop(); return; }
   if (boatLeft() > 0) { float(`back in ${fmt(boatLeft())}`, x, y - 30, C.sand); SFX.chomp(); return; }
   if (!boatHome()) { float('coming in...', x, y - 30, C.sand); SFX.chomp(); return; }
-  const tr = BOAT.trips[b.trip]; b.out = null; const cash = Math.round(tr.cash * sellMul() * rnd(0.8, 1.3)), wp = center(BOAT.r, BOAT.c);
+  const tr = BOAT.trips[b.trip]; b.out = null; const cash = Math.round(tr.cash * sellMul() * (1 + 0.2 * (upl('u-boat') - 1)) * rnd(0.8, 1.3)), wp = center(BOAT.r, BOAT.c);
   go(BOAT.r, BOAT.c, () => { S.cash += cash; float(`crate! +S$${cash}`, ...head(F), C.gold, 10); float(`+${tr.xp}xp`, x, y - 26, '#9ad0e0', 7); pop(x, y - 10, C.gold2, 12); const cf = FISH[Math.floor(Math.random() * Math.min(FISH.length, S.level / 2 + 1))]; hop(ready(`fish-${cf.id}`), wp.x, wp.y); SFX.coin(); collect(cf.id, 1 + tr.h); if (Math.random() < 0.3) rollRare(wp.x, wp.y - 10); gainXp(tr.xp); }, F, 'collect');
 }
 function sendBoat(i) {
@@ -1466,7 +1545,7 @@ const PROJECTS = [
 function fundProject(q) { if (up(q.id) || S.level < q.lvl) return; if (S.cash < q.cost) { SFX.nope(); return float('not enough coins yet', W / 2, 300, C.pink, 8, true); } S.cash -= q.cost; S.up[q.id] = true; if (q.fx) q.fx(); gainXp(Math.round(q.cost / 50)); float(`${q.name}: funded!`, W / 2, 120, C.gold, 10, true); SFX.levelup(); save(); }
 function drawStory() {
   const x0 = 16, y0 = 22, pw = W - 32, ph = H - 34; panelBox(x0, y0, pw, ph); const ci = S.chapter || 0, ch = CHAPTERS[ci];
-  text(`Story · ${Math.min(ci + 1, CHAPTERS.length)} of ${CHAPTERS.length}`, x0 + 10, y0 + 14, C.grey, 7); text(`${SEASON.name} · sea health ${Math.round(S.sea)} (${seaLabel(S.sea)})`, x0 + pw - 24, y0 + 14, seaCol(S.sea), 7, 'right');
+  text(`Story · ${Math.min(ci + 1, CHAPTERS.length)} of ${CHAPTERS.length}`, x0 + 10, y0 + 14, C.grey, 7); text(`${'★'.repeat(rating().stars)}${'☆'.repeat(5 - rating().stars)} · ${SEASON.name} · this week: ${SEA_NAMES[SEA_WEEK]} · sea ${Math.round(S.sea)}`, x0 + pw - 24, y0 + 14, seaCol(S.sea), 7, 'right');
   if (ch) { text(ch.name, x0 + 10, y0 + 30, C.gold, 11); wrap(ch.blurb, 280).forEach((l, i) => text(l, x0 + 10, y0 + 44 + i * 9, C.sand, 7));
     ch.goals.forEach((q, i) => { const y = y0 + 70 + i * 16, ok = q.ok(); g.fillStyle = ok ? '#2a5a3a' : '#1a2a40'; g.fillRect(x0 + 10, y - 9, 290, 13); text(`${ok ? '✓' : '○'}  ${q.t}`, x0 + 14, y, ok ? '#9ee6a8' : C.sand, 7); if (q.p && !ok) text(q.p(), x0 + 296, y, C.grey, 7, 'right'); });
     text(`Reward: S$${ch.cash} · ${ch.xp} XP`, x0 + 10, y0 + 128, C.gold2, 7); }
@@ -1535,6 +1614,27 @@ function drawScene() {
   text('Tap the creatures to learn about them: look, but leave them where they are.', W / 2, H - 8, '#ffffffdd', 7, 'center');
   for (const f of A.floaters) if (f.ui || f.scene) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, f.size, 'center'); } g.globalAlpha = 1; drawLearn();
 }
+// ---- kelong rating, 1 to 5 stars: how big, how healthy, how upgraded, how much found and learned, how far in the story.
+// three stars opens a second build crew; four, tour groups tip a quarter more; five, everything sells 10% higher ----
+function rating() {
+  const p = { size: Math.min(1, S.farm.a * S.farm.b / 30), sea: S.sea / 100, upg: UPG.reduce((t, u) => t + (upl(u.id) - 1), 0) / (UPG.length * 4), album: ALBUM.filter(a => S.album[a.id]).length / ALBUM.length, learn: learned() / Object.keys(FACTS).length, story: Math.min(1, (S.chapter || 0) / CHAPTERS.length) };
+  const score = p.size * 0.15 + p.sea * 0.2 + p.upg * 0.25 + p.album * 0.15 + p.learn * 0.1 + p.story * 0.15; return { stars: Math.min(5, 1 + Math.floor(score * 5)), score, p };
+}
+const STAR_PERK = { 2: 'a fine little kelong', 3: 'a second work crew: two upgrades at once', 4: 'tour groups tip 25% more', 5: 'a model kelong: everything sells 10% higher' };
+let starCheck = 0;
+function stepRating(dt) { if ((starCheck -= dt) > 0) return; starCheck = 2; const s2 = rating().stars; if (S.stars === undefined) S.stars = s2; if (s2 > S.stars) { S.stars = s2; float(`Your kelong is now ${'★'.repeat(s2)}! ${STAR_PERK[s2] || ''}`, W / 2, 120, C.gold, 10, true); SFX.levelup(); save(); } else if (s2 < S.stars) S.stars = s2; }
+// ---- while you're away the hired crew keep going, for up to 8 hours: the harvester harvests and sells whatever ripens, the pen
+// keeper collects and restocks the pens (paying the feed from the takings). come back sooner and they never run out of time ----
+const AWAY_CAP = 8 * 3600e3;
+function offlineWork() {
+  const t0 = S.savedAt, now = Date.now(); if (!t0 || now - t0 < 120e3) return null; const end = t0 + Math.min(now - t0, AWAY_CAP), hired = id => WK.some(w => w.id === id), out = { oysters: 0, pens: 0, cash: 0, xp: 0, capped: now - t0 > AWAY_CAP };
+  if (hired('harvester')) for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) { const p = S.plots[r][c]; if (!p) continue; const sp = species(p.sp), ready = p.at + sp.time * 1000 / ((up('generator') ? 1.1 : 1) * penMul('oysters').grow);
+    if (ready > end) continue; if (withered(p) && ready < t0) { S.plots[r][c] = null; continue; } S.plots[r][c] = null; out.oysters++; out.cash += Math.round(sp.sell * sellMul() * oyMul()); out.xp += sp.xp; S.stats.harvest[sp.id] = (S.stats.harvest[sp.id] || 0) + 1; }
+  if (hired('keeper')) for (const o of S.objs) { const it = item(o.id); if (!it.pen || it.pen.win) continue; if (it.id === 'fishcage' && !o.sp) continue; let fed = o.fed;
+    for (let guard = 0; guard < 200; guard++) { const sp = penSpec(o); if (!fed) { if (S.cash + out.cash < sp.feed) break; out.cash -= sp.feed; fed = t0; } const done = fed + sp.time * 1000; if (done > end) break; out.cash += Math.round(sp.sell * sellMul()); out.xp += sp.xp; out.pens++; S.stats.collect++; if (S.cash + out.cash >= sp.feed) { out.cash -= sp.feed; fed = done; } else { fed = null; break; } }
+    o.fed = fed; }
+  if (!out.oysters && !out.pens) return null; S.cash += out.cash; setTimeout(() => gainXp(out.xp), 900); return out;
+}
 let RELEASE = null, AWAY = null;
 function drawAway() { // welcome back: what happened while you were gone
   const k = AWAY; if (!k || S.offer || MINI) return; const bw = 300, bh = 54 + k.lines.length * 11, bx = W / 2 - bw / 2, by = 70, h = Math.floor(k.away / 3600), m = Math.floor(k.away % 3600 / 60);
@@ -1598,8 +1698,8 @@ function guest(i) { // a visitor's afternoon: out along the walkways to a pen or
   for (const p of picks) if (canSee(p.r, p.c)) goBeside(p.r, p.c, () => say(p.says), v, 'admire');
   for (const o of decor) if (canSee(o.r, o.c)) goBeside(o.r, o.c, () => say(SAYS), v, 'admire');
   goBeside(TANK.r, TANK.c, () => { const [x, y] = head(v), i2 = S.tank.findIndex(isClean);
-    if (i2 < 0) return float('no oysters today :(', x, y, C.grey, 7); const o = S.tank.splice(i2, 1)[0], pay = Math.round(species(o.sp).sell * 1.5 * sellMul()); S.cash += pay; float(`slurp! so fresh +S$${pay}`, x, y, C.gold, 8); SFX.coin(); }, v, 'dine');
-  go(lr, lc, () => { const tip = Math.round(3 + charm() * 0.4) * (up('p-lab') ? 2 : 1); S.cash += tip; TOUR.tips += tip; }, v, null);
+    if (i2 < 0) return float('no oysters today :(', x, y, C.grey, 7); const o = S.tank.splice(i2, 1)[0], pay = Math.round(species(o.sp).sell * 1.5 * oyMul() * sellMul()); S.cash += pay; float(`slurp! so fresh +S$${pay}`, x, y, C.gold, 8); SFX.coin(); }, v, 'dine');
+  go(lr, lc, () => { const tip = Math.round((3 + charm() * 0.4) * (up('p-lab') ? 2 : 1) * (rating().stars >= 4 ? 1.25 : 1)); S.cash += tip; TOUR.tips += tip; }, v, null);
   return v;
 }
 function drawGuest(v, x, y, t) {
@@ -1681,7 +1781,14 @@ const FESTS = {
 };
 const FEST = (() => { const q = new URLSearchParams(location.search).get('fest'); if (q && FESTS[q]) return q; const now = new Date(), y = now.getFullYear();
   for (const [id, f] of Object.entries(FESTS)) { const d = f.dates[y]; if (!d) continue; const diff = (now - new Date(`${y}-${d}T00:00:00`)) / 864e5; if (diff >= f.from && diff < f.to + 1) return id; } return null; })();
-const festMul = what => FEST === 'cny' && ['prawns', 'lobsters', 'pomfret'].includes(what) ? 1.4 : 1;
+// market day: every Saturday one kind of stock sells for double (a different one each week). and each week one sea creature is
+// "in season" and passes the farm far more often
+const WEEK = Math.floor((Date.now() + 8 * 3600e3) / 604800e3);
+const MARKET = [{ what: 'oysters', name: 'Oysters' }, { what: 'crabs', name: 'Crab hauls' }, { what: 'fish', name: 'Fish' }, { what: 'prawns', name: 'Prawn hauls' }, { what: 'lobsters', name: 'Lobsters' }, { what: 'mussels', name: 'Mussel hauls' }];
+const marketDay = () => new Date().getDay() === 6 ? MARKET[WEEK % MARKET.length] : null;
+const SEA_WEEK = ['turtle', 'dolphin', 'shark', 'dugong'][WEEK % 4];
+const SEA_NAMES = { turtle: 'hawksbill turtles', dolphin: 'pink dolphins', shark: 'blacktip reef sharks', dugong: 'dugongs' };
+const festMul = what => (FEST === 'cny' && ['prawns', 'lobsters', 'pomfret'].includes(what) ? 1.4 : 1) * (marketDay() && (marketDay().what === what || (marketDay().what === 'fish' && FISH.some(f => f.id === what))) ? 2 : 1);
 const FW = []; // fireworks, in screen space
 function stepFest(dt) {
   for (const p of FW) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 30 * dt; p.life -= dt; } for (let i = FW.length - 1; i >= 0; i--) if (FW[i].life <= 0) FW.splice(i, 1);
@@ -1719,7 +1826,7 @@ function checkQuests() {
 // ---- update ----
 function update(dt) {
   if (press && press.touch && !press.drag && !press.held && performance.now() - press.t0 > 420) { press.held = true; hover = { x: press.x, y: press.y }; } // touch: hold to see a name tag or a tooltip
-  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepOrders(dt); if (TOAST) TOAST.t += dt; stepSpot(dt); stepTour(dt); stepStorm(dt); stepFest(dt); stepSea(dt); stepOtters(dt); stepHcrab(dt); stepDinner(dt); stepEco(dt); stepStory(dt);
+  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepOrders(dt); if (TOAST) TOAST.t += dt; stepSpot(dt); stepTour(dt); stepStorm(dt); stepFest(dt); stepSea(dt); stepOtters(dt); stepHcrab(dt); stepDinner(dt); stepEco(dt); stepStory(dt); stepUpgrades(); stepRating(dt);
   { const d = Math.floor(S.t / daySeconds); if (payDay === null) payDay = d; else if (d !== payDay) { payDay = d; payWages(); } } stepActor(dt, F); idle(F, dt); for (const w of WK) { w.speed = has('dog') ? 1.2 : 1; stepActor(dt, w); think(w, dt); idle(w, dt); }
   const bed = S.objs.find(o => o.id === 'dog'); if (bed && !DOG) DOG = actor({ r: bed.r, c: bed.c, speed: 1.9 }); if (!bed) DOG = null;
   const home = S.objs.find(o => o.id === 'cat'); if (home && !CAT) CAT = actor({ r: home.r, c: home.c, speed: 0.7, pose: 'sleep' }); if (!home) CAT = null;
@@ -2145,6 +2252,7 @@ function drawEntity(e, x, y, t, D) {
         g.restore(); }
       if (o.fed && it.id === 'crabpen') { const im = tinted('sea-crab-a', '#5a4630'); if (im) for (const k of crabsOf(o)) { const w = Math.round(im.width * 0.7), h = Math.round(im.height * 0.7), cx = Math.round(x + (k.dx + k.shift) * CRABPEN / 1.8), cy = Math.round(y - 12 + k.dy * CRABPEN / 1.8);
           ell(cx, cy, 6, 2, '#00000033'); g.save(); g.translate(cx, cy); if (k.face) g.scale(-1, 1); g.drawImage(im, -Math.round(w / 2), -h, w, h); g.restore(); } }
+      if (!it.pen.win) drawPenLevel(upl(`u-${it.id}`), x, y, t, D);
       const ty = it.id === 'crabpen' ? y - 66 : y - 30;
       if (done) { glow(x, ty, 10, '#f6d48a', 0.7); ell(x, ty - Math.abs(Math.sin(t * 4)) * 3, 3, 3, C.gold); } else if (!o.fed) text(it.id === 'fishcage' || STOCK[it.id] ? (it.id === 'mussels' ? 'tap: seed' : 'tap: stock') : 'tap: feed', x, ty + 4, C.sand, 7, 'center'); return; }
     if (it.id === 'dog') { sprite('dog-bed', x, y + 6); return; }
@@ -2234,8 +2342,9 @@ function tooltip(title, body, bottom, hint) {
 const perHour = it => { if (!it.pen || it.pen.win) return 0; const gen = up('generator') ? 1.1 : 1; if (it.id === 'fishcage') { const f = [...FISH].reverse().find(q => q.lvl <= S.level) || FISH[0]; return Math.round((f.sell * festMul(f.id) - f.cost) / f.time * 3600 * gen); } const pn = it.pen; return Math.round((pn.sell * festMul(pn.what) - pn.feed) / pn.time * 3600 * gen); };
 let buildPage = 0, nextTip = 0, seaTip = 0; // the build bar shows nine cards at a time; arrows flip pages
 function drawBuild() {
+  if (S.tab === 'upgrade') return drawUpgrades();
   const y0 = H - 98; panelBox(4, y0, W - 8, 92);
-  [['farm', 'Farm'], ['decor', 'Decor'], ['move', 'Move']].forEach(([id, label], i) => { const x = 10 + i * 60, on = S.tab === id; g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, y0 + 4, 54, 12); text(label, x + 27, y0 + 13, on ? C.ink : C.sand, 7, 'center'); hit(x, y0, 54, 18, () => { S.tab = id; S.build = null; buildPage = 0; S.moveSel = null; SFX.pop(); }); });
+  [['farm', 'Farm'], ['decor', 'Decor'], ['move', 'Move'], ['upgrade', 'Upgrade']].forEach(([id, label], i) => { const x = 10 + i * 60, on = S.tab === id; g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, y0 + 4, 54, 12); text(label, x + 27, y0 + 13, on ? C.ink : C.sand, 7, 'center'); hit(x, y0, 54, 18, () => { S.tab = id; S.build = null; buildPage = 0; S.moveSel = null; SFX.pop(); }); });
   text(`charm ${charm()} · +${Math.round(Math.min(20, charm() * 0.5))}% sales`, W - 12, y0 + 13, C.gold2, 7, 'right');
   if (S.tab === 'move') {
     text(S.moveSel ? 'Now tap where it should go (tap it again to put it back).' : 'Tap a decoration, the generator, the tank or an empty pen to pick it up.', W / 2, y0 + 48, C.sand, 8, 'center');
@@ -2292,10 +2401,10 @@ async function loadSave() {
     SAVE_OFF = true; localStorage.setItem('indigo-farm-v2', raw); location.reload(); } catch { SFX.nope(); float("that save code didn't work", W / 2, 300, C.pink, 9, true); }
 }
 function drawHutPanel() {
-  const cap = up('bigshed') ? 3 : 1, row1 = [{ name: 'Daily gift', sub: giftReady() ? `S$${25 * S.level} · +10xp · tap to claim` : 'claimed · back tomorrow', desc: 'Free coins once a real day. Worth more at higher levels.', fn: claimGift, ok: giftReady() },
+  const cap = up('bigshed') ? 3 : 1, row1 = [{ name: 'Daily streak', sub: giftReady() ? `day ${streakDay()} · tap to claim` : `day ${S.streak.n} claimed · back tomorrow`, desc: 'A reward every day you visit, building to a chest on day 7.', fn: claimGift, ok: giftReady() },
     ...WORKERS.map((k, i) => { const hired = WK.some(w => w.id === k.id), locked = S.level < k.lvl, full = !hired && WK.length >= cap; return { name: k.name, sub: hired ? `level ${crewLv(WK.find(w => w.id === k.id))} · wage S$${wageOf(WK.find(w => w.id === k.id))} a day` : locked ? `unlocks at level ${k.lvl}` : full ? 'needs a bigger shed' : `hire for S$${k.cost}, once`, desc: k.desc, fn: () => hire(i), ok: !hired && !locked && !full && S.cash >= k.cost, id: k.id }; })];
   const card = u => ({ name: u.name, sub: up(u.id) ? 'built' : S.level < u.lvl ? `unlocks at level ${u.lvl}` : `build for S$${u.cost}`, desc: u.desc, fn: () => buyUpgrade(u), ok: !up(u.id) && S.level >= u.lvl && S.cash >= u.cost, done: up(u.id) }), row2 = UPGRADES.map(card), row3 = LOOKS.map(card);
-  const w = 156, h = 64, x0 = W / 2 - 2 * w, y0 = 22; panelBox(x0 - 6, y0, 4 * w + 12, 3 * h + 106); text(shedName(), W / 2, y0 + 14, C.gold2, 8, 'center'); text('Upgrades', x0 + 6, y0 + 22 + h + 16, C.gold2, 7); text(`Looks  ·  charm ${charm()} = +${Math.round(Math.min(20, charm() * 0.5))}% sales`, x0 + 6, y0 + 22 + 2 * (h + 22) - 6, C.gold2, 7);
+  const w = 156, h = 64, x0 = W / 2 - 2 * w, y0 = 22; panelBox(x0 - 6, y0, 4 * w + 12, 3 * h + 106); text(`${shedName()}  ${'★'.repeat(rating().stars)}${'☆'.repeat(5 - rating().stars)}`, W / 2, y0 + 14, C.gold2, 8, 'center'); text('Upgrades', x0 + 6, y0 + 22 + h + 16, C.gold2, 7); text(`Looks  ·  charm ${charm()} = +${Math.round(Math.min(20, charm() * 0.5))}% sales`, x0 + 6, y0 + 22 + 2 * (h + 22) - 6, C.gold2, 7);
   [[row1, y0 + 22], [row2, y0 + 22 + h + 22], [row3, y0 + 22 + 2 * (h + 22)]].forEach(([cards, cy]) => cards.forEach((k, i) => {
     const x = x0 + i * w + 6, tx = x + (k.id ? 34 : 6); g.fillStyle = k.done ? '#1f3a2a' : '#1a2a40'; g.fillRect(x, cy, w - 12, h);
     if (k.id) sprite(`wk-${k.id}-front-idle`, x + 17, cy + 58);
@@ -2307,7 +2416,7 @@ function drawHutPanel() {
   text('move your farm to another device', W / 2, by + 26, C.grey, 7, 'center');
 }
 function drawTankPanel() {
-  const n = S.tank.length, clean = S.tank.filter(isClean), cash = clean.reduce((t, o) => t + Math.round(species(o.sp).sell * sellMul()), 0), nx = TANK_LV[S.tankLv + 1];
+  const n = S.tank.length, clean = S.tank.filter(isClean), cash = clean.reduce((t, o) => t + Math.round(species(o.sp).sell * sellMul() * oyMul()), 0), nx = TANK_LV[S.tankLv + 1];
   const w = 360, h = 132, x0 = W / 2 - w / 2, y0 = H / 2 - 70; panelBox(x0, y0, w, h); text('Depuration tank', W / 2, y0 + 14, C.gold2, 8, 'center');
   wrap(`Oysters must purge in UV-cleaned seawater before they can be sold. Harvests wait here ${fmt(DEP)}, then sell.`, w - 24).forEach((l, i) => text(l, x0 + 12, y0 + 30 + i * 10, C.grey, 7));
   text(`${n - clean.length} cleaning · ${clean.length} clean · ${n}/${tankCap()} full`, x0 + 12, y0 + 58, C.sand, 7);
@@ -2319,7 +2428,7 @@ function drawBoatPanel() {
   const w = 150, n = BOAT.trips.length, x0 = W / 2 - n * w / 2, y0 = H / 2 - 40; panelBox(x0 - 6, y0, w * n + 12, 80); text('Send the bumboat out', W / 2, y0 + 14, C.gold2, 8, 'center');
   BOAT.trips.forEach((tr, i) => {
     const x = x0 + i * w + w / 2, locked = tr.jetty && !up('jetty'); g.fillStyle = '#1a2a40'; g.fillRect(x - w / 2 + 6, y0 + 22, w - 12, 50);
-    text(`${tr.name} · ${tr.h} h`, x, y0 + 38, locked ? C.grey : C.sand, 8, 'center'); text(locked ? 'needs the Ubin jetty' : `costs S$${tr.cost}`, x, y0 + 50, locked ? C.grey : S.cash < tr.cost ? C.pink : C.gold2, 7, 'center'); text(`crate ≈ S$${tr.cash} · +${tr.xp}xp`, x, y0 + 62, C.grey, 6, 'center');
+    text(`${tr.name} · ${fmt(tr.h * 3600 * (has('flag') ? 0.8 : 1) * (1 - 0.12 * (upl('u-boat') - 1)))}`, x, y0 + 38, locked ? C.grey : C.sand, 8, 'center'); text(locked ? 'needs the Ubin jetty' : `costs S$${tr.cost}`, x, y0 + 50, locked ? C.grey : S.cash < tr.cost ? C.pink : C.gold2, 7, 'center'); text(`crate ≈ S$${tr.cash} · +${tr.xp}xp`, x, y0 + 62, C.grey, 6, 'center');
     hit(x - w / 2 + 6, y0 + 22, w - 12, 50, () => sendBoat(i));
   });
 }
@@ -2332,6 +2441,7 @@ function drawBanners() { // stacked under the top bar: the storm, then the hint
   else if (STORM.warned) pill(`Storm in ${fmt(STORM.wait)} · ${STORM.secured ? 'farm secured ✓' : STORM.jobs ? `tying down… ${STORM.done}/${STORM.jobs}` : `tap here to secure the farm (S$${secureCost()})`}`, STORM.secured ? C.gold2 : STORM.jobs ? C.sand : C.pink, STORM.secured || STORM.jobs ? null : secureFarm);
   if (S.step < 6 && !S.panel && hint()) pill(hint(), C.sand);
   if (FEST && !S.panel) { g.fillStyle = '#0c0c0ed9'; g.fillRect(6, 21, 150, 12); text(`${FESTS[FEST].name} · +10% sales`, 12, 30, C.pink, 7); }
+  if (marketDay() && !S.panel) pill(`Market day! ${marketDay().name} sell for double today`, C.gold);
 }
 function drawQuests() { // the board: orders on top, today's quests under them
   const os = S.orders || [], w = 316, x0 = W - w - 8, rows = Math.max(1, os.length), qy = 50 + rows * 14 + 10; panelBox(x0, 22, w, qy - 22 + 18 + 14 * S.quests.length);
@@ -2370,16 +2480,16 @@ function draw() {
   if (S.panel === 'hut') drawHutPanel();
   if (S.panel === 'tank') drawTankPanel();
   if (S.panel === 'story') drawStory();
-  drawInfo(); drawMini(); drawBanners(); drawToast();
+  drawInfo(); drawMini(); drawBanners(); drawBuildChips(); drawToast();
   for (const f of A.floaters) if (f.ui) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, f.size, 'center'); } g.globalAlpha = 1;
-  drawEcoUI(); drawRelease(); drawAway(); drawQuiz(); drawCloudChoice(); drawOffer(); drawLearn(); drawTrickUI(); // cards go over the floating messages, so text never lands on them
+  drawEcoUI(); drawRelease(); drawAway(); drawStreak(); drawQuiz(); drawCloudChoice(); drawOffer(); drawLearn(); drawTrickUI(); // cards go over the floating messages, so text never lands on them
   g.fillStyle = '#0c0c0eb0'; g.fillRect(0, 0, W, 18);
   text(`S$${S.cash}`, 8, 13, C.gold2, 11);
   const a = lvlXp(S.level), b = lvlXp(S.level + 1), k = (S.xp - a) / (b - a);
   text(`Lv ${S.level}`, 150, 13, C.sand, 9, 'right'); g.fillStyle = '#2b3a50'; g.fillRect(156, 6, 80, 6); g.fillStyle = '#9ad0e0'; g.fillRect(156, 6, Math.round(80 * k), 6); text(`${S.xp}/${b}`, 242, 13, C.grey, 7);
   text(`${S.farm.a * S.farm.b} pens`, 304, 13, C.sand, 8, 'center');
   text('sea', 330, 13, seaCol(S.sea), 7); g.fillStyle = '#2b3a50'; g.fillRect(346, 6, 24, 6); g.fillStyle = seaCol(S.sea); g.fillRect(346, 6, Math.round(24 * S.sea / 100), 6); hit(326, 0, 48, 18, () => { seaTip = performance.now() + 6000; SFX.pop(); });
-  if (((hover && hover.y < 18 && hover.x > 326 && hover.x < 374) || seaTip > performance.now()) && !S.panel) tooltip(`Sea health ${Math.round(S.sea)}: ${seaLabel(S.sea)}`, `Oysters and mussels filter the water; picking up litter, freeing ghost nets and guiding hatchlings help too. Crowded fish pens, litter and ghost nets hurt it. A healthier sea brings more fish, more wildlife and better prices (now ${Math.round(seaMul() * 100)}%). ${tideText()} ${SEASON.name}: ${SEASON.note}.`, 130);
+  if (((hover && hover.y < 18 && hover.x > 326 && hover.x < 374) || seaTip > performance.now()) && !S.panel) tooltip(`Sea health ${Math.round(S.sea)}: ${seaLabel(S.sea)}`, `Oysters and mussels filter the water; picking up litter, freeing ghost nets and guiding hatchlings help too. Crowded fish pens, litter and ghost nets hurt it. A healthier sea brings more fish, more wildlife and better prices (now ${Math.round(seaMul() * 100)}%). ${tideText()} ${SEASON.name}: ${SEASON.note}. This week ${SEA_NAMES[SEA_WEEK]} are passing through.`, 130);
   hit(110, 0, 170, 18, () => { nextTip = performance.now() + 4000; SFX.pop(); });
   if (((hover && hover.y < 18 && hover.x > 110 && hover.x < 280) || nextTip > performance.now()) && !S.panel) { const n = nextUnlock(); tooltip(n ? `Next, at level ${n.L}` : 'Everything unlocked', n ? n.u.join(', ') : 'You have the lot. Keep farming!', 70, `${b - S.xp} xp to go`); } if (S.bottles) text(`🍾 ${S.bottles}`, 350, 13, C.gold2, 8, 'center');
   const btn = (x, label, on, fn) => { g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, 3, 46, 12); text(label, x + 23, 12, on ? C.ink : C.sand, 7, 'center'); hit(x, 0, 46, 18, fn); };
@@ -2434,9 +2544,10 @@ cv.addEventListener('pointerup', e => {
 if (up('generator') && !S.objs.some(o => o.id === 'generator')) placeFree('generator'); // older saves drew it beside the shed
 if (up('bigshed')) clearFootprint();
 refreshQuests();
-{ breakPlanks(); let n = 0; for (const row of S.plots) for (const p of row) if (p && growth(p) >= 1 && !withered(p)) n++; const w = S.plots.flat().filter(p => p && withered(p)).length, b = S.broken.length, cl = S.tank.filter(isClean).length; const away = S.savedAt ? (Date.now() - S.savedAt) / 1000 : 0, pens = S.objs.filter(o => { const it = item(o.id); return it.pen && !it.pen.win && o.fed && Date.now() - o.fed >= penSpec(o).time * 1000; }).length;
-  if (away > 120 && (n || w || b || cl || pens)) AWAY = { away, lines: [n && `${n} oyster bed${n > 1 ? 's' : ''} ready to harvest`, pens && `${pens} pen${pens > 1 ? 's' : ''} ready to collect`, cl && `${cl} clean oyster${cl > 1 ? 's' : ''} waiting in the tank`, w && `${w} withered: clear them and replant`, b && `${b} broken plank${b > 1 ? 's' : ''} to fix`].filter(Boolean) }; }
+{ const off = offlineWork(); breakPlanks(); let n = 0; for (const row of S.plots) for (const p of row) if (p && growth(p) >= 1 && !withered(p)) n++; const w = S.plots.flat().filter(p => p && withered(p)).length, b = S.broken.length, cl = S.tank.filter(isClean).length; const away = S.savedAt ? (Date.now() - S.savedAt) / 1000 : 0, pens = S.objs.filter(o => { const it = item(o.id); return it.pen && !it.pen.win && o.fed && Date.now() - o.fed >= penSpec(o).time * 1000; }).length;
+  if (away > 120 && (n || w || b || cl || pens || off)) AWAY = { away, lines: [off && `your crew harvested ${off.oysters} oyster${off.oysters === 1 ? '' : 's'} and collected ${off.pens} pen${off.pens === 1 ? '' : 's'}: ${off.cash >= 0 ? '+' : ''}S$${off.cash} after feed`, off && off.capped && 'they stopped after 8 hours: come back sooner to keep them busy', n && `${n} oyster bed${n > 1 ? 's' : ''} ready to harvest`, pens && `${pens} pen${pens > 1 ? 's' : ''} ready to collect`, cl && `${cl} clean oyster${cl > 1 ? 's' : ''} waiting in the tank`, w && `${w} withered: clear them and replant`, b && `${b} broken plank${b > 1 ? 's' : ''} to fix`].filter(Boolean) }; }
 cloudInit();
+if (giftReady()) STREAKUI = true; // first visit today: the streak card (after the welcome-back card)
 let last = performance.now();
 (function loop(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; update(dt); draw(); music(); requestAnimationFrame(loop); })(last);
 </script>
