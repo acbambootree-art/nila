@@ -2,16 +2,59 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Indigo Tides</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c0c0e">
 <style>
-  html, body { margin: 0; background: #0c0c0e; }
-  #wrap { max-width: 1280px; margin: 0 auto; padding: 16px; }
-  canvas { width: 100%; image-rendering: pixelated; display: block; touch-action: none; border-radius: 6px; box-shadow: 0 20px 60px #000a; }
+  html, body { margin: 0; background: #0c0c0e; height: 100%; overscroll-behavior: none; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #wrap { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+  /* the game keeps its 16:9 shape and fits the screen both ways: as wide as it can be without running off the bottom */
+  canvas { width: min(1280px, calc(100vw - 32px), calc((100dvh - 32px) * 16 / 9)); height: auto; image-rendering: pixelated; display: block; touch-action: none; border-radius: 6px; box-shadow: 0 20px 60px #000a; }
+  /* phones and small screens: edge to edge, clear of the notch */
+  @media (max-width: 960px), (max-height: 540px) {
+    #wrap { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    canvas { width: min(calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 16 / 9)); border-radius: 0; box-shadow: none; }
+  }
+  /* held upright on a phone: ask to turn it sideways */
+  #rotate { display: none; position: fixed; inset: 0; z-index: 9; background: #0c0c0e; color: #f5f0e8; font: 15px/1.5 ui-monospace, monospace; text-align: center; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 32px; box-sizing: border-box; }
+  #rotate .phone { width: 46px; height: 80px; border: 3px solid #c9a96e; border-radius: 9px; animation: turn 2.4s ease-in-out infinite; }
+  @keyframes turn { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+  #rotate button { font: inherit; font-size: 13px; color: #c9a96e; background: none; border: 1px solid #c9a96e55; border-radius: 6px; padding: 8px 14px; }
+  @media (orientation: portrait) and (pointer: coarse) { body:not(.anyway) #rotate { display: flex; } }
+  #acct { display: none; position: fixed; inset: 0; z-index: 8; background: #05080ccc; align-items: center; justify-content: center; font: 13px/1.5 ui-monospace, monospace; color: #f5f0e8; }
+  #acct.open { display: flex; }
+  #acct .box { width: min(360px, calc(100vw - 32px)); background: #0f1824; border: 1px solid #c9a96e; border-radius: 6px; padding: 18px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; }
+  #acct .box > div:not(.msg) { display: flex; flex-direction: column; gap: 10px; }
+  #acct h2 { margin: 0; font-size: 15px; color: #c9a96e; font-weight: normal; }
+  #acct p { margin: 0; color: #9a9488; font-size: 12px; }
+  #acct input { font: inherit; font-size: 16px; padding: 9px 10px; border-radius: 4px; border: 1px solid #2b4a66; background: #16314a; color: #f5f0e8; }
+  #acct button { font: inherit; padding: 9px 10px; border-radius: 4px; border: 0; cursor: pointer; background: #2b3a50; color: #f5f0e8; }
+  #acct button.main { background: #d4bc8a; color: #0c0c0e; }
+  #acct .msg { min-height: 1.5em; font-size: 12px; color: #9ee6a8; }
+  #acct .msg.bad { color: #ff8aa0; }
+  #acct [hidden] { display: none !important; }
 </style>
 </head>
 <body>
+<script src="cloud-config.js"></script>
 <div id="wrap"><canvas id="c" width="640" height="360"></canvas></div>
+<div id="acct" role="dialog" aria-modal="true" aria-labelledby="acct-title"><div class="box">
+  <h2 id="acct-title">Save your farm online</h2>
+  <div id="acct-out"><p>Sign in and your farm is saved to your account, so you can carry on from any phone or computer.</p>
+    <input id="acct-email" type="email" autocomplete="email" placeholder="you@example.com" aria-label="Email address">
+    <button class="main" id="acct-link">Email me a sign-in link</button>
+    <button id="acct-google">Continue with Google</button></div>
+  <div id="acct-in" hidden><p>Signed in as <span id="acct-who"></span>. Your farm saves to your account every minute and when you leave.</p>
+    <button class="main" id="acct-save">Save now</button><button id="acct-signout">Sign out</button></div>
+  <div class="msg" id="acct-msg" aria-live="polite"></div>
+  <button id="acct-close">Close</button>
+</div></div>
+<div id="rotate"><div class="phone"></div><div>Indigo Tides plays sideways.<br>Turn your phone to landscape.</div><button onclick="document.body.classList.add('anyway')">Play upright anyway</button></div>
 <script>
 // ---- tuning ----
 const SP = [ // oyster species: grow seconds, spat price, sale, xp, unlock level, tint
@@ -229,6 +272,7 @@ const WORK = {
   fix:     { t: 1.4, beat: 0.35, n: 5, y: 4,  col: ['#d9b48a', '#c0c0c0', '#8a5a3a'], sfx: () => SFX.tok(), tool: 'hammer', anim: ['hammer-a', 'hammer-b'] },
   plant:   { t: 0.6, beat: 0.3,  n: 4, y: 2,  col: ['#9ad0e0', '#e8f4ff'], sfx: () => SFX.splash(), tool: 'oyster', anim: ['plant'] },
   harvest: { t: 0.7, beat: 0.35, n: 4, y: 2,  col: ['#9ad0e0', '#e8f4ff'], sfx: () => SFX.splash(), tool: 'basket', anim: ['harvest-a', 'harvest-b'] },
+  lash:    { t: 2.4, beat: 0.4,  n: 3, y: 6,  col: ['#d9b48a', '#c8a070'], sfx: () => SFX.tok(), tool: 'hammer', anim: ['hammer-a', 'hammer-b'] }, // tying down for a storm
   sweep:   { t: 1.6, beat: 0.4,  n: 2, y: 2,  col: ['#d9b48a'], sfx: () => {}, tool: 'broom', anim: ['sweep'] },
   // off-duty: these are what a character does when nothing needs doing. 'pose' sprites are per character (<pre>-idle-<pose>)
   fish:    { t: 12, beat: 99, n: 0, y: 0, col: [], sfx: () => {}, tool: null, pose: 'fish' },
@@ -310,7 +354,7 @@ const WK = (S.workers || []).map(actor); S.workers = WK;
 Object.assign(S, { t: daySeconds * 0.75, tab: 'farm', moveSel: null, pick: null, pickFish: null, build: null, panel: null });
 const F = Object.assign({ tr: null, tc: null, queue: [], walk: 0, back: false, flip: false, moving: false }, S.farmer); S.farmer = F;
 const cam = S.cam || { x: 90, y: 140 }; S.cam = cam;
-const ECO = { litter: [], nets: [], hatch: null, mud: [], low: 0 }; // floating litter, ghost nets, a hatchling night, low-tide creatures
+const ECO = { litter: [], nets: [], hatch: null }; // floating litter, ghost nets, a hatchling night
 const A = { fish: [], jelly: [], bubbles: [], ripples: [], floaters: [], particles: [], gulls: [], clouds: [], hops: [] };
 for (let i = 0; i < 8; i++) A.fish.push({ kind: 1 + (i % 3), x: rnd(-500, 500), y: rnd(0, 500), v: rnd(8, 18) * (Math.random() < 0.5 ? 1 : -1), ph: rnd(0, 6) });
 for (let i = 0; i < 3; i++) A.jelly.push({ x: rnd(-400, 400), y: rnd(100, 450), ph: rnd(0, 6) });
@@ -319,6 +363,53 @@ for (let i = 0; i < 1; i++) A.gulls.push({ x: rnd(0, W), y: rnd(30, 70), v: 12, 
 
 function load() { try { return JSON.parse(localStorage.getItem('indigo-farm-v2')); } catch { return null; } }
 let SAVE_OFF = false; // set while loading a save code, so nothing overwrites it before the reload
+// ---- cloud saves (Supabase): optional. with cloud-config.js filled in, players can sign in by email link or Google and the farm
+// uploads every minute and when the page is hidden; signing in on another device offers to load the farm from the account ----
+const SAVE_KEY = 'indigo-farm-v2';
+const CLOUD = { sb: null, user: null, last: 0, busy: false, ready: false, choice: null };
+const $ = id => document.getElementById(id);
+function acctMsg(t, bad = false) { const m = $('acct-msg'); m.textContent = t; m.classList.toggle('bad', bad); }
+function acctShow() { $('acct-out').hidden = !!CLOUD.user; $('acct-in').hidden = !CLOUD.user; $('acct-who').textContent = CLOUD.user ? (CLOUD.user.email || 'your account') : ''; }
+function openAccount() { if (!CLOUD.ready) { SFX.nope(); return float(window.TIDES_CLOUD && window.TIDES_CLOUD.url ? 'connecting to the cloud… try again in a moment' : 'online saves are not set up yet: see game/CLOUD-SETUP.md', W / 2, 120, C.pink, 8, true); } acctShow(); acctMsg(''); $('acct').classList.add('open'); }
+function cloudInit() {
+  const cfg = window.TIDES_CLOUD || {}; if (!cfg.url || !cfg.anonKey) return;
+  const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'; sc.crossOrigin = 'anonymous';
+  sc.onload = () => {
+    CLOUD.sb = window.supabase.createClient(cfg.url, cfg.anonKey); CLOUD.ready = true;
+    CLOUD.sb.auth.onAuthStateChange((ev, sess) => { const was = CLOUD.user; CLOUD.user = sess ? sess.user : null; acctShow(); if (CLOUD.user && (!was || was.id !== CLOUD.user.id)) cloudPull(); });
+  };
+  sc.onerror = () => { CLOUD.ready = false; }; document.head.appendChild(sc);
+  $('acct-close').onclick = () => $('acct').classList.remove('open');
+  $('acct-link').onclick = async () => { const email = $('acct-email').value.trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return acctMsg('That email address looks wrong.', true);
+    acctMsg('Sending…'); const { error } = await CLOUD.sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split('#')[0] } }); acctMsg(error ? `Couldn't send the link: ${error.message}` : 'Check your email and tap the link to sign in.', !!error); };
+  $('acct-google').onclick = async () => { const { error } = await CLOUD.sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href.split('#')[0] } }); if (error) acctMsg(`Google sign-in isn't available: ${error.message}`, true); };
+  $('acct-save').onclick = async () => { acctMsg('Saving…'); acctMsg(await cloudPush(true) ? 'Saved to your account.' : "Couldn't reach the cloud. Your farm is still saved on this device.", !CLOUD.last); };
+  $('acct-signout').onclick = async () => { await cloudPush(true); await CLOUD.sb.auth.signOut(); acctMsg('Signed out. This device keeps its copy of the farm.'); };
+  setInterval(() => cloudPush(), 60e3); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') cloudPush(true); });
+}
+async function cloudPull() { // just signed in: is there a farm in the account, and is it the one on this device?
+  const { data, error } = await CLOUD.sb.from('saves').select('data, level, updated_at').eq('user_id', CLOUD.user.id).maybeSingle();
+  if (error) return float("couldn't load your online save", W / 2, 300, C.pink, 8, true);
+  if (!data) { await cloudPush(true); return float('farm saved to your account', W / 2, 300, C.gold2, 8, true); }
+  const at = Date.parse(data.updated_at), mine = S.savedAt || 0;
+  if (data.level === S.level && Math.abs(at - mine) < 120e3) { CLOUD.last = Date.now(); return float('signed in: your farm is up to date', W / 2, 300, C.gold2, 8, true); }
+  CLOUD.choice = { data: data.data, level: data.level, at }; $('acct').classList.remove('open');
+}
+async function cloudPush(force) {
+  if (!CLOUD.user || CLOUD.busy || CLOUD.choice || SAVE_OFF) return false; if (!force && Date.now() - CLOUD.last < 55e3) return false;
+  CLOUD.busy = true; save(); let ok = false;
+  try { const { error } = await CLOUD.sb.from('saves').upsert({ user_id: CLOUD.user.id, data: JSON.parse(localStorage.getItem(SAVE_KEY)), level: S.level, updated_at: new Date().toISOString() }); ok = !error; if (ok) CLOUD.last = Date.now(); } catch {}
+  CLOUD.busy = false; return ok;
+}
+function drawCloudChoice() { // two different farms: the account's and this device's. the player picks
+  const k = CLOUD.choice; if (!k) return; const bw = 380, bh = 116, bx = W / 2 - bw / 2, by = 90, ago = Math.max(1, Math.round((Date.now() - k.at) / 60000)), when = ago < 60 ? `${ago} min ago` : ago < 1440 ? `${Math.round(ago / 60)} h ago` : `${Math.round(ago / 1440)} days ago`;
+  hit(0, 0, W, H, () => {}); g.fillStyle = '#05080cd0'; g.fillRect(0, 0, W, H); g.fillStyle = '#0f1824f6'; g.fillRect(bx, by, bw, bh); g.strokeStyle = C.gold; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  text('Which farm do you want to play?', bx + 12, by + 18, C.gold, 10);
+  text(`Your account has a level ${k.level} farm, saved ${when}.`, bx + 12, by + 36, C.sand, 7); text(`This device has a level ${S.level} farm.`, bx + 12, by + 48, C.sand, 7); text('The one you don’t pick is replaced.', bx + 12, by + 62, C.grey, 7);
+  const b = (x, w, label, gold, fn) => { g.fillStyle = gold ? C.gold2 : '#2b3a50'; g.fillRect(x, by + bh - 28, w, 18); text(label, x + w / 2, by + bh - 16, gold ? C.ink : C.sand, 7, 'center'); hit(x, by + bh - 28, w, 18, fn); };
+  b(bx + 12, 172, `Account's farm (level ${k.level})`, true, () => { SAVE_OFF = true; localStorage.setItem(SAVE_KEY, JSON.stringify(k.data)); location.reload(); });
+  b(bx + 196, 172, `This device's (level ${S.level})`, false, async () => { CLOUD.choice = null; await cloudPush(true); float('this farm is now saved to your account', W / 2, 300, C.gold2, 8, true); });
+}
 function save() { if (SAVE_OFF) return; try { const { t, pick, pickFish, build, panel, tab, moveSel, ...rest } = S; rest.farmer = { r: F.r, c: F.c }; rest.savedAt = Date.now(); rest.workers = WK.map(w => ({ id: w.id, r: w.r, c: w.c })); localStorage.setItem('indigo-farm-v2', JSON.stringify(rest)); } catch {} }
 
 // ---- sprites ----
@@ -335,6 +426,14 @@ function fit() { const k = Math.min(4, Math.max(1, Math.ceil(cv.getBoundingClien
 fit(); addEventListener('resize', fit);
 const hits = [];
 const hit = (x, y, w, h, fn) => hits.push({ x, y, w, h, fn });
+// which hit a tap lands on: the topmost one under the finger; with a touch pad, a small button just beside the finger beats a full-screen backdrop
+function hitAt(x, y, pad) {
+  let near = null, nd = 1e9;
+  for (let i = hits.length - 1; i >= 0; i--) { const h = hits[i], dx = Math.max(h.x - x, 0, x - (h.x + h.w)), dy = Math.max(h.y - y, 0, y - (h.y + h.h)), big = h.w * h.h > W * H * 0.4;
+    if (!dx && !dy) return big && near ? near : h;
+    if (pad && !big && dx <= pad && dy <= pad && Math.hypot(dx, dy) < nd) { nd = Math.hypot(dx, dy); near = h; } }
+  return near;
+}
 const ready = n => { const im = IMG[n]; return im && im.complete && im.naturalWidth ? im : null; };
 function text(s, x, y, color = C.sand, size = 8, align = 'left') { size = Math.max(size, 7); g.font = `${size}px monospace`; g.textAlign = align; if (color !== C.ink) { g.fillStyle = '#0c0c0e'; g.fillText(s, x + 1, y + 1); } g.fillStyle = color; g.fillText(s, x, y); g.textAlign = 'left'; }
 function ell(x, y, rx, ry, color) { g.fillStyle = color; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill(); }
@@ -352,9 +451,10 @@ function spritePart(name, x, y, part, fn) {
   g.save(); g.beginPath(); g.rect(ox, oy, im.width, im.height); g.rect(ox + px, oy + py, pw, ph); g.clip('evenodd'); g.drawImage(im, ox, oy); g.restore();
   g.save(); g.translate(ox, oy); fn(im, px, py, pw, ph); g.restore(); return true;
 }
-const sway = (amp, speed, ph, flutter = 0) => (im, px, py, pw, ph2) => { for (let j = 0; j < ph2; j += 2) { const k = 1 - j / ph2, dx = Math.round(amp * Math.sin(S.t * speed + ph) * k * k + flutter * Math.sin(S.t * 4 + j * 0.4 + ph) * k); g.drawImage(im, px, py + j, pw, 2, px + dx, py + j, pw, 2); } };
-const swing = (pivx, pivy, amp, speed, ph) => (im, px, py, pw, ph2) => { g.translate(pivx, pivy); g.rotate(amp * Math.sin(S.t * speed + ph)); g.drawImage(im, px, py, pw, ph2, px - pivx, py - pivy, pw, ph2); };
-const wave = (amp, speed) => (im, px, py, pw, ph2) => { const gust = 0.7 + 0.3 * Math.sin(S.t * 0.5); for (let i = 0; i < pw; i++) { const dy = Math.round(amp * gust * Math.sin(i * 0.28 - S.t * speed) * (i / pw)); g.drawImage(im, px + i, py, 1, ph2, px + i, py + dy, 1, ph2); } };
+const windK = () => 1 + 2.2 * stormAmt(); // stronger and quicker sway as a storm builds
+const sway = (amp, speed, ph, flutter = 0) => (im, px, py, pw, ph2) => { const wk = windK(); for (let j = 0; j < ph2; j += 2) { const k = 1 - j / ph2, dx = Math.round(amp * wk * Math.sin(S.t * speed * (0.6 + 0.4 * wk) + ph) * k * k + flutter * wk * Math.sin(S.t * 4 * wk + j * 0.4 + ph) * k); g.drawImage(im, px, py + j, pw, 2, px + dx, py + j, pw, 2); } };
+const swing = (pivx, pivy, amp, speed, ph) => (im, px, py, pw, ph2) => { g.translate(pivx, pivy); const wk = windK(); g.rotate(amp * wk * Math.sin(S.t * speed * (0.6 + 0.4 * wk) + ph)); g.drawImage(im, px, py, pw, ph2, px - pivx, py - pivy, pw, ph2); };
+const wave = (amp, speed) => (im, px, py, pw, ph2) => { const gust = (0.7 + 0.3 * Math.sin(S.t * 0.5)) * windK(); speed *= 0.6 + 0.4 * windK(); for (let i = 0; i < pw; i++) { const dy = Math.round(amp * gust * Math.sin(i * 0.28 - S.t * speed) * (i / pw)); g.drawImage(im, px + i, py, 1, ph2, px + i, py + dy, 1, ph2); } };
 // which part of each decoration moves, and how (palm fronds sway, flag waves, lantern and chimes swing, plants nod)
 const ANIM = {
   palm:    (x, y, ph) => spritePart('bld-palm', x, y, [0, 0, 108, 70], sway(5, 1.1, ph, 1.5)), // a tall coconut palm
@@ -459,7 +559,7 @@ function idle(a, dt) {
   if (roll < 0.2) { a.flip = !a.flip; return; }
   if (roll < 0.35 && land(r0, c0)) { a.queue.push({ tr: r0, tc: c0, fn: () => {}, face: [r0 + (a.back ? -1 : 1), c0], act: WORK.sweep.t, kind: 'sweep', idle: true }); return; }
   if (roll < 0.7) { // fish or swim off any edge facing open water, lie down anywhere, mend the net beside a pen; somewhere nobody else is
-    const kind = (CROC ? ['fish', 'rest', 'mend'] : ['fish', 'swim', 'rest', 'mend'])[Math.floor(Math.random() * (CROC ? 3 : 4))], spots = []; // nobody swims with a croc about
+    const calm = !CROC && !STORM.on && !STORM.warned, kind = (calm ? ['fish', 'swim', 'rest', 'mend'] : ['fish', 'rest', 'mend'])[Math.floor(Math.random() * (calm ? 4 : 3))], spots = []; // nobody swims with a croc about
     const open = (r, c) => inMap(r, c) && !solid(r, c) && !penTile(r, c) && !underHouse(r, c) && !(r === BOAT.r && c === BOAT.c) && !(r === DOCK.r && c === DOCK.c);
     for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if ((land(r, c) || lane(r, c)) && walkable(r, c) && !objAt(r, c) && !hutTile(r, c) && !taken(r, c, a)) {
       const nb = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([dr, dc]) => [r + dr, c + dc]);
@@ -482,7 +582,7 @@ function useSomething(a) {
   const r0 = Math.round(a.r), c0 = Math.round(a.c), near = (r, c) => Math.hypot(r - a.r, c - a.c) < 9, opts = [];
   if (DOG && !DOG.moving && !PLAY && near(DOG.r, DOG.c)) opts.push('dog');
   if (CAT && !CAT.moving && !PLAY && (CAT.pose === 'sleep' || CAT.pose === 'sit') && near(CAT.r, CAT.c)) opts.push('cat');
-  for (const o of S.objs) if (near(o.r, o.c)) { if (SEATS[o.id] && !taken(o.r, o.c, a)) opts.push(o); if ((o.id === 'pot' || o.id === 'flowers')) opts.push(o); if (o.id === 'kayak' && !CROC && ![F, ...WK].some(w => w.working === 'kayak' || w.queue.some(q => q.kind === 'kayak'))) opts.push(o); }
+  for (const o of S.objs) if (near(o.r, o.c)) { if (SEATS[o.id] && !taken(o.r, o.c, a)) opts.push(o); if ((o.id === 'pot' || o.id === 'flowers')) opts.push(o); if (o.id === 'kayak' && !CROC && !STORM.on && !STORM.warned && ![F, ...WK].some(w => w.working === 'kayak' || w.queue.some(q => q.kind === 'kayak'))) opts.push(o); }
   const pick = opts[Math.floor(Math.random() * opts.length)]; if (!pick) return false;
   if (pick === 'dog' || pick === 'cat') { const pet = pick === 'dog' ? DOG : CAT, spot = besideFree(Math.round(pet.r), Math.round(pet.c), a); if (!spot) return false;
     if (pet === DOG) { DOG.queue = []; DOG.pose = 'sit'; } pet.idle = Math.max(pet.idle || 0, 9); // stay put to be petted
@@ -705,38 +805,10 @@ function waterNear() { // a spot of open water just off the deck, somewhere you 
   const cand = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) { if (!walkable(r, c) || hutTile(r, c)) continue; const sea = seaSide(r, c); if (!sea) continue; const w = center(sea[0], sea[1]), [sx, sy] = scr(w.x, w.y); if (sx > 60 && sx < W - 60 && sy > 50 && sy < H - 70) cand.push(w); }
   return cand.length ? cand[Math.floor(Math.random() * cand.length)] : null;
 }
-// tides: two lows a game day. at low tide mudflats come out along the shore side of the platform with things to find
+// tides: two highs and two lows a game day. a kelong stands in deep water, so the tide only changes the fishing (high tide brings the fish closer); low-tide walks happen at Chek Jawa
 const TIDE = 150;
 const tideNow = () => Math.sin(S.t * Math.PI * 2 / TIDE + 1); // -1 lowest … 1 highest
-const lowAmt = () => clamp((-tideNow() - 0.35) / 0.4, 0, 1); // how much mud is showing
-const tideText = () => tideNow() < -0.35 ? 'Low tide: mudflats are out by the shed.' : tideNow() > 0.4 ? 'High tide: the fish come closer.' : `The tide is ${Math.cos(S.t * Math.PI * 2 / TIDE + 1) > 0 ? 'coming in' : 'going out'}.`;
-let MUDT = null;
-function mudTiles() { // a band of sea along the open-water (left) side of the shed platform; the top side is the island backdrop, so no mud there
-  if (MUDT) return MUDT; MUDT = [];
-  for (let r = 2; r <= 9; r++) for (let c = -2; c <= 0; c++) { if ( (inMap(r, c) && (solid(r, c) || farm(r, c))) || underHouse(r, c) || (r === BOAT.r && c === BOAT.c)) continue; MUDT.push([r, c]); }
-  return MUDT;
-}
-const hash2 = (r, c, n = 1) => { const v = Math.sin(r * 12.9898 + c * 78.233 + n * 37.719) * 43758.5453; return v - Math.floor(v); };
-const MUDKINDS = ['clam', 'clam', 'seastar', 'mudskipper', 'fiddler'];
-function stepTide() {
-  const k = lowAmt();
-  if (k > 0.6 && !ECO.low) { ECO.low = 1; const tl = mudTiles().filter(([r, c]) => hash2(r, c, 3) > 0.25); for (let i = 0; i < 6 && tl.length; i++) { const [r, c] = tl.splice(Math.floor(Math.random() * tl.length), 1)[0]; ECO.mud.push({ r, c, k: MUDKINDS[Math.floor(Math.random() * MUDKINDS.length)], dx: rnd(-10, 10), dy: rnd(-4, 4), seen: false, ph: rnd(0, 6) }); } }
-  if (k === 0 && ECO.low) { ECO.low = 0; ECO.mud = []; }
-}
-function drawMud(t) {
-  const k = lowAmt(); if (!k) return; g.globalAlpha = k;
-  for (const [r, c] of mudTiles()) { const [x, y] = tilePos(r, c); if (x < -40 || x > W + 40 || y < -30 || y > H + 30) continue; g.fillStyle = hash2(r, c) > 0.5 ? '#8a7558' : '#86704f'; diamond(x, y, TW + 1, TH + 1); g.fill();
-    if (hash2(r, c, 2) < 0.45) ell(x + (hash2(r, c, 4) - 0.5) * 30, y + (hash2(r, c, 5) - 0.5) * 10, 7, 2.2, '#9fb8c0aa');
-    if (hash2(r, c, 6) < 0.3) sprite('eco-seagrass', x + (hash2(r, c, 7) - 0.5) * 24, y + 4, { alpha: k }); }
-  for (const m of ECO.mud) { const [x, y] = tilePos(m.r, m.c), hop = m.k === 'mudskipper' ? -Math.max(0, Math.sin(t * 2 + m.ph) * 5 - 3) : 0; ell(x + m.dx, y + m.dy + 2, 6, 2, '#00000033'); sprite(`eco-${m.k}`, x + m.dx, y + m.dy + 3 + hop, { alpha: k, flip: hash2(m.r, m.c, 9) > 0.5 }); if (!m.seen && Math.sin(t * 3 + m.ph) > 0.7) { g.globalAlpha = k * 0.6; ell(x + m.dx, y + m.dy - 12, 1.5, 1.5, '#fff'); } g.globalAlpha = k; }
-  g.globalAlpha = 1;
-}
-const MUD_SAYS = { seastar: 'a knobbly sea star: look, but leave it where it is', mudskipper: 'a mudskipper! a fish that walks on mud', fiddler: 'a fiddler crab waving its big claw' };
-function tapMud(sx, sy) {
-  if (lowAmt() < 0.5) return false; const tl = tileAt(sx, sy), onMud = tl && mudTiles().some(([r, c]) => r === tl.r && c === tl.c); const m = ECO.mud.find(q => { const [x, y] = tilePos(q.r, q.c); return Math.hypot(sx - x - q.dx, sy - y - q.dy + 4) < 12; }); if (!m) return onMud; // bare mud: nothing to walk to const [x, y] = tilePos(m.r, m.c);
-  if (m.k === 'clam') { ECO.mud.splice(ECO.mud.indexOf(m), 1); S.cash += 5; collect('clam'); gainXp(2); float('dug up a big clam +S$5 · the small ones stay to grow', x, y - 20, C.gold2, 7); SFX.coin(); return true; }
-  if (!m.seen) { m.seen = true; S.eco.shore++; gainXp(3); } collect(m.k); float(MUD_SAYS[m.k], x, y - 20, C.sand, 7); SFX.pop(); return true;
-}
+const tideText = () => tideNow() > 0.4 ? 'High tide: the fish come closer.' : tideNow() < -0.4 ? 'Low tide: a good time for a walk at Chek Jawa (story panel).' : `The tide is ${Math.cos(S.t * Math.PI * 2 / TIDE + 1) > 0 ? 'coming in' : 'going out'}.`;
 let litterWait = rnd(30, 60), netWait = rnd(200, 420), hatchWait = rnd(150, 400);
 const LITTER_SAYS = ['most sea litter starts on land, washed down drains and rivers', "plastic doesn't rot: it breaks into tiny bits called microplastics", 'turtles mistake floating plastic bags for jellyfish', 'one less bottle in the strait'];
 function stepEco(dt) {
@@ -746,7 +818,7 @@ function stepEco(dt) {
   if ((netWait -= dt) <= 0) { netWait = rnd(360, 720); if (!ECO.nets.length && S.level >= 3 && !STORM.on) { const w = waterNear(); if (w) { ECO.nets.push({ x: w.x, y: w.y + 12, k: Math.random() < 0.6 ? 'turtle' : 'hcrab', t: 0 }); float('A ghost net drifted in with an animal caught in it! Tap it to cut it free', W / 2, 60, C.pink, 8, true); SFX.splash(); } } }
   for (const n of [...ECO.nets]) { n.t += dt; if (n.busy && Date.now() - n.busy > 30e3) n.busy = 0; // never got there: tap again
     if (n.t > 200 && !n.busy) { ECO.nets.splice(ECO.nets.indexOf(n), 1); seaBump(-6); float('the ghost net drifted off… it will keep trapping animals', W / 2, 60, C.pink, 8, true); } }
-  stepHatch(dt); stepTide();
+  stepHatch(dt);
 }
 function edgeToward(r, c, who) { // the deck edge closest to a spot out on the water that this person can walk to
   const r0 = Math.round(who.r), c0 = Math.round(who.c); let best = null, bd = 1e9;
@@ -783,6 +855,7 @@ function drawEcoUI() { // the hatchling call to action
   hit(x, y, w, 14, () => { h.off = true; SFX.tok(); float('lights off… shh', W / 2, 74, C.sand, 8, true); });
 }
 function drawEcoThing(e, t) {
+  if (e.kind === 'lash') { drawLash(e.o); return true; }
   if (e.kind === 'litter') { const l = e.l, [x, y] = scr(l.x, l.y), bob = Math.sin(t * 2 + l.ph) * 1.2; g.globalAlpha = 0.35; ell(x, y + 2, 9, 2.5, '#e8f4ff'); g.globalAlpha = 1; sprite(`litter-${l.k}`, x, y + 3 + bob, { flip: l.vx < 0 }); return true; }
   if (e.kind === 'gnet') { const n = e.n, [x, y] = scr(n.x, n.y), bob = Math.sin(t * 1.5) * 1.5; g.globalAlpha = 0.35; ell(x, y + 2, 20, 5, '#e8f4ff'); g.globalAlpha = 1; sprite(`net-${n.k}`, x, y + 6 + bob);
     if (!n.busy) { const b = Math.abs(Math.sin(t * 4)) * 3; g.fillStyle = C.pink; g.beginPath(); g.arc(x, y - 30 - b, 5, 0, 7); g.fill(); text('!', x, y - 27 - b, '#fff', 8, 'center'); } return true; }
@@ -1315,7 +1388,7 @@ const harvested = () => Object.values(S.stats.harvest || {}).reduce((a, b) => a 
 const CHAPTERS = [
   { name: 'A kelong of our own', blurb: 'Get the farm going: oysters in the water, a fish cage, a first good harvest.', cash: 300, xp: 100, goals: [{ t: 'Reach level 3', ok: () => S.level >= 3, p: () => `${Math.min(S.level, 3)}/3` }, { t: 'Build a fish cage', ok: () => has('fishcage') }, { t: 'Harvest 20 oysters', ok: () => harvested() >= 20, p: () => `${Math.min(harvested(), 20)}/20` }] },
   { name: 'Clean water', blurb: 'The strait looks after us. Time to look after it.', cash: 1000, xp: 300, goals: [{ t: 'Pick up 10 bits of litter', ok: () => S.eco.litter >= 10, p: () => `${Math.min(S.eco.litter, 10)}/10` }, { t: 'Free an animal from a ghost net', ok: () => S.eco.nets >= 1 }, { t: 'Sea health 60 or more', ok: () => S.sea >= 60, p: () => `${Math.round(S.sea)}` }] },
-  { name: 'Friends of the shore', blurb: 'Get to know who else lives here, and give the young ones a chance.', cash: 2000, xp: 500, goals: [{ t: 'Find 3 creatures at low tide', ok: () => S.eco.shore >= 3, p: () => `${Math.min(S.eco.shore, 3)}/3` }, { t: 'Let 2 small catches go', ok: () => S.eco.release >= 2, p: () => `${Math.min(S.eco.release, 2)}/2` }, { t: 'Learn 8 fact cards', ok: () => learned() >= 8, p: () => `${Math.min(learned(), 8)}/8` }] },
+  { name: 'Friends of the shore', blurb: 'Take the bumboat to Chek Jawa, meet who lives on the shore, and give the young fish a chance.', cash: 2000, xp: 500, goals: [{ t: 'Find 3 shore creatures at Chek Jawa', ok: () => S.eco.shore >= 3, p: () => `${Math.min(S.eco.shore, 3)}/3` }, { t: 'Let 2 small catches go', ok: () => S.eco.release >= 2, p: () => `${Math.min(S.eco.release, 2)}/2` }, { t: 'Learn 8 fact cards', ok: () => learned() >= 8, p: () => `${Math.min(learned(), 8)}/8` }] },
   { name: 'Night of the hatchlings', blurb: 'Baby turtles need dark nights and healthy shores.', cash: 4000, xp: 800, goals: [{ t: 'Guide a hatchling night', ok: () => S.eco.hatch >= 1 }, { t: 'Visit Chek Jawa', ok: () => S.eco.trips >= 1 }, { t: 'Plant 3 seagrass shoots at Chek Jawa', ok: () => S.eco.planted >= 3, p: () => `${Math.min(S.eco.planted, 3)}/3` }] },
   { name: 'Seagrass for the dugongs', blurb: 'Bring the meadows back, and maybe the dugongs too.', cash: 8000, xp: 1500, goals: [{ t: 'Fund the seagrass replanting', ok: () => up('p-seagrass') }, { t: 'Sea health 80 or more', ok: () => S.sea >= 80, p: () => `${Math.round(S.sea)}` }, { t: 'Spot a dugong', ok: () => !!S.album.dugong }] },
   { name: 'Guardians of the strait', blurb: 'Know it, protect it, teach it.', cash: 20000, xp: 3000, goals: [{ t: 'Learn every fact card', ok: () => learned() >= Object.keys(FACTS).length, p: () => `${learned()}/${Object.keys(FACTS).length}` }, { t: 'Score 8 or more in the quiz', ok: () => (S.quizBest || 0) >= 8, p: () => `best ${S.quizBest || 0}/10` }, { t: 'Fund turtle-friendly lights', ok: () => up('p-darksky') }] },
@@ -1341,7 +1414,7 @@ function drawStory() {
     ch.goals.forEach((q, i) => { const y = y0 + 70 + i * 16, ok = q.ok(); g.fillStyle = ok ? '#2a5a3a' : '#1a2a40'; g.fillRect(x0 + 10, y - 9, 290, 13); text(`${ok ? '✓' : '○'}  ${q.t}`, x0 + 14, y, ok ? '#9ee6a8' : C.sand, 7); if (q.p && !ok) text(q.p(), x0 + 296, y, C.grey, 7, 'right'); });
     text(`Reward: S$${ch.cash} · ${ch.xp} XP`, x0 + 10, y0 + 128, C.gold2, 7); }
   else { text('Guardian of the strait', x0 + 10, y0 + 30, C.gold, 11); wrap('Every chapter done. The strait is in good hands: keep it that way, and pass it on.', 280).forEach((l, i) => text(l, x0 + 10, y0 + 46 + i * 9, C.sand, 7)); }
-  const e = S.eco; [`litter picked up ${e.litter}`, `ghost nets cleared ${e.nets}`, `hatchling nights ${e.hatch}`, `small fish let go ${e.release}`, `low-tide finds ${e.shore}`, `seagrass planted ${e.planted} · Chek Jawa trips ${e.trips}`].forEach((l, i) => text(l, x0 + 10, y0 + 148 + i * 10, '#9ad0e0', 7));
+  const e = S.eco; [`litter picked up ${e.litter}`, `ghost nets cleared ${e.nets}`, `hatchling nights ${e.hatch}`, `small fish let go ${e.release}`, `shore finds at Chek Jawa ${e.shore}`, `seagrass planted ${e.planted} · Chek Jawa trips ${e.trips}`].forEach((l, i) => text(l, x0 + 10, y0 + 148 + i * 10, '#9ad0e0', 7));
   text('Projects', x0 + 316, y0 + 30, C.gold, 9);
   PROJECTS.forEach((q, i) => { const x = x0 + 316, y = y0 + 38 + i * 40, done = up(q.id), locked = S.level < q.lvl; g.fillStyle = done ? '#1f3a2a' : '#1a2a40'; g.fillRect(x, y, 276, 36); text(q.name, x + 6, y + 11, done ? '#9ee6a8' : locked ? C.grey : C.sand, 8);
     text(done ? 'funded ✓' : locked ? `level ${q.lvl}` : `S$${q.cost}`, x + 270, y + 11, done ? '#9ee6a8' : locked ? C.grey : S.cash >= q.cost ? C.gold2 : C.pink, 7, 'right'); wrap(q.desc, 262).slice(0, 2).forEach((l, j) => text(l, x + 6, y + 21 + j * 8, C.grey, 7));
@@ -1352,7 +1425,7 @@ function drawStory() {
 }
 async function copyReport() {
   const e = S.eco, ch = CHAPTERS[S.chapter || 0], names = Object.keys(FACTS).filter(k => S.learned && S.learned[k]).map(k => FACTS[k].name);
-  const txt = [`Indigo Tides learning report (${new Date().toLocaleDateString()})`, `Level ${S.level} · sea health ${Math.round(S.sea)} (${seaLabel(S.sea)}) · ${ch ? `chapter ${(S.chapter || 0) + 1}: ${ch.name}` : 'all chapters done'}`, `Fact cards learned: ${names.length}/${Object.keys(FACTS).length}${names.length ? ' (' + names.join(', ') + ')' : ''}`, `Quiz best: ${S.quizBest || 0}/10`, `Conservation: ${e.litter} litter picked up, ${e.nets} ghost nets cleared, ${e.hatch} hatchling nights, ${e.release} small fish released, ${e.shore} low-tide finds, ${e.planted} seagrass shoots planted, ${e.trips} Chek Jawa trips`].join('\n');
+  const txt = [`Indigo Tides learning report (${new Date().toLocaleDateString()})`, `Level ${S.level} · sea health ${Math.round(S.sea)} (${seaLabel(S.sea)}) · ${ch ? `chapter ${(S.chapter || 0) + 1}: ${ch.name}` : 'all chapters done'}`, `Fact cards learned: ${names.length}/${Object.keys(FACTS).length}${names.length ? ' (' + names.join(', ') + ')' : ''}`, `Quiz best: ${S.quizBest || 0}/10`, `Conservation: ${e.litter} litter picked up, ${e.nets} ghost nets cleared, ${e.hatch} hatchling nights, ${e.release} small fish released, ${e.shore} shore finds at Chek Jawa, ${e.planted} seagrass shoots planted, ${e.trips} Chek Jawa trips`].join('\n');
   try { await navigator.clipboard.writeText(txt); float('learning report copied: paste it to your teacher', W / 2, 300, C.gold, 8, true); SFX.coin(); } catch { prompt('Copy your learning report:', txt); }
 }
 // ---- quiz: ten questions from the fact cards (name the animal from its picture, or how it's doing in the wild) ----
@@ -1394,7 +1467,7 @@ function drawScene() {
   const Z = SCENE, t = S.t; g.fillStyle = '#4a7a9a'; g.fillRect(0, 0, W, H); if (CJ.complete && CJ.naturalWidth) { g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(CJ, 0, 0, W, Math.round(W * CJ.height / CJ.width)); g.restore(); }
   const thing = (name, [x, y], sc, fn, flip = false, hop = 0) => { ell(x, y + 1, 8 * sc, 2.5 * sc, '#00000033'); sprite(name, x, y + 2 + hop, { scale: sc, flip }); hit(x - 12 * sc, y - 14 * sc, 24 * sc, 18 * sc, fn); };
   for (const p of Z.plant) { const [x, y] = p.at; if (p.done) sprite('eco-seagrass', x, y + 2, { scale: 1.6 }); else { g.strokeStyle = '#f6d48a'; g.setLineDash([2, 2]); g.beginPath(); g.ellipse(x, y, 11, 4, 0, 0, 7); g.stroke(); g.setLineDash([]); text('plant', x, y - 6, C.gold2, 7, 'center'); }
-    if (!p.done) hit(x - 14, y - 12, 28, 18, () => { p.done = true; S.eco.planted++; seaBump(2); gainXp(5); sfloat('seagrass shoot planted · +2 sea health', x, y - 22, '#9ee6a8', 7); SFX.tok(); save(); }); }
+    if (!p.done) hit(x - 14, y - 12, 28, 18, () => { p.done = true; S.eco.planted++; collect('seagrass'); seaBump(2); gainXp(5); sfloat('seagrass shoot planted · +2 sea health', x, y - 22, '#9ee6a8', 7); SFX.tok(); save(); }); }
   for (const l of [...Z.litter]) thing(`litter-${l.k}`, l.at, 1.4, () => { Z.litter.splice(Z.litter.indexOf(l), 1); S.eco.litter++; seaBump(1); sfloat('litter picked up · +1 sea health', l.at[0], l.at[1] - 18, '#9ee6a8', 7); SFX.pop(); });
   for (const o of Z.things) { const sp = o.k === 'hcrab' ? 'hcrab-a' : o.k === 'otter' ? 'otter-stand' : `eco-${o.k}`, hop = o.k === 'mudskipper' ? -Math.max(0, Math.sin(t * 2 + o.at[0]) * 6 - 4) : 0;
     thing(sp, o.at, 1.5, () => { const [x, y] = o.at; if (!o.seen) { o.seen = true; S.eco.shore++; gainXp(3); } collect(o.k); sfloat(CJ_SAYS[o.k], x, y - 24, C.sand, 7); SFX.pop(); }, o.at[0] > 320, hop);
@@ -1486,28 +1559,54 @@ function drawGuest(v, x, y, t) {
 // the inter-monsoons between with afternoon thunderstorms
 const SEASON = (() => { const m = new Date().getMonth(); return m === 11 || m <= 2 ? { name: 'Northeast monsoon', note: 'wet and windy: storms come more often', storm: 0.6, tour: 1.1 } : m >= 5 && m <= 8 ? { name: 'Southwest monsoon', note: 'drier, calmer seas: more visitors', storm: 1.3, tour: 0.75 } : { name: 'Inter-monsoon', note: 'hot, with afternoon thunderstorms', storm: 0.8, tour: 1 }; })();
 const STORM = { on: false, wait: rnd(900, 1800) * SEASON.storm, t: 0, secured: false, flash: 0, warned: false };
+const stormAmt = () => STORM.on ? Math.min(1, STORM.t / 3, (45 - STORM.t) / 3) : STORM.warned ? clamp(1 - STORM.wait / 120, 0, 1) * 0.85 : 0;
 const secureCost = () => 20 + 10 * S.objs.filter(o => item(o.id).pen).length;
 function stepStorm(dt) {
   const st = STORM; st.flash = Math.max(0, st.flash - dt * 2.5);
-  if (st.on) { st.t += dt; if (Math.random() < dt / 6) { st.flash = 1; SFX.thunder(); } if (Math.random() < dt * 8) A.ripples.push({ x: cam.x + rnd(-W / 2, W / 2), y: cam.y + rnd(-H / 2, H / 2), r: 1, life: 0.6 });
-    if (st.t > 45) { st.on = false; st.wait = rnd(900, 1800) * SEASON.storm; st.t = 0; float(st.secured ? 'the storm passed. all tied down, no harm done' : 'the storm passed', W / 2, 60, C.sand, 9, true); st.secured = false; for (const a of [F, ...WK]) if (a.working === 'shelter') { a.queue = []; a.working = false; } } return; }
+  if (st.on) { st.t += dt; if (Math.random() < dt / 6) { st.flash = 1; SFX.thunder(); } if (Math.random() < dt / 2) hush(1.8, 0.07, 1200); if (Math.random() < dt * 8) A.ripples.push({ x: cam.x + rnd(-W / 2, W / 2), y: cam.y + rnd(-H / 2, H / 2), r: 1, life: 0.6 });
+    if (st.t > 45) { st.on = false; st.wait = rnd(900, 1800) * SEASON.storm; st.t = 0; float(st.secured ? 'the storm passed. all tied down, no harm done' : 'the storm passed', W / 2, 60, C.sand, 9, true); st.secured = false; st.jobs = 0; st.done = 0; for (const o of S.objs) delete o.lashed; for (const a of [F, ...WK]) if (a.working === 'shelter') { a.queue = []; a.working = false; } } return; }
   if (S.level < 3) return; st.wait -= dt;
-  if (st.wait <= 120 && !st.warned) { st.warned = true; float('A storm is coming! Tap the banner to secure the farm.', W / 2, 60, C.pink, 9, true); SFX.nope(); }
+  if (st.jobs && st.done < st.jobs && ![F, ...WK].some(a => a.queue.some(q => q.kind === 'lash'))) { const skip = st.jobs - st.done; st.secured = true; st.jobs = 0; float(`Tied down everything they could reach (${skip} out of reach). Farm secured.`, W / 2, 60, C.gold, 9, true); SFX.stamp(); }
+  const b = stormAmt(); if (b > 0.15 && Math.random() < dt / 2.5) hush(1.6, 0.02 + 0.05 * b, 900); if (b > 0.3 && Math.random() < dt * 4 * b) A.particles.push({ x: -8, y: rnd(30, H - 30), vx: rnd(150, 240), vy: rnd(-14, 14), gr: 0, life: 4, color: ['#5a8a3a', '#7aa04a', '#a8884f'][Math.floor(Math.random() * 3)] }); // gusts, and leaves blowing across
+  if (st.wait <= 120 && !st.warned) { st.warned = true; for (const a of [F, ...WK]) for (const q of a.queue) if (q.kind === 'swim' || q.kind === 'kayak') q.act = Math.min(q.act, 4.4); float('A storm is coming! Tap the banner to secure the farm.', W / 2, 92, C.pink, 9, true); SFX.nope(); }
   if (st.wait <= 0) startStorm();
 }
 function startStorm() {
   const st = STORM; st.on = true; st.t = 0; st.warned = false; st.flash = 1; SFX.thunder(); SEA = null; if (TOUR && TOUR.phase !== 'leave') { TOUR.phase = 'leave'; TOUR.t = 0; }
   const spots = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (walkable(r, c) && !hutTile(r, c) && [[1, 0], [0, 1], [-1, 0], [0, -1]].some(([a, b]) => shedTile(r + a, c + b))) spots.push([r, c]);
   [F, ...WK].forEach((a, i) => { a.queue = []; a.working = false; a.swim = null; const sp = spots[i % Math.max(1, spots.length)]; if (sp) a.queue.push({ tr: sp[0], tc: sp[1], face: [sp[0] - 1, sp[1]], act: 50, kind: 'shelter', idle: true, fn: () => {} }); });
-  const breaks = st.secured ? 1 : 3; for (let i = 0; i < breaks && S.broken.length < MAX_BROKEN + 2; i++) { const cand = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if ((land(r, c) || lane(r, c)) && !hutTile(r, c) && !objAt(r, c) && !isBroken(r, c)) cand.push([r, c]); if (cand.length) S.broken.push(cand[Math.floor(Math.random() * cand.length)]); }
-  if (!st.secured) { const now = Date.now(); for (const o of S.objs) if (item(o.id).pen && o.fed && now - o.fed < penSpec(o).time * 1000) o.fed = Math.min(now, o.fed + penSpec(o).time * 250);
-    for (const row of S.plots) for (const pl of row) if (pl && growth(pl) < 1) pl.at = Math.min(now, pl.at + species(pl.sp).time * 250);
+  const frac = st.secured ? 1 : st.jobs ? st.done / st.jobs : 0; if (st.jobs && !st.secured && st.done) float(`only ${st.done} of ${st.jobs} things tied down in time`, W / 2, 88, C.pink, 8, true); st.jobs = 0;
+  const breaks = Math.round(3 - 2 * frac); for (let i = 0; i < breaks && S.broken.length < MAX_BROKEN + 2; i++) { const cand = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if ((land(r, c) || lane(r, c)) && !hutTile(r, c) && !objAt(r, c) && !isBroken(r, c)) cand.push([r, c]); if (cand.length) S.broken.push(cand[Math.floor(Math.random() * cand.length)]); }
+  if (frac < 1) { const now = Date.now(), k = 250 * (1 - frac); for (const o of S.objs) if (item(o.id).pen && o.fed && now - o.fed < penSpec(o).time * 1000 && !o.lashed) o.fed = Math.min(now, o.fed + penSpec(o).time * k);
+    for (const row of S.plots) for (const pl of row) if (pl && growth(pl) < 1) pl.at = Math.min(now, pl.at + species(pl.sp).time * k);
     float('the storm set back everything growing', W / 2, 74, C.pink, 8, true); }
   save();
 }
-function secureFarm() { const c = secureCost(); if (STORM.secured) return; if (S.cash < c) { SFX.nope(); return float('Not enough $', W / 2, 60, C.pink, 9, true); } S.cash -= c; STORM.secured = true; SFX.stamp(); float('ropes doubled, pens lashed down', W / 2, 60, C.gold, 9, true); }
+const BLOWS = ['kayak', 'hammock', 'chair', 'stall', 'flag', 'rack', 'sofa', 'redlanterns', 'bench', 'mahjong']; // loose things the wind could take
+function secureFarm() {
+  const c = secureCost(), st = STORM; if (st.secured || st.jobs) return; if (S.cash < c) { SFX.nope(); return float('Not enough $', W / 2, 60, C.pink, 9, true); } S.cash -= c;
+  const targets = [...S.objs.filter(o => item(o.id).pen && !item(o.id).pen.win), ...S.objs.filter(o => BLOWS.includes(o.id)).slice(0, 4)], crew = [F, ...WK];
+  if (!targets.length) { st.secured = true; SFX.stamp(); return float('ropes doubled: all set', W / 2, 60, C.gold, 9, true); }
+  st.jobs = targets.length; st.done = 0;
+  targets.forEach((o, i) => { const who = crew[i % crew.length], [pr, pc] = item(o.id).pen ? [o.r + 0.5, o.c + 0.5] : [o.r, o.c];
+    goBeside(Math.round(pr), Math.round(pc), () => { if (!st.jobs) return; o.lashed = true; st.done++; const [x, y] = tilePos(pr, pc); pop(x, y - 8, '#d9b48a', 6); float(item(o.id).pen ? 'pen lashed down' : `${item(o.id).name.toLowerCase()} tied down`, x, y - 30, C.sand, 7);
+      if (st.done >= st.jobs) { st.secured = true; st.jobs = 0; float('All tied down! Ropes doubled, pens lashed, nothing loose.', W / 2, 60, C.gold, 9, true); SFX.stamp(); } }, who, 'lash'); });
+  for (const a of crew) { const [x, y] = head(a); float(['on it!', 'grab the ropes!', 'sandbags!'][Math.floor(Math.random() * 3)], x, y, C.sand, 7); }
+  float('Everyone out: tie everything down before it hits!', W / 2, 60, C.gold2, 9, true); SFX.stamp();
+}
+function drawLash(o) { // ropes over it and sandbags round it
+  const pen = item(o.id).pen, [x, y] = pen ? tilePos(o.r + 0.5, o.c + 0.5) : tilePos(o.r, o.c), w = pen ? 52 : 14, h = pen ? 26 : 7;
+  g.strokeStyle = '#d9b48a'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - w, y); g.lineTo(x + w, y); g.moveTo(x, y - h); g.lineTo(x, y + h); g.stroke(); g.strokeStyle = '#8a6a3a'; g.beginPath(); g.moveTo(x - w * 0.7, y - h * 0.7); g.lineTo(x + w * 0.7, y + h * 0.7); g.stroke();
+  for (const [dx, dy] of pen ? [[-w, 0], [w, 0], [0, -h], [0, h]] : [[-w, 0], [w, 0]]) { ell(x + dx, y + dy + 1, 4, 2, '#00000044'); ell(x + dx, y + dy - 1, 4, 2.6, '#b89a6a'); ell(x + dx - 1, y + dy - 2, 2, 1, '#d8c49a'); }
+}
+
 function drawStorm(t) {
-  const st = STORM; if (!st.on) return; const ramp = Math.min(1, st.t / 3, (45 - st.t) / 3);
+  const st = STORM, b = stormAmt(); if (b > 0) {
+    g.fillStyle = '#141c28'; g.globalAlpha = 0.42 * b; g.fillRect(0, 0, W, H);
+    const cl = g.createLinearGradient(0, 0, 0, 140); cl.addColorStop(0, '#0e141c'); cl.addColorStop(1, 'transparent'); g.fillStyle = cl; g.globalAlpha = 0.75 * b; g.fillRect(0, 0, W, 140);
+    g.globalAlpha = 0.42 * b; g.strokeStyle = '#e8f0f8'; g.lineWidth = 1; g.beginPath(); const n = Math.round(64 * b);
+    for (let i = 0; i < n; i++) { const sp = 260 + (i % 4) * 70, x = (i * 97 + t * sp) % (W + 120) - 60, y = (i * 53.7) % H, l = 14 + (i % 5) * 6; g.moveTo(x, y); g.lineTo(x + l, y + l * 0.08); } g.stroke(); g.globalAlpha = 1; }
+  if (!st.on) return; const ramp = Math.min(1, st.t / 3, (45 - st.t) / 3);
   g.fillStyle = '#16202e'; g.globalAlpha = 0.38 * ramp; g.fillRect(0, 0, W, H); g.globalAlpha = 0.5 * ramp; g.strokeStyle = '#c8d8e8'; g.lineWidth = 1; g.beginPath();
   for (let i = 0; i < 160; i++) { const x = (i * 53 + t * 220) % (W + 40) - 20, y = (i * 97 + t * 520) % (H + 20) - 10; g.moveTo(x, y); g.lineTo(x - 3, y + 9); } g.stroke();
   g.globalAlpha = st.flash * 0.45; g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
@@ -1668,6 +1767,11 @@ Object.assign(SFX, {
   mew:    () => bell(N(86), 0.2, 0.035, 0, 0.82),                                                   // mew
   chirp:  () => { bell(N(88), 0.05, 0.035, 0, 1.15); bell(N(91), 0.05, 0.035, 0.07, 1.15); bell(N(88), 0.05, 0.03, 0.14, 1.1); }, // otter chirps                                                   // mew
 });
+function toggleFull() { // fullscreen, and on phones that allow it, lock to landscape
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {})).catch(() => {});
+  SFX.tok();
+}
 function toggleMute() { muted = !muted; try { localStorage.setItem('indigo-tides-muted', muted ? '1' : '0'); } catch {} if (muted && AC) AC.suspend(); else if (AC) AC.resume(); else audio(); }
 
 // ---- water, MapleStory-style: flat saturated blue, a few soft lighter patches, sparse thin white ripple lines
@@ -1681,7 +1785,12 @@ const CAUSTIC = (() => { const N = 12, w = 128, h = 64, TAU = Math.PI * 2, out =
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const a = Math.abs(Math.sin(TAU * 2 * x / w + 1.5 * Math.sin(TAU * y / h + t) + 0.7 * Math.sin(TAU * 3 * y / h - 2 * t) + t)), b = Math.abs(Math.sin(TAU * 2 * y / h + 1.5 * Math.sin(TAU * x / w - t) + 0.7 * Math.sin(TAU * 3 * x / w + 2 * t) + 2 * t)), m = Math.min(a, b), i = (y * w + x) * 4; id.data[i] = id.data[i + 1] = id.data[i + 2] = 255; id.data[i + 3] = m < 0.06 ? 100 : m < 0.14 ? 40 : 0; }
     sg.putImageData(id, 0, 0); const big = document.createElement('canvas'); big.width = w * 2; big.height = h * 2; const bg = big.getContext('2d'); bg.imageSmoothingEnabled = false; bg.drawImage(sm, 0, 0, w * 2, h * 2); out.push(big); }
   return out; })();
-function drawWater(t, D) { drawWaterBase(t, D); drawMud(t); }
+function drawWater(t, D) { drawWaterBase(t, D); drawWhitecaps(t); }
+function drawWhitecaps(t) { // choppy water as the wind gets up
+  const b = stormAmt(); if (!b) return; g.strokeStyle = '#eef6ff'; g.lineWidth = 1;
+  for (let i = 0; i < 70 * b; i++) { const x = ((i * 137.5 + t * (30 + (i % 3) * 14)) % (W + 80)) - 40, y = 30 + ((i * 71.3) % (H - 30)), a = Math.sin(t * 2.4 + i * 1.7); if (a < 0.2) continue; g.globalAlpha = a * 0.55 * b; g.beginPath(); g.moveTo(x - 5, y + 1); g.quadraticCurveTo(x, y - 2, x + 5, y + 1); g.stroke(); }
+  g.globalAlpha = 1;
+}
 function drawWaterBase(t, D) {
   g.fillStyle = D.sea; g.fillRect(0, 0, W, H);
   // soft lighter patches, breathing slowly
@@ -2029,6 +2138,7 @@ function drawWorld(t, D) {
   if (OTTERS) { if (OTTERS.swim) { const [r, c] = rcOf(OTTERS.x, OTTERS.y); ents0.push({ kind: 'otterswim', r, c }); } else OTTERS.pack.forEach((o, i) => ents0.push({ kind: 'otter', o, i, r: o.r, c: o.c })); }
   if (HCRAB && HCRAB.phase === 'pen') ents0.push({ kind: 'hcrab', r: HCRAB.r, c: HCRAB.c });
   for (const l of ECO.litter) { const [r, c] = rcOf(l.x, l.y); ents0.push({ kind: 'litter', l, r, c }); } for (const n of ECO.nets) { const [r, c] = rcOf(n.x, n.y); ents0.push({ kind: 'gnet', n, r, c }); } if (ECO.hatch) for (const p of ECO.hatch.pts) if (!p.sea) { const [r, c] = rcOf(p.x, p.y); ents0.push({ kind: 'hatch', p, r, c }); }
+  for (const o of S.objs) if (o.lashed) ents0.push({ kind: 'lash', o, r: o.r + (item(o.id).pen ? 1.6 : 0.06), c: o.c + (item(o.id).pen ? 1.6 : 0) }); // ropes drawn over what they tie down
   if (DINNER) { ents0.push({ kind: 'grill', r: DINNER.r, c: DINNER.c }); if (DINNER.table) ents0.push({ kind: 'dtable', r: DINNER.table[0], c: DINNER.table[1] }); DINNER.stools.forEach(([r, c], i) => ents0.push({ kind: 'stool', i, r: r - 0.01, c })); } if (CAT) ents0.push({ kind: 'cat', r: CAT.r + 0.03, c: CAT.c }); for (const n of NUTS) ents0.push({ kind: 'nut', n, r: n.r, c: n.c });
   const ents = [...ents0, ...(S.sale ? [{ kind: 'buyer', r: DOCK.r, c: DOCK.c }] : []), ...(DOG ? [{ kind: 'dog', r: DOG.r + 0.03, c: DOG.c }] : []), { kind: 'hut', r: HUT.r, c: up('bigshed') ? 3 : HUT.c }, { kind: 'tank', r: TANK.r, c: TANK.c }, { kind: 'farmer', ...actorRC(F) }, ...WK.map(w => ({ kind: 'worker', w, ...actorRC(w) })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => { const k = item(o.id).on === 'pen' ? 0.5 : 0; return { kind: 'obj', o, r: o.r + k, c: o.c + k }; })];
   for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (S.plots[r][c]) ents.push({ kind: 'plot', p: S.plots[r][c], r, c });
@@ -2137,7 +2247,7 @@ function drawHutPanel() {
     wrap(k.desc, w - 12 - (tx - x) - 4).forEach((l, j) => text(l, tx, cy + 35 + j * 9, C.grey, 7));
     hit(x, cy, w - 12, h, k.fn);
   }));
-  const by = y0 + 3 * h + 72; [['Copy save code', copySave], ['Load save code', loadSave]].forEach(([label, fn], i) => { const bx = W / 2 - 128 + i * 132; g.fillStyle = '#2b3a50'; g.fillRect(bx, by, 124, 14); text(label, bx + 62, by + 10, C.sand, 7, 'center'); hit(bx, by, 124, 14, fn); });
+  const by = y0 + 3 * h + 72; [[CLOUD.user ? 'Account: signed in' : 'Sign in to save online', openAccount], ['Copy save code', copySave], ['Load save code', loadSave]].forEach(([label, fn], i) => { const bx = W / 2 - 189 + i * 128; g.fillStyle = i === 0 ? '#1f3a2a' : '#2b3a50'; g.fillRect(bx, by, 122, 14); text(label, bx + 61, by + 10, i === 0 ? '#9ee6a8' : C.sand, 7, 'center'); hit(bx, by, 122, 14, fn); });
   text('move your farm to another device', W / 2, by + 26, C.grey, 7, 'center');
 }
 function drawTankPanel() {
@@ -2163,9 +2273,8 @@ const hint = () => ['Tap an empty tile in a net pen to plant oysters', 'When an 
 function drawBanners() { // stacked under the top bar: the storm, then the hint
   let y = 22; const pill = (s, col, fn) => { g.font = '7px monospace'; const w = g.measureText(s).width + 16; g.fillStyle = '#0c0c0ed9'; g.fillRect(Math.round(W / 2 - w / 2), y, Math.round(w), 13); text(s, W / 2, y + 10, col, 7, 'center'); if (fn) hit(W / 2 - w / 2, y, w, 13, fn); y += 15; };
   if (STORM.on) pill(`Storm! ${fmt(45 - STORM.t)}${STORM.secured ? ' · farm secured' : ''}`, C.pink);
-  else if (STORM.warned) pill(`Storm in ${fmt(STORM.wait)} · ${STORM.secured ? 'farm secured ✓' : `tap here to secure the farm (S$${secureCost()})`}`, STORM.secured ? C.gold2 : C.pink, STORM.secured ? null : secureFarm);
+  else if (STORM.warned) pill(`Storm in ${fmt(STORM.wait)} · ${STORM.secured ? 'farm secured ✓' : STORM.jobs ? `tying down… ${STORM.done}/${STORM.jobs}` : `tap here to secure the farm (S$${secureCost()})`}`, STORM.secured ? C.gold2 : STORM.jobs ? C.sand : C.pink, STORM.secured || STORM.jobs ? null : secureFarm);
   if (S.step < 6 && !S.panel && hint()) pill(hint(), C.sand);
-  else if (lowAmt() > 0.5 && !S.panel) pill('Low tide: the mudflats are out by the shed. Tap what you find!', '#d8c49a');
   if (FEST && !S.panel) { g.fillStyle = '#0c0c0ed9'; g.fillRect(6, 21, 150, 12); text(`${FESTS[FEST].name} · +10% sales`, 12, 30, C.pink, 7); }
 }
 function drawQuests() { // the board: orders on top, today's quests under them
@@ -2190,9 +2299,10 @@ function draw() {
   drawWorld(t, D);
   // time of day tint, then sky-layer life (gulls, clouds) in screen space
   g.fillStyle = D.tint; g.globalAlpha = D.ta; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
-  drawFW(); drawStorm(t);
+  drawFW();
   for (const c of A.clouds) sprite(`sc-${c.k}`, c.x, c.y, { alpha: 0.5, scale: 1.5 });
   for (const b of A.gulls) sprite(Math.floor(t * 4 + b.ph) % 2 ? 'sea-gull-a' : 'sea-gull-b', b.x, b.y + Math.sin(t * 1.5 + b.ph) * 2, { flip: b.v < 0, scale: 0.7, alpha: 0.85 });
+  drawStorm(t); // over the clouds too, so they darken with the sky
   const v = g.createRadialGradient(W / 2, H / 2, 220, W / 2, H / 2, 440); v.addColorStop(0, 'transparent'); v.addColorStop(1, '#00000044'); g.fillStyle = v; g.fillRect(0, 0, W, H);
   if (PHOTO_MODE) { if (!PHOTO_SNAP && Math.floor(performance.now() / 600) % 4) { g.fillStyle = '#0c0c0eb0'; g.fillRect(W / 2 - 120, H - 22, 240, 14); text('photo mode · tap to save the picture · drag to frame', W / 2, H - 12, C.sand, 7, 'center'); } hit(0, 0, W, H, () => { PHOTO_SNAP = true; draw(); snapPhoto(); PHOTO_SNAP = false; PHOTO_MODE = false; float('picture saved', W / 2, 60, C.gold2, 9, true); }); return; }
   // panels and hud
@@ -2207,7 +2317,7 @@ function draw() {
   if (S.panel === 'story') drawStory();
   drawInfo(); drawMini(); drawBanners(); drawToast();
   for (const f of A.floaters) if (f.ui) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, f.size, 'center'); } g.globalAlpha = 1;
-  drawEcoUI(); drawRelease(); drawAway(); drawQuiz(); drawOffer(); drawLearn(); drawTrickUI(); // cards go over the floating messages, so text never lands on them
+  drawEcoUI(); drawRelease(); drawAway(); drawQuiz(); drawCloudChoice(); drawOffer(); drawLearn(); drawTrickUI(); // cards go over the floating messages, so text never lands on them
   g.fillStyle = '#0c0c0eb0'; g.fillRect(0, 0, W, 18);
   text(`S$${S.cash}`, 8, 13, C.gold2, 11);
   const a = lvlXp(S.level), b = lvlXp(S.level + 1), k = (S.xp - a) / (b - a);
@@ -2223,8 +2333,9 @@ function draw() {
   btn(474, 'board', S.panel === 'quests', () => { S.panel = S.panel === 'quests' ? null : 'quests'; S.build = null; SFX.pop(); });
   if ((S.orders || []).length) { const hot = S.orders.some(o => o.due - Date.now() < 300e3); ell(518, 5, 4, 4, hot ? C.pink : C.gold); text(`${S.orders.length}`, 518, 8, C.ink, 7, 'center'); } // open orders, pink if one is about to lapse
   btn(524, 'build', S.panel === 'build', () => { S.panel = S.panel === 'build' ? null : 'build'; S.build = null; S.pick = null; SFX.pop(); });
-  g.fillStyle = C.sand; g.fillRect(584, 6, 12, 8); g.fillStyle = '#0c0c0e'; g.beginPath(); g.arc(590, 10, 2.5, 0, 7); g.fill(); g.fillStyle = C.sand; g.fillRect(587, 4, 4, 2); hit(578, 0, 24, 18, () => { PHOTO_MODE = true; closePanels(); SFX.tok(); }); // camera: photo mode
-  text(muted ? '♪̸' : '♪', 620, 13, muted ? '#777' : C.gold2, 11, 'center'); hit(606, 0, 30, 18, toggleMute);
+  g.fillStyle = C.sand; g.fillRect(584, 6, 12, 8); g.fillStyle = '#0c0c0e'; g.beginPath(); g.arc(590, 10, 2.5, 0, 7); g.fill(); g.fillStyle = C.sand; g.fillRect(587, 4, 4, 2); hit(576, 0, 22, 18, () => { PHOTO_MODE = true; closePanels(); SFX.tok(); }); // camera: photo mode
+  if (document.fullscreenEnabled) { const fs = !!document.fullscreenElement; g.strokeStyle = C.sand; g.lineWidth = 1; for (const [a, b] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const x = 600 + a * 8, y = 5 + b * 8; g.beginPath(); g.moveTo(x + (fs ? 0 : a ? -3 : 3), y + 0.5); g.lineTo(x + 0.5, y + 0.5); g.lineTo(x + 0.5, y + (fs ? 0 : b ? -3 : 3)); g.stroke(); } hit(598, 0, 14, 18, toggleFull); } // fullscreen
+  text(muted ? '♪̸' : '♪', 626, 13, muted ? '#777' : C.gold2, 11, 'center'); hit(614, 0, 26, 18, toggleMute);
   if (S.won) {
     if (ready('win')) g.drawImage(IMG.win, 0, 0, W, H); else { g.fillStyle = '#0c0c0ed0'; g.fillRect(0, 0, W, H); }
     text('Six months beneath the waves.', W / 2, 44, C.gold2, 18, 'center'); text('Your NILA bottle is ready.', W / 2, 66, C.sand, 11, 'center');
@@ -2249,7 +2360,7 @@ cv.addEventListener('pointerup', e => {
   if (!press) return; const was = press; press = null; if (was.drag) { save(); return; }
   if (was.held) { hover = null; return; } // a press-and-hold only shows info
   if (MINI) { endMini(); return; } // the strike
-  const x = was.x, y = was.y, h = [...hits].reverse().find(h => x >= h.x && x < h.x + h.w && y >= h.y && y < h.y + h.h);
+  const x = was.x, y = was.y, h = hitAt(x, y, was.touch ? 9 : 0);
   if (h) { h.fn(); save(); return; }
   if (SCENE) return;
   if (S.won) return;
@@ -2257,7 +2368,6 @@ cv.addEventListener('pointerup', e => {
   const an = nutAir(x, y); if (an) { catchNut(an); return; }
   if (tapDog(x, y)) return;
   if (tapEco(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
-  if (tapMud(x, y)) return;
   if (tapSpot(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
   if (tapSea(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
   const tl = tileAt(x, y);
@@ -2269,6 +2379,7 @@ if (up('bigshed')) clearFootprint();
 refreshQuests();
 { breakPlanks(); let n = 0; for (const row of S.plots) for (const p of row) if (p && growth(p) >= 1 && !withered(p)) n++; const w = S.plots.flat().filter(p => p && withered(p)).length, b = S.broken.length, cl = S.tank.filter(isClean).length; const away = S.savedAt ? (Date.now() - S.savedAt) / 1000 : 0, pens = S.objs.filter(o => { const it = item(o.id); return it.pen && !it.pen.win && o.fed && Date.now() - o.fed >= penSpec(o).time * 1000; }).length;
   if (away > 120 && (n || w || b || cl || pens)) AWAY = { away, lines: [n && `${n} oyster bed${n > 1 ? 's' : ''} ready to harvest`, pens && `${pens} pen${pens > 1 ? 's' : ''} ready to collect`, cl && `${cl} clean oyster${cl > 1 ? 's' : ''} waiting in the tank`, w && `${w} withered: clear them and replant`, b && `${b} broken plank${b > 1 ? 's' : ''} to fix`].filter(Boolean) }; }
+cloudInit();
 let last = performance.now();
 (function loop(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; update(dt); draw(); music(); requestAnimationFrame(loop); })(last);
 </script>
