@@ -1451,7 +1451,7 @@ let orderTick = 0;
 function stepOrders(dt) {
   if ((orderTick -= dt) > 0) return; orderTick = 1; const now = Date.now(); S.orders = S.orders || [];
   for (const o of [...S.orders]) if (now > o.due) { S.orders.splice(S.orders.indexOf(o), 1); float(`${o.who} gave up waiting`, W / 2, 46, C.pink, 8, true); S.orderNext = Math.min(S.orderNext || now, now + 30e3); }
-  if (S.level >= 2 && !S.offer && !S.won && S.orders.length < (has('stall') ? 4 : 3) && now >= (S.orderNext || 0)) { const o = newOrder(); if (o) { S.offer = o; SFX.coin(); } S.orderNext = now + rnd(60, 150) * 1000; }
+  if (S.level >= 2 && !inTut() && !TUT_CARD && !S.offer && !S.won && S.orders.length < (has('stall') ? 4 : 3) && now >= (S.orderNext || 0)) { const o = newOrder(); if (o) { S.offer = o; SFX.coin(); } S.orderNext = now + rnd(60, 150) * 1000; }
 }
 let TOAST = null;
 function acceptOffer() { const o = S.offer; S.offer = null; o.due = Date.now() + o.secs * 1000; S.orders.push(o); SFX.stamp(); float(`order taken: ${o.n} ${o.name} for ${o.who}`, W / 2, 46, C.gold2, 8, true); save(); }
@@ -1679,7 +1679,7 @@ function catchNut(n) { const w = center(n.r, n.c), [x, y] = scr(w.x, w.y); NUTS.
 let TOUR = null, tourWait = rnd(60, 120);
 const SAYS = ['so pretty!', 'wah, nice', 'photo!', 'so shiok here', 'can stay here forever'];
 function stepTour(dt) {
-  if (!TOUR) { if (S.level < 3 || S.sale || STORM.on || STORM.wait < 150 || DINNER || sky().lamp > 0.3 || CROC) return; if ((tourWait -= dt) > 0) return;
+  if (!TOUR) { if (S.level < 3 || inTut() || S.sale || STORM.on || STORM.wait < 150 || DINNER || sky().lamp > 0.3 || CROC) return; if ((tourWait -= dt) > 0) return;
     tourWait = Math.max(120, 420 - charm() * 4) * rnd(0.8, 1.2) * SEASON.tour; TOUR = { phase: 'arrive', t: 0, guests: [], n: 2 + (charm() >= 20) + (charm() >= 45), tips: 0, looks: Array.from({ length: GUESTS }, (_, i) => i + 1).sort(() => Math.random() - 0.5) }; SFX.splash(); return; } // looks: a different mix of faces each boat
   const k = TOUR; k.t += dt;
   if (k.phase === 'arrive' && k.t >= 4) { k.phase = 'wait'; k.t = 0; k.land = nearestWalkable(DOCK.r, DOCK.c); for (let i = 0; i < k.n; i++) k.guests.push(guest(i)); }
@@ -1722,7 +1722,7 @@ function stepStorm(dt) {
   const st = STORM; st.flash = Math.max(0, st.flash - dt * 2.5);
   if (st.on) { st.t += dt; if (Math.random() < dt / 6) { st.flash = 1; SFX.thunder(); } if (Math.random() < dt / 2) hush(1.8, 0.07, 1200); if (Math.random() < dt * 8) A.ripples.push({ x: cam.x + rnd(-W / 2, W / 2), y: cam.y + rnd(-H / 2, H / 2), r: 1, life: 0.6 });
     if (st.t > 45) { st.on = false; st.wait = rnd(900, 1800) * SEASON.storm; st.t = 0; float(st.secured ? 'the storm passed. all tied down, no harm done' : 'the storm passed', W / 2, 60, C.sand, 9, true); st.secured = false; st.jobs = 0; st.done = 0; for (const o of S.objs) delete o.lashed; for (const a of [F, ...WK]) if (a.working === 'shelter') { a.queue = []; a.working = false; } } return; }
-  if (S.level < 3) return; st.wait -= dt;
+  if (S.level < 3 || inTut()) return; st.wait -= dt;
   if (st.jobs && st.done < st.jobs && ![F, ...WK].some(a => a.queue.some(q => q.kind === 'lash'))) { const skip = st.jobs - st.done; st.secured = true; st.jobs = 0; float(`Tied down everything they could reach (${skip} out of reach). Farm secured.`, W / 2, 60, C.gold, 9, true); SFX.stamp(); }
   const b = stormAmt(); if (b > 0.15 && Math.random() < dt / 2.5) hush(1.6, 0.02 + 0.05 * b, 900); if (b > 0.3 && Math.random() < dt * 4 * b) A.particles.push({ x: -8, y: rnd(30, H - 30), vx: rnd(150, 240), vy: rnd(-14, 14), gr: 0, life: 4, color: ['#5a8a3a', '#7aa04a', '#a8884f'][Math.floor(Math.random() * 3)] }); // gusts, and leaves blowing across
   if (st.wait <= 120 && !st.warned) { st.warned = true; for (const a of [F, ...WK]) for (const q of a.queue) if (q.kind === 'swim' || q.kind === 'kayak') q.act = Math.min(q.act, 4.4); float('A storm is coming! Tap the banner to secure the farm.', W / 2, 92, C.pink, 9, true); SFX.nope(); }
@@ -1826,7 +1826,7 @@ function checkQuests() {
 // ---- update ----
 function update(dt) {
   if (press && press.touch && !press.drag && !press.held && performance.now() - press.t0 > 420) { press.held = true; hover = { x: press.x, y: press.y }; } // touch: hold to see a name tag or a tooltip
-  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepOrders(dt); if (TOAST) TOAST.t += dt; stepSpot(dt); stepTour(dt); stepStorm(dt); stepFest(dt); stepSea(dt); stepOtters(dt); stepHcrab(dt); stepDinner(dt); stepEco(dt); stepStory(dt); stepUpgrades(); stepRating(dt);
+  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepOrders(dt); stepTut(dt); if (TOAST) TOAST.t += dt; stepSpot(dt); stepTour(dt); stepStorm(dt); stepFest(dt); stepSea(dt); stepOtters(dt); stepHcrab(dt); stepDinner(dt); stepEco(dt); stepStory(dt); stepUpgrades(); stepRating(dt);
   { const d = Math.floor(S.t / daySeconds); if (payDay === null) payDay = d; else if (d !== payDay) { payDay = d; payWages(); } } stepActor(dt, F); idle(F, dt); for (const w of WK) { w.speed = has('dog') ? 1.2 : 1; stepActor(dt, w); think(w, dt); idle(w, dt); }
   const bed = S.objs.find(o => o.id === 'dog'); if (bed && !DOG) DOG = actor({ r: bed.r, c: bed.c, speed: 1.9 }); if (!bed) DOG = null;
   const home = S.objs.find(o => o.id === 'cat'); if (home && !CAT) CAT = actor({ r: home.r, c: home.c, speed: 0.7, pose: 'sleep' }); if (!home) CAT = null;
@@ -2326,7 +2326,7 @@ function drawPicker(list, icon, onPick) {
   list.forEach((sp, i) => {
     const x = x0 + i * w + w / 2, locked = S.level < sp.lvl, poor = S.cash < sp.cost, im = icon(sp);
     g.globalAlpha = locked ? 0.3 : 1; if (im) g.drawImage(im, Math.round(x - im.width / 2), y0 + 5);
-    text(sp.name, x, y0 + 42, locked ? C.grey : C.sand, 7, 'center'); text(locked ? `lv ${sp.lvl}` : `S$${sp.cost} · ${fmt(sp.time)}`, x, y0 + 52, locked ? C.grey : poor ? C.pink : C.gold2, 6, 'center'); g.globalAlpha = 1;
+    text(sp.name, x, y0 + 42, locked ? C.grey : C.sand, 7, 'center'); text(locked ? `lv ${sp.lvl}` : `S$${sp.cost} · ${fmt(sp.time / TUTK())}`, x, y0 + 52, locked ? C.grey : poor ? C.pink : C.gold2, 6, 'center'); g.globalAlpha = 1;
     if (!locked) text(`~S$${Math.round((sp.sell - sp.cost) / sp.time * 3600)}/h`, x, y0 + 61, '#9ad0e0', 6, 'center'); // per tile for oysters, per cage for fish
     hit(x - w / 2, y0, w, 66, () => onPick(sp));
   });
@@ -2418,7 +2418,7 @@ function drawHutPanel() {
 function drawTankPanel() {
   const n = S.tank.length, clean = S.tank.filter(isClean), cash = clean.reduce((t, o) => t + Math.round(species(o.sp).sell * sellMul() * oyMul()), 0), nx = TANK_LV[S.tankLv + 1];
   const w = 360, h = 132, x0 = W / 2 - w / 2, y0 = H / 2 - 70; panelBox(x0, y0, w, h); text('Depuration tank', W / 2, y0 + 14, C.gold2, 8, 'center');
-  wrap(`Oysters must purge in UV-cleaned seawater before they can be sold. Harvests wait here ${fmt(DEP)}, then sell.`, w - 24).forEach((l, i) => text(l, x0 + 12, y0 + 30 + i * 10, C.grey, 7));
+  wrap(`Oysters must purge in UV-cleaned seawater before they can be sold. Harvests wait here ${fmt(DEP / TUTK())}, then sell.`, w - 24).forEach((l, i) => text(l, x0 + 12, y0 + 30 + i * 10, C.grey, 7));
   text(`${n - clean.length} cleaning · ${clean.length} clean · ${n}/${tankCap()} full`, x0 + 12, y0 + 58, C.sand, 7);
   const btn = (bx, label, sub, ok, fn) => { g.fillStyle = ok ? '#1f3a2a' : '#1a2a40'; g.fillRect(bx, y0 + 70, 162, 50); text(label, bx + 81, y0 + 88, ok ? C.gold2 : C.grey, 8, 'center'); text(sub, bx + 81, y0 + 102, C.grey, 7, 'center'); hit(bx, y0 + 70, 162, 50, fn); };
   btn(x0 + 12, clean.length ? `Sell ${clean.length} · S$${cash}` : 'Nothing clean yet', 'the buyer\'s boat comes to collect', clean.length > 0, () => sellTank(F));
@@ -2432,14 +2432,53 @@ function drawBoatPanel() {
     hit(x - w / 2 + 6, y0 + 22, w - 12, 50, () => sendBoat(i));
   });
 }
-// ---- the guided start: one hint at a time across the top until you've planted, harvested, sold, sent the boat, built and hired ----
-const hint = () => ['Tap an empty tile in a net pen to plant oysters', 'When an oyster bounces with a gold dot, tap it to harvest', 'Oysters clean in the tank for 3 minutes, then tap the tank to sell them', 'Tap the bumboat to send it out for a crate',
-  S.level < 2 ? 'Keep harvesting to reach level 2' : 'Open Build and place a Fish cage on an empty pen', S.level < 3 ? 'Reach level 3 to hire crew. Orders on the board pay extra!' : 'Tap the shed and hire your first crew member'][S.step];
+// ---- the tutorial: six steps, one at a time. Everything grows 3x faster until it's done; buyers only start calling after ----
+const TUT_N = 6, inTut = () => S.step < TUT_N, TUTK = () => inTut() ? 3 : 1;
+let tutSeen = S.step, TUT_CARD = S.step === 0 && !S.tutIntro ? 'intro' : null;
+const growMul = () => (up('generator') ? 1.1 : 1) * penMul('oysters').grow;
+const ripeIn = () => { let m = Infinity; for (const row of S.plots) for (const p of row) if (p) m = Math.min(m, Math.max(0, (1 - growth(p)) * species(p.sp).time / growMul())); return m / TUTK(); }; // seconds of real time
+const cleanIn = () => S.tank.length ? Math.max(0, Math.min(...S.tank.map(o => DEP / (up('generator') ? 1.1 : 1) - (Date.now() - o.at) / 1000))) / TUTK() : Infinity;
+const xpTo = L => Math.max(0, lvlXp(L) - S.xp);
+const TUT = [ // a title, then what to do right now (it changes as you go)
+  { t: 'Plant your first oysters', d: () => S.pick ? 'Pick Rock oysters. They are cheap and ready in 20 seconds.' : 'Tap an empty spot inside the net pen, where the arrow points.' },
+  { t: 'Harvest them', d: () => { const k = ripeIn(); return k === Infinity ? 'Plant some oysters first: tap an empty spot in the net pen.' : k > 0 ? `Growing… ready in ${fmt(k)}. Plant more spots while you wait!` : 'Ready! Tap an oyster with the bouncing gold dot.'; } },
+  { t: 'Clean and sell', d: () => { if (S.sale) return 'The buyer\'s boat is on its way to collect them…'; const k = cleanIn(); if (S.panel === 'tank') return S.tank.some(isClean) ? 'Tap Sell to send them to market.' : 'Still cleaning. Close this and check back soon.'; return k === Infinity ? 'Harvest an oyster first: it goes into the cleaning tank.' : k > 0 ? `Oysters must be cleaned before they're sold: ${fmt(k)} left in the tank. Keep harvesting meanwhile.` : 'Clean! Tap the tank, then Sell.'; } },
+  { t: 'Send out the bumboat', d: () => S.panel === 'boat' ? 'Pick the Fishing run. The boat comes back later with a crate to sell.' : 'Tap the bumboat at the jetty. It fishes for you while you farm.' },
+  { t: 'Build a fish cage', d: () => S.level < 2 ? `Unlocks at level 2: ${xpTo(2)} xp to go. Harvest and sell more oysters.` : S.build ? 'Now tap an empty net pen to put the cage there.' : S.panel === 'build' ? 'Pick Fish cage in the Farm tab.' : 'Tap Build at the top right.' },
+  { t: 'Hire your first crew', d: () => S.level < 3 ? `Unlocks at level 3: ${xpTo(3)} xp to go. Keep harvesting and selling.` : S.panel === 'hut' ? 'Pick someone to hire. They work the farm for you.' : 'Tap the shed, where the arrow points.' },
+];
+function tutWarp(dt) { // the 3x clock: nudge every timer back by two extra seconds per second (ripe oysters are left alone, so they don't spoil faster)
+  const ms = 2 * dt * 1000; for (const row of S.plots) for (const p of row) if (p && growth(p) < 1) p.at -= ms;
+  for (const o of S.tank) o.at -= ms; if (S.boat.out) S.boat.out -= ms; for (const o of S.objs) if (o.fed) o.fed -= ms;
+}
+function stepTut(dt) {
+  if (S.step !== tutSeen) { if (S.step > tutSeen && tutSeen < TUT_N) { const done = TUT[tutSeen]; gainXp(10); float(`✓ ${done.t}  +10 xp`, W / 2, 80, C.gold, 10, true); SFX.levelup(); if (S.step >= TUT_N) { TUT_CARD = 'done'; save(); } } tutSeen = S.step; }
+  if (inTut()) tutWarp(dt);
+}
+function drawTutCoach(y) { // the coach card under the top bar: step, title, what to do, progress dots, the 3x badge
+  const k = TUT[S.step], body = wrap(k.d(), 300), h = 30 + body.length * 9, w = 324, x = W / 2 - w / 2; y = S.pick ? 92 : y;
+  g.fillStyle = '#0c1420ee'; g.fillRect(x, y, w, h); g.strokeStyle = C.gold; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  text(`TUTORIAL ${S.step + 1}/${TUT_N}`, x + 8, y + 11, C.grey, 7); text(k.t, x + 74, y + 11, C.gold, 8);
+  g.fillStyle = '#1f3a2a'; g.fillRect(x + w - 58, y + 3, 52, 11); text('▶▶ 3× speed', x + w - 32, y + 11, '#9ee6a8', 6, 'center');
+  body.forEach((l, i) => text(l, x + 8, y + 23 + i * 9, C.sand, 7));
+  for (let i = 0; i < TUT_N; i++) { g.fillStyle = i < S.step ? C.gold : i === S.step ? C.sand : '#2b3a50'; g.fillRect(x + 8 + i * 10, y + h - 5, 7, 2); }
+  return y + h + 2;
+}
+function drawTutCard() { // the welcome card on a new farm, and the "you're done" card
+  if (!TUT_CARD) return; const intro = TUT_CARD === 'intro', w = 340, x = W / 2 - w / 2, y = 70;
+  const lines = intro ? ['Welcome to your kelong! You\'ll learn the basics in 6 quick steps:', '1. Plant oysters   2. Harvest them   3. Clean and sell', '4. Send the boat   5. Build a fish cage   6. Hire crew', '', 'While you learn, everything grows 3× faster. Buyers start sending orders once you finish.']
+    : ['You know the basics. Time is back to normal speed now.', '', 'Buyers will start asking for oysters and fish. Say yes, deliver before the timer runs out, and they pay a bonus on top of the sale.', '', 'Tip: tap any fish, animal or plant to learn about it.'];
+  const body = lines.flatMap(l => l ? wrap(l, w - 28) : ['']), h = 58 + body.length * 10;
+  hit(0, 0, W, H, () => {}); g.fillStyle = '#05080cb0'; g.fillRect(0, 0, W, H); g.fillStyle = '#0f1824f2'; g.fillRect(x, y, w, h); g.strokeStyle = C.gold; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  text(intro ? 'How to farm the sea' : 'Tutorial complete!', W / 2, y + 18, C.gold, 10, 'center'); body.forEach((l, i) => text(l, x + 14, y + 36 + i * 10, C.sand, 7));
+  const bw = 110, bx = W / 2 - bw / 2, by = y + h - 22; g.fillStyle = C.gold2; g.fillRect(bx, by, bw, 15); text(intro ? "Let's start" : 'Start farming', W / 2, by + 11, C.ink, 7, 'center');
+  hit(bx, by, bw, 15, () => { if (intro) S.tutIntro = true; else { S.orderNext = Date.now() + 25e3; if (giftReady()) STREAKUI = true; } TUT_CARD = null; SFX.pop(); save(); });
+}
 function drawBanners() { // stacked under the top bar: the storm, then the hint
   let y = 22; const pill = (s, col, fn) => { g.font = '7px monospace'; const w = g.measureText(s).width + 16; g.fillStyle = '#0c0c0ed9'; g.fillRect(Math.round(W / 2 - w / 2), y, Math.round(w), 13); text(s, W / 2, y + 10, col, 7, 'center'); if (fn) hit(W / 2 - w / 2, y, w, 13, fn); y += 15; };
   if (STORM.on) pill(`Storm! ${fmt(45 - STORM.t)}${STORM.secured ? ' · farm secured' : ''}`, C.pink);
   else if (STORM.warned) pill(`Storm in ${fmt(STORM.wait)} · ${STORM.secured ? 'farm secured ✓' : STORM.jobs ? `tying down… ${STORM.done}/${STORM.jobs}` : `tap here to secure the farm (S$${secureCost()})`}`, STORM.secured ? C.gold2 : STORM.jobs ? C.sand : C.pink, STORM.secured || STORM.jobs ? null : secureFarm);
-  if (S.step < 6 && !S.panel && hint()) pill(hint(), C.sand);
+  if (inTut() && !TUT_CARD) y = drawTutCoach(y);
   if (FEST && !S.panel) { g.fillStyle = '#0c0c0ed9'; g.fillRect(6, 21, 150, 12); text(`${FESTS[FEST].name} · +10% sales`, 12, 30, C.pink, 7); }
   if (marketDay() && !S.panel) pill(`Market day! ${marketDay().name} sell for double today`, C.gold);
 }
@@ -2482,7 +2521,7 @@ function draw() {
   if (S.panel === 'story') drawStory();
   drawInfo(); drawMini(); drawBanners(); drawBuildChips(); drawToast();
   for (const f of A.floaters) if (f.ui) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, f.size, 'center'); } g.globalAlpha = 1;
-  drawEcoUI(); drawRelease(); drawAway(); drawStreak(); drawQuiz(); drawCloudChoice(); drawOffer(); drawLearn(); drawTrickUI(); // cards go over the floating messages, so text never lands on them
+  drawEcoUI(); drawRelease(); drawAway(); drawStreak(); drawQuiz(); drawCloudChoice(); drawOffer(); drawTutCard(); drawLearn(); drawTrickUI(); // cards go over the floating messages, so text never lands on them
   g.fillStyle = '#0c0c0eb0'; g.fillRect(0, 0, W, 18);
   text(`S$${S.cash}`, 8, 13, C.gold2, 11);
   const a = lvlXp(S.level), b = lvlXp(S.level + 1), k = (S.xp - a) / (b - a);
@@ -2497,6 +2536,7 @@ function draw() {
   btn(424, 'album', S.panel === 'album', () => { S.panel = S.panel === 'album' ? null : 'album'; S.build = null; SFX.pop(); });
   btn(474, 'board', S.panel === 'quests', () => { S.panel = S.panel === 'quests' ? null : 'quests'; S.build = null; SFX.pop(); });
   if ((S.orders || []).length) { const hot = S.orders.some(o => o.due - Date.now() < 300e3); ell(518, 5, 4, 4, hot ? C.pink : C.gold); text(`${S.orders.length}`, 518, 8, C.ink, 7, 'center'); } // open orders, pink if one is about to lapse
+  if (S.step === 4 && S.level >= 2 && S.panel !== 'build') { g.strokeStyle = C.gold; g.lineWidth = 2; g.globalAlpha = 0.6 + 0.4 * Math.sin(S.t * 6); g.strokeRect(521, 1, 52, 16); g.globalAlpha = 1; g.lineWidth = 1; }
   btn(524, 'build', S.panel === 'build', () => { S.panel = S.panel === 'build' ? null : 'build'; S.build = null; S.pick = null; SFX.pop(); });
   g.fillStyle = C.sand; g.fillRect(584, 6, 12, 8); g.fillStyle = '#0c0c0e'; g.beginPath(); g.arc(590, 10, 2.5, 0, 7); g.fill(); g.fillStyle = C.sand; g.fillRect(587, 4, 4, 2); hit(576, 0, 22, 18, () => { PHOTO_MODE = true; closePanels(); SFX.tok(); }); // camera: photo mode
   if (document.fullscreenEnabled) { const fs = !!document.fullscreenElement; g.strokeStyle = C.sand; g.lineWidth = 1; for (const [a, b] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const x = 600 + a * 8, y = 5 + b * 8; g.beginPath(); g.moveTo(x + (fs ? 0 : a ? -3 : 3), y + 0.5); g.lineTo(x + 0.5, y + 0.5); g.lineTo(x + 0.5, y + (fs ? 0 : b ? -3 : 3)); g.stroke(); } hit(598, 0, 14, 18, toggleFull); } // fullscreen
@@ -2547,7 +2587,7 @@ refreshQuests();
 { const off = offlineWork(); breakPlanks(); let n = 0; for (const row of S.plots) for (const p of row) if (p && growth(p) >= 1 && !withered(p)) n++; const w = S.plots.flat().filter(p => p && withered(p)).length, b = S.broken.length, cl = S.tank.filter(isClean).length; const away = S.savedAt ? (Date.now() - S.savedAt) / 1000 : 0, pens = S.objs.filter(o => { const it = item(o.id); return it.pen && !it.pen.win && o.fed && Date.now() - o.fed >= penSpec(o).time * 1000; }).length;
   if (away > 120 && (n || w || b || cl || pens || off)) AWAY = { away, lines: [off && `your crew harvested ${off.oysters} oyster${off.oysters === 1 ? '' : 's'} and collected ${off.pens} pen${off.pens === 1 ? '' : 's'}: ${off.cash >= 0 ? '+' : ''}S$${off.cash} after feed`, off && off.capped && 'they stopped after 8 hours: come back sooner to keep them busy', n && `${n} oyster bed${n > 1 ? 's' : ''} ready to harvest`, pens && `${pens} pen${pens > 1 ? 's' : ''} ready to collect`, cl && `${cl} clean oyster${cl > 1 ? 's' : ''} waiting in the tank`, w && `${w} withered: clear them and replant`, b && `${b} broken plank${b > 1 ? 's' : ''} to fix`].filter(Boolean) }; }
 cloudInit();
-if (giftReady()) STREAKUI = true; // first visit today: the streak card (after the welcome-back card)
+if (giftReady() && !inTut()) STREAKUI = true; // first visit today: the streak card (after the welcome-back card)
 let last = performance.now();
 (function loop(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; update(dt); draw(); music(); requestAnimationFrame(loop); })(last);
 </script>
