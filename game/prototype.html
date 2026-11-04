@@ -67,7 +67,7 @@ ITEMS.push(
 const MAXN = { lantern: 1, bench: 1, flag: 1, cat: 1, dog: 1, stall: 1, shed: 1, palm: 3 };
 const full = it => MAXN[it.id] && count(it.id) >= MAXN[it.id];
 // how big each piece stands on the deck, against Darren as a 1.6 m grown-up (the art came in different batches at different scales)
-const ART = 5;
+const ART = 6;
 const GUESTS = 12; // tourist looks guest1…12: sun-hat lady, cap boy, shades dad, bubble-tea girl, backpacker, visor auntie, tudung lady, spectacles uncle, schoolboy, camera tourist, cyclist, ah gong // bump when sprite files change, so browsers fetch the new art
 // every decor sprite is cut from its hi-res sheet at the size it shows in game (judged against Darren), so all art is drawn 1:1 and shares one pixel size
 const LOOKS = [ // shed panel, third row: one-off touches that make the place nicer; each adds charm
@@ -107,6 +107,49 @@ const ALBUM = [ // collection book entries; counts live in S.album
   { id: 'mussels', name: 'Green mussels', icon: () => ready('stock-mussels') }, { id: 'prawns', name: 'Tiger prawns', icon: () => ready('stock-prawn-a') }, { id: 'lobsters', name: 'Lobster', icon: () => ready('stock-lobster') },
   { id: 'coconut', name: 'Coconut', icon: () => ready('nut') }, { id: 'croc', name: 'Crocodile', icon: () => ready('croc-lie'), rare: true },
 ];
+// ---- learn: a card for each living thing on the farm and in the strait. what it is, where it lives around Singapore, how it's doing,
+// two things worth knowing, and one thing anyone can do to help. statuses are the IUCN Red List (global) ----
+const FACTS = {
+  rock:      { name: 'Rock oyster', sci: 'Saccostrea cucullata', status: 'Native · common', where: "Seawalls, rocky shores and mangrove roots all round Singapore.", facts: ['One oyster filters dozens of litres of seawater a day, clearing the water for everything else.', 'Oyster beds grow into reefs that shelter baby fish, crabs and shrimp.'], help: "Leave shore animals where they are, and keep litter out of drains: it all ends up in the sea." },
+  pacific:   { name: 'Pacific oyster', sci: 'Magallana gigas', status: 'Farmed worldwide', where: "Not native here: it comes from Japan and is now the most farmed oyster in the world.", facts: ['Pacific oysters can switch between male and female from one season to the next.', 'Farmed shellfish need clean water, so oyster farmers are some of the sea\'s best watchdogs.'], help: "When you buy seafood, look for the ASC label: it means the farm is checked for its impact on the sea." },
+  kumamoto:  { name: 'Kumamoto oyster', sci: 'Crassostrea sikamea', status: 'Rare in the wild', where: "From Kumamoto in southern Japan, where wild beds almost disappeared.", facts: ['It survived thanks to oyster farms on the other side of the Pacific, which kept growing it.', 'Small and deep-cupped, it takes longer to grow than most oysters.'], help: "Never move live shellfish from one sea to another: they can carry diseases and pests with them." },
+  pearl:     { name: 'Pearl oyster', sci: 'Pinctada species', status: 'Wild stocks overharvested', where: "Pearl oysters live in warm seas across Southeast Asia, Singapore's reefs included.", facts: ['A pearl forms when the oyster coats a bit of grit in layer after layer of nacre, mother-of-pearl.', 'A natural pearl takes years to grow, which is why most pearls today are farmed.'], help: "On the shore, take only photos: shells and live animals belong where they are." },
+  belon:     { name: 'European flat oyster', sci: 'Ostrea edulis', status: 'Lost from most of its range', where: "The European flat oyster, named after the Bélon river in Brittany, France.", facts: ['Europe has lost over 90% of its wild flat oyster reefs to overfishing and disease.', 'Restoration projects now lay new reefs so the oysters can come back.'], help: "Join a shore clean-up, or a coral or mangrove planting day: Singapore's parks run them often." },
+  mussels:   { name: 'Asian green mussel', sci: 'Perna viridis', status: 'Native · common', where: "On seawalls and kelong poles; farmed on ropes in the Johor Strait.", facts: ['Mussels feed by filtering seawater, helping keep coastal water clear.', 'They hold on with tough threads called byssus, strong enough to ride out storms.'], help: "Choose local seafood: Singapore's coastal farms are licensed and checked by the Singapore Food Agency." },
+  prawns:    { name: 'Giant tiger prawn', sci: 'Penaeus monodon', status: 'Farmed and wild', where: "Mangrove estuaries: young prawns shelter among the mangrove roots.", facts: ['Prawns grow by moulting, climbing out of their old shell and hardening a new one.', 'Across Asia, huge areas of mangrove were cleared to dig prawn ponds.'], help: "Pick prawns from farms that don't clear mangroves (ASC-certified), and visit Sungei Buloh to see why mangroves matter." },
+  lobsters:  { name: 'Spiny lobster', sci: 'Panulirus species', status: 'Fished heavily', where: "Rocky reefs and crevices around the Southern Islands.", facts: ['Spiny lobsters have no big claws: they fend off enemies with long spiny antennae.', 'They hide by day and come out at night to hunt snails and clams.'], help: "Don't buy small lobsters or ones carrying eggs: let them grow up and breed." },
+  seabass:   { name: 'Asian seabass', sci: 'Lates calcarifer', status: 'Farmed · wild common', where: "Singapore's most farmed fish; wild ones roam mangroves and river mouths.", facts: ['Most Asian seabass start life male and turn female as they grow bigger.', 'They travel between the sea and fresh water during their lives.'], help: "Ask for local farmed fish: fresher, fewer air miles, and raised under Singapore's checks." },
+  pomfret:   { name: 'Silver pomfret', sci: 'Pampus argenteus', status: 'Overfished', where: "Silver pomfret live in coastal seas around Southeast Asia; golden pomfret, a different fish, is farmed at our kelongs.", facts: ['Steamed pomfret is a family favourite, especially at Chinese New Year.', 'Wild catches have fallen sharply where too many young fish are caught.'], help: "Skip very small fish at the market: they never got the chance to breed." },
+  snapper:   { name: 'Mangrove red snapper', sci: 'Lutjanus argentimaculatus', status: 'Native · farmed', where: "The mangrove red snapper: farmed in Singapore's coastal fish farms.", facts: ['Young snappers grow up among mangrove roots, then move out to reefs as adults.', 'Mangroves are nurseries for many of the fish we eat.'], help: "Protect mangroves: Singapore once had about 13% of its land under mangroves, and today has less than 1%." },
+  grouper:   { name: 'Grouper', sci: 'Epinephelus species', status: 'Some threatened', where: "Reefs and rocky seabeds; many kinds are farmed in Singapore.", facts: ['Many groupers start life female and become male when they grow large.', 'Big groupers live for decades, so overfishing them takes years to undo.'], help: "Choose farmed grouper over wild-caught live reef fish, whose trade empties reefs across Asia." },
+  crabs:     { name: 'Mud crab', sci: 'Scylla species', status: 'Native · fished', where: "Mud crabs dig burrows in mangrove mud all round Singapore.", facts: ["They're the stars of chilli crab and black pepper crab.", 'Their burrows let air into the mud and help mangroves grow.'], help: "Mangroves feed the crabs we love: visit Sungei Buloh or Pulau Ubin and help keep them litter-free." },
+  turtle:    { name: 'Hawksbill turtle', sci: 'Eretmochelys imbricata', status: 'Critically Endangered', where: "Nests on beaches at East Coast and the Southern Islands; NParks moves at-risk eggs to a safe hatchery.", facts: ['Hawksbills eat sea sponges, picking them off reefs with a sharp, hawk-like beak.', 'Hatchlings head for the brightest horizon, so bright lights on land can lead them astray.'], help: "Keep away from nesting turtles and tell NParks. Say no to plastic bags and balloons: turtles mistake them for food." },
+  shark:     { name: 'Blacktip reef shark', sci: 'Carcharhinus melanopterus', status: 'Vulnerable', where: "Around Singapore's Southern Islands and reefs.", facts: ['Shy and harmless to people, it hunts small fish over the reef flat.', 'Sharks keep reefs healthy by picking off sick and weak fish.'], help: "Say no to shark fin soup: millions of sharks are killed for their fins every year." },
+  dolphin:   { name: 'Indo-Pacific humpback dolphin', sci: 'Sousa chinensis', status: 'Vulnerable', where: "Seen around the Southern Islands and in the Singapore Strait.", facts: ['Calves are born dark grey and turn pink as they grow older.', 'They find fish by echolocation: clicking and listening for the echoes.'], help: "Slow boats down and give dolphins space: noise and propellers hurt them." },
+  dugong:    { name: 'Dugong', sci: 'Dugong dugon', status: 'Vulnerable', where: "Grazes the seagrass at Chek Jawa on Pulau Ubin and off Changi, leaving feeding trails.", facts: ["A distant cousin of the elephant, a dugong can live 70 years.", 'Seagrass meadows store carbon and shelter baby fish, and dugongs depend on them.'], help: "At low tide, stay on the boardwalks and never trample seagrass." },
+  otter:     { name: 'Smooth-coated otter', sci: 'Lutrogale perspicillata', status: 'Vulnerable', where: "Back in Singapore's waters since the late 1990s; families live from Marina Bay to Pulau Ubin.", facts: ['Otters live in family groups and chirp and whistle to keep in touch.', 'Their comeback is a sign that our rivers and coasts are getting cleaner.'], help: "Watch from a distance. Never feed, chase or crowd them, and keep dogs on a leash." },
+  hcrab:     { name: 'Mangrove horseshoe crab', sci: 'Carcinoscorpius rotundicauda', status: 'Threatened by nets and habitat loss', where: "Mangroves and mudflats at Mandai, Kranji, Pulau Ubin and Chek Jawa.", facts: ['Older than the dinosaurs: horseshoe crabs have been around for over 400 million years.', 'Not really crabs, they are closer to spiders. Their blue blood is used to test medicines for safety.'], help: "Abandoned fishing nets trap them: report or remove ghost nets, and join a shore clean-up." },
+  croc:      { name: 'Estuarine crocodile', sci: 'Crocodylus porosus', status: 'Native · protected here', where: "Sungei Buloh Wetland Reserve and Kranji; sometimes seen off Pulau Ubin.", facts: ['The largest living reptile: big males grow longer than 5 metres.', 'As top predators they keep the wetland food web in balance.'], help: "Keep your distance, stay on paths and never feed wildlife: fed animals lose their fear of people." },
+  coconut:   { name: 'Coconut palm', sci: 'Cocos nucifera', status: 'Common', where: "Along beaches and kampung shores all over the region.", facts: ['Coconuts float, and can drift across oceans to sprout on a new shore.', 'Kampung families used every part: husk for rope, leaves for roofs, shells for bowls.'], help: "Coastal trees hold the sand together: help plant them on clean-up and planting days." },
+};
+const learned = () => Object.keys(S.learned || {}).filter(k => FACTS[k]).length;
+let LEARN = [];
+const openLearn = id => { if (FACTS[id] && LEARN[0] !== id) { LEARN = LEARN.filter(q => q !== id); LEARN.unshift(id); SFX.pop(); } };
+function drawLearn() { // the fact card: picture, name, status, where, two facts, how to help
+  const id = LEARN[0]; if (!id || MINI || S.offer) return; const f = FACTS[id], a = ALBUM.find(e => e.id === id), first = !(S.learned && S.learned[id]);
+  const bw = 400, tw = bw - 140, lines = [...wrap(`Where: ${f.where}`, tw), '', ...f.facts.flatMap(t => wrap(`• ${t}`, tw))], help = wrap(f.help, tw - 10), bh = Math.max(150, 62 + lines.length * 9 + help.length * 9 + 50), bx = W / 2 - bw / 2, by = Math.max(24, H / 2 - bh / 2);
+  hit(0, 0, W, H, () => {}); g.fillStyle = '#05080cb0'; g.fillRect(0, 0, W, H); g.fillStyle = '#0f1824f4'; g.fillRect(bx, by, bw, bh); g.strokeStyle = C.gold; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  g.fillStyle = '#16314a'; g.fillRect(bx + 10, by + 10, 112, 112); g.strokeStyle = '#2b4a66'; g.strokeRect(bx + 10.5, by + 10.5, 111, 111);
+  const im = a && a.icon(); if (im) { const sc = Math.min(96 / im.width, 96 / im.height, 3), bob = Math.sin(S.t * 2) * 1.5; g.drawImage(im, Math.round(bx + 66 - im.width * sc / 2), Math.round(by + 66 - im.height * sc / 2 + bob), Math.round(im.width * sc), Math.round(im.height * sc)); }
+  const col = /Critically/.test(f.status) ? '#ff5a5a' : /Endangered/.test(f.status) ? '#ff9a3a' : /Vulnerable|Threatened|threatened|Overfished|overharvested|Lost|Rare|heavily/.test(f.status) ? '#f6d48a' : '#9ad0e0';
+  text('LEARN', bx + 10, by + 136, C.grey, 7); text(`${learned()}/${Object.keys(FACTS).length} learned`, bx + 10, by + 146, C.grey, 7);
+  const x = bx + 132; text(f.name, x, by + 20, C.gold, 10); text(f.sci, x, by + 31, C.grey, 7);
+  g.font = '7px monospace'; const sw = g.measureText(f.status).width + 10; g.fillStyle = col + '33'; g.fillRect(x, by + 36, sw, 11); g.strokeStyle = col; g.strokeRect(x + 0.5, by + 36.5, sw - 1, 10); text(f.status, x + 5, by + 44, col, 7);
+  lines.forEach((l, i) => text(l, x, by + 60 + i * 9, C.sand, 7));
+  const hy = by + 60 + lines.length * 9 + 2; g.fillStyle = '#1d3a2a'; g.fillRect(x - 4, hy, tw + 8, help.length * 9 + 14); text('How you can help', x, hy + 9, '#9ee6a8', 7); help.forEach((l, i) => text(l, x + 2, hy + 18 + i * 9, C.sand, 7));
+  const btw = 120, btx = bx + bw - btw - 10, bty = by + bh - 22; g.fillStyle = C.gold2; g.fillRect(btx, bty, btw, 15); text(first ? 'Got it! +5xp' : 'Got it', btx + btw / 2, bty + 10, C.ink, 7, 'center');
+  hit(btx, bty, btw, 15, () => { if (first) { S.learned = S.learned || {}; S.learned[id] = 1; gainXp(5); float(`learned: ${f.name}`, W / 2, by - 6, '#9ee6a8', 8, true); } LEARN.shift(); SFX.stamp(); save(); });
+}
 const SETS = [ // finish a row of the album for a reward and +5 charm each
   { id: 'oysters', name: 'Oyster connoisseur', ids: SP.map(q => q.id), cash: 500, xp: 100 },
   { id: 'market', name: 'Wet market regular', ids: [...FISH.map(f => f.id), 'crabs', 'mussels', 'prawns', 'lobsters'], cash: 900, xp: 150 },
@@ -221,7 +264,7 @@ function save() { if (SAVE_OFF) return; try { const { t, pick, pickFish, build, 
 // ---- sprites ----
 const IMG = {};
 ['oyster-baby-idle', 'oyster-baby-blink', 'oyster-medium-idle', 'oyster-medium-blink', 'oyster-fat-idle', 'oyster-fat-blink', 'sp-withered', 'sp-pearl', 'sp-gold', 'sea-crab-a', 'customer-wait', 'customer-happy',
-  'hut-hut', 'bbq-grill', 'bbq-table', ...['steamboat', 'zichar', 'prata', 'nasilemak'].flatMap(k => [`din-${k}-cook`, `din-${k}-table`]), 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', ...[1, 2, 3, 4, 5, 6, 7, 8].map(n => `buyer-${n}`), ...Array.from({ length: GUESTS }, (_, i) => i + 1).flatMap(n => ['idle', 'walk', 'photo'].map(f => `guest${n}-${f}`)), 'shed-tier3', 'shed-tier4', 'stock-prawn-a', 'stock-prawn-b', 'stock-lobster', 'stock-mussels', 'stock-trap', 'dec2-rack', 'dec2-lanterns', 'dec2-mahjong', 'dec2-sofa', 'dec2-beacon', 'dec2-neon', 'lounge-hammock-empty', ...['chair', 'hammock', 'bench'].flatMap(k => ['farmer', 'harvester', 'keeper', 'carpenter'].map(w => `lounge-${k}-${w}`)), 'cellar-crate-0', 'cellar-crate-1', 'cellar-crate-2', 'cellar-buoy', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
+  'hut-hut', 'bbq-grill', 'bbq-table', ...['steamboat', 'zichar', 'prata', 'nasilemak'].flatMap(k => [`din-${k}-cook`, `din-${k}-table`]), 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', ...[1, 2, 3, 4, 5, 6, 7, 8].map(n => `buyer-${n}`), ...Array.from({ length: GUESTS }, (_, i) => i + 1).flatMap(n => ['idle', 'walk', 'photo'].map(f => `guest${n}-${f}`)), 'shed-tier3', 'shed-tier4', 'stock-prawn-a', 'stock-prawn-b', 'stock-lobster', 'stock-mussels', 'stock-trap', 'dec2-rack', 'dec2-lanterns', 'dec2-mahjong', 'dec2-sofa', 'dec2-beacon', 'dec2-neon', 'lounge-hammock-empty', ...['chair', 'hammock', 'bench'].flatMap(k => ['farmer', 'harvester', 'keeper', 'carpenter'].map(w => `lounge-${k}-${w}`)), 'cellar-crate-0', 'cellar-crate-1', 'cellar-crate-2', 'cellar-buoy', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', ...['farmer', 'harvester', 'keeper', 'carpenter'].flatMap(w => [`kayak-${w}-a`, `kayak-${w}-b`]), ...['beg', 'paw', 'roll', 'jump', 'chew', 'happy', 'bow', 'dance'].map(k => `dog-${k}`), 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
   ...['carpenter', 'keeper', 'harvester'].flatMap(w => ['front-idle', 'front-walk', 'back-idle', 'back-walk', 'work-a', 'work-b', 'idle-fish', 'idle-rest', 'idle-mend', 'swim-a', 'swim-b', 'swim-play', 'swim-float'].map(f => `wk-${w}-${f}`)), 'farmer-idle-fish', 'farmer-idle-rest', 'farmer-idle-mend', 'farmer-swim-a', 'farmer-swim-b', 'farmer-swim-play', 'farmer-swim-float',
   'bld-stall', 'bld-shed', 'bld-lantern', 'bld-flag', 'bld-palm', 'bld-bench', 'bld-cat', 'pen-fishcage-empty', 'pen-fishcage-full', 'pen-crabpen-empty', 'pen-crabpen-full',
   'fish-seabass', 'fish-pomfret', 'fish-snapper', 'fish-grouper', 'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-gull-a', 'sea-gull-b', 'sea-jelly-a', 'sea-jelly-b', 'sc-cloud1', 'sc-cloud2', 'sc-cloud3',
@@ -283,7 +326,7 @@ const foam = (x, y, back, life = 0.7) => A.particles.push({ x: x + back * rnd(0,
 function pop(x, y, color, n = 8) { for (let i = 0; i < n; i++) A.particles.push({ x, y, vx: rnd(-30, 30), vy: rnd(-60, 0), life: 0.6, color }); }
 function hop(im, x, y, s = 1) { if (im) A.hops.push({ im, x, y, s, vy: -90, life: 0.9 }); } // a sprite that jumps up and fades (harvest, crate)
 function collect(id, n = 1) { orderProgress(id); const first = !S.album[id]; S.album[id] = (S.album[id] || 0) + n; S.sets = S.sets || {};
-  for (const st of SETS) if (!S.sets[st.id] && st.ids.every(q => S.album[q])) { S.sets[st.id] = 1; S.cash += st.cash; float(`Set complete: ${st.name}! +S$${st.cash} +5 charm`, W / 2, 140, C.gold, 10, true); SFX.levelup(); setTimeout(() => gainXp(st.xp), 0); } if (first) { const e = ALBUM.find(a => a.id === id); float(`New in album: ${e ? e.name : id}`, W / 2, 120, C.gold, 10, true); SFX.stamp(); } }
+  for (const st of SETS) if (!S.sets[st.id] && st.ids.every(q => S.album[q])) { S.sets[st.id] = 1; S.cash += st.cash; float(`Set complete: ${st.name}! +S$${st.cash} +5 charm`, W / 2, 140, C.gold, 10, true); SFX.levelup(); setTimeout(() => gainXp(st.xp), 0); } if (first) { const e = ALBUM.find(a => a.id === id); float(`New in album: ${e ? e.name : id}`, W / 2, 120, C.gold, 10, true); SFX.stamp(); if (FACTS[id] && !(S.learned && S.learned[id])) LEARN.push(id); } }
 function rollRare(wx, wy) {
   for (const [id, r] of Object.entries(RARE)) if (Math.random() < r.odds * (has('cat') ? 2 : 1)) { S.cash += r.cash; collect(id); hop(ready(r.sprite), wx, wy); float(`${r.label}! +S$${r.cash}`, ...scr(wx, wy - 40), C.gold, 10); return; }
 }
@@ -427,7 +470,7 @@ function stepCroc(dt) {
   else if (k.phase === 'out') { const u = Math.min(1, k.t / 9); k.x = k.wx + (k.ox - k.wx) * u; k.y = k.wy + (k.oy - k.wy) * u; if (u >= 1) CROC = null; }
 }
 const crocAt = (r, c) => !!CROC && CROC.phase !== 'in' && CROC.phase !== 'out' && CROC.r === r && CROC.c === c;
-function tapCroc() { const [x, y] = tilePos(CROC.r, CROC.c); SFX.nope(); float('a saltwater croc, basking. leave it be', x, y - 30, C.sand); }
+function tapCroc() { const [x, y] = tilePos(CROC.r, CROC.c); float('a saltwater croc, basking. leave it be', x, y - 30, C.sand); openLearn('croc'); }
 function drawCroc(x0, y0, t) {
   const k = CROC, w = center(k.r, k.c), [ps] = scr(w.x, w.y), [ws] = scr(k.wx, k.wy), toSea = ws > ps; // head points at the water while basking
   if (k.phase === 'in' || k.phase === 'out') { const [sx, sy] = scr(k.x, k.y), right = (k.phase === 'in' ? k.wx - k.ox : k.ox - k.wx) > 0, bob = Math.sin(t * 1.5) * 1;
@@ -474,7 +517,7 @@ function stepSea(dt) {
 }
 function tapSea(wx, wy) {
   if (!SEA || Math.hypot(wx - SEA.x, (wy - SEA.y) * 1.6) > 40) return false;
-  const [x, y] = scr(SEA.x, SEA.y); float(SEALIFE[SEA.kind].note, x, y - 30, C.sand, 8); SFX.pop(); return true;
+  openLearn(SEA.kind); return true;
 }
 function drawSea(t) {
   const k = SEA, [sx, sy] = scr(k.x, k.y), flip = k.x1 > k.x0, under = (n, x, y, a) => sprite(tinted(n, '#1b5a8a'), x, y, { flip, alpha: a }); // sprites face left; underwater means blue and dim
@@ -587,6 +630,45 @@ function crabsOf(o) { let a = CRABS.get(o); if (!a) { a = [[-14, 0, false], [11,
 function stepCrabs(dt) { for (const o of S.objs) if (o.id === 'crabpen' && o.fed) for (const k of crabsOf(o)) if ((k.next -= dt) <= 0) { k.shift = k.shift ? 0 : (Math.random() < 0.5 ? -1 : 1); k.next = k.shift ? rnd(1.5, 3) : rnd(5, 12); } }
 // the golden retriever: dashes to a random spot, trots after the farmer, sits, sniffs, flops down on his bed
 let DOG = null;
+// tricks: tap Joji, pick a trick, he does it (now and then he gets it wrong first), then give him a treat or a pat
+const TRICKS = [{ id: 'beg', name: 'Beg', dur: 2.2 }, { id: 'paw', name: 'Shake', dur: 2 }, { id: 'roll', name: 'Roll over', dur: 2.4 }, { id: 'jump', name: 'Jump', dur: 1.7 }, { id: 'dance', name: 'Dance', dur: 2.4 }, { id: 'bow', name: 'Play bow', dur: 1.8 }];
+let TRICK = null;
+function tapDog(sx, sy) {
+  if (!DOG || PLAY || TRICK) return false; const w = center(DOG.r, DOG.c), [x, y] = scr(w.x, w.y); if (Math.hypot(sx - x, sy - (y - 8)) > 16) return false;
+  DOG.queue = []; DOG.moving = false; DOG.pose = 'sit'; TRICK = { phase: 'menu', t: 0 }; SFX.woof(); float('woof!', x, y - 30, C.sand, 8); return true;
+}
+function startTrick(k) { const wrong = Math.random() < 0.18; TRICK = { phase: 'do', t: 0, k: wrong ? TRICKS.filter(q => q !== k)[Math.floor(Math.random() * (TRICKS.length - 1))] : k, asked: k, wrong }; SFX.pop(); }
+function stepTrick(dt) {
+  const k = TRICK; if (!k) return; k.t += dt; const [x, y] = head(DOG);
+  if ((k.phase === 'menu' && k.t > 15) || (k.phase === 'reward' && k.t > 12)) { if (k.phase === 'reward') float('*whine*', x, y + 16, C.grey, 7); TRICK = null; DOG.idle = 0; return; }
+  if (k.phase === 'do' && k.t >= k.k.dur) { if (k.wrong) { float(`he did "${k.k.name.toLowerCase()}" instead… try again?`, x, y + 14, C.sand, 7); TRICK = { phase: 'menu', t: 0 }; } else { float('good boy!', x, y + 14, C.gold2, 8); S.tricks = S.tricks || {}; S.tricks[k.k.id] = (S.tricks[k.k.id] || 0) + 1; TRICK = { phase: 'reward', t: 0, k: k.k }; SFX.woof(); } return; }
+  if ((k.phase === 'eat' && k.t > 2.6) || (k.phase === 'pat' && k.t > 1.6)) { if (k.phase === 'eat') { TRICK = { phase: 'pat', t: 0 }; return; } TRICK = null; DOG.idle = rnd(1, 2); }
+}
+function giveTreat() { if (S.cash < 2) { SFX.nope(); return float('no coins for a treat', W / 2, 260, C.pink, 8, true); } S.cash -= 2; S.treats = (S.treats || 0) + 1; const [x, y] = head(DOG); float('nom nom nom', x, y + 14, C.sand, 7); gainXp(3); TRICK = { phase: 'eat', t: 0 }; SFX.chomp(); save(); }
+function patDog() { const [x, y] = head(DOG); float('*happy wiggle*', x, y + 14, C.sand, 7); TRICK = { phase: 'pat', t: 0 }; SFX.woof(); }
+function dogTrickPose(d, t) { // what Joji looks like mid-trick: sprite, hop and which way he faces
+  const k = TRICK, u = k.t; let n = 'dog-sit', hop = 0, flip = d.flip;
+  if (k.phase === 'do') { const id = k.k.id;
+    if (id === 'beg') { n = 'dog-beg'; hop = -Math.abs(Math.sin(u * 6)) * 1.5; }
+    else if (id === 'paw') n = Math.floor(u * 2.5) % 2 ? 'dog-paw' : 'dog-sit';
+    else if (id === 'roll') { const i = Math.floor(u / 0.3); n = i % 2 ? 'dog-roll' : 'dog-lie'; flip = Math.floor(i / 2) % 2 ? !d.flip : d.flip; }
+    else if (id === 'jump') { const v = (u % 0.85) / 0.85; n = v < 0.8 ? 'dog-jump' : 'dog-sit'; hop = v < 0.8 ? -Math.sin(v / 0.8 * Math.PI) * 16 : 0; }
+    else if (id === 'dance') { n = 'dog-dance'; flip = Math.floor(u / 0.35) % 2 ? !d.flip : d.flip; hop = -Math.abs(Math.sin(u * 9)) * 2; }
+    else if (id === 'bow') n = 'dog-bow'; }
+  else if (k.phase === 'reward') n = Math.floor(u * 2) % 2 ? 'dog-happy' : 'dog-beg';
+  else if (k.phase === 'eat') n = 'dog-chew';
+  else if (k.phase === 'pat') { n = 'dog-happy'; hop = -Math.abs(Math.sin(u * 8)) * 1.5; }
+  return { n, hop, flip };
+}
+function drawTrickUI() {
+  const k = TRICK; if (!k || !DOG || (k.phase !== 'menu' && k.phase !== 'reward')) return; const btns = k.phase === 'menu' ? TRICKS.map(q => [q.name, () => startTrick(q)]) : [[`Give a treat (S$2)`, giveTreat], ['Pat him', patDog]];
+  const bw = k.phase === 'menu' ? 66 : 120, pw = btns.length * (bw + 4) + 12, px = Math.round(W / 2 - pw / 2), py = H - 60;
+  g.fillStyle = '#0c0c0ee6'; g.fillRect(px, py, pw, 44); g.strokeStyle = C.gold; g.lineWidth = 1; g.strokeRect(px + 0.5, py + 0.5, pw - 1, 43); hit(px, py, pw, 44, () => {});
+  text(k.phase === 'menu' ? 'Joji: which trick?' : `Good boy, Joji! ${k.k ? `(${k.k.name.toLowerCase()} ×${(S.tricks || {})[k.k.id] || 1})` : ''}`, px + 8, py + 12, C.gold, 8);
+  text('×', px + pw - 8, py + 10, C.grey, 9, 'center'); hit(px + pw - 16, py, 16, 14, () => { TRICK = null; DOG.idle = 0; });
+  btns.forEach(([label, fn], i) => { const bx = px + 6 + i * (bw + 4); g.fillStyle = i === 0 && k.phase === 'reward' ? C.gold2 : '#2b3a50'; g.fillRect(bx, py + 20, bw, 16); text(label, bx + bw / 2, py + 31, i === 0 && k.phase === 'reward' ? C.ink : C.sand, 7, 'center'); hit(bx, py + 20, bw, 16, fn); });
+}
+
 // the cat: naps a long while in one spot, wakes with a stretch, sits a moment, then pads off to a new plank to nap again;
 // sometimes she goes and finds the dog instead, and the two chase each other round in circles for a few seconds
 let CAT = null, PLAY = null;
@@ -595,7 +677,7 @@ function catThink(k, dt) {
   if ((k.idle = (k.idle ?? rnd(15, 40)) - dt) > 0) { if (k.pose === 'sleep' && Math.random() < dt / 4) { const w = center(k.r, k.c), [x, y] = scr(w.x, w.y); float('z', x + 8, y - 20, C.sand, 7); } return; }
   if (k.pose === 'sleep') { k.pose = 'stretch'; k.idle = 1.6; return; }
   if (k.pose === 'stretch') { k.pose = 'sit'; k.idle = rnd(2, 5); return; }
-  if (DOG && !DOG.queue.length && DOG.pose !== 'lie' && Math.random() < 0.4) { const r0 = Math.round(k.r), c0 = Math.round(k.c); if (path(Math.round(DOG.r), Math.round(DOG.c), r0, c0)) { PLAY = { phase: 'gather', t: 0, len: rnd(6, 10), a: 0, cr: k.r, cc: k.c }; k.pose = 'pounce'; DOG.queue = [{ tr: r0, tc: c0, fn: () => {}, act: 0, idle: true }]; SFX.mew(); return; } }
+  if (DOG && !TRICK && !DOG.queue.length && DOG.pose !== 'lie' && Math.random() < 0.4) { const r0 = Math.round(k.r), c0 = Math.round(k.c); if (path(Math.round(DOG.r), Math.round(DOG.c), r0, c0)) { PLAY = { phase: 'gather', t: 0, len: rnd(6, 10), a: 0, cr: k.r, cc: k.c }; k.pose = 'pounce'; DOG.queue = [{ tr: r0, tc: c0, fn: () => {}, act: 0, idle: true }]; SFX.mew(); return; } }
   const r0 = Math.round(k.r), c0 = Math.round(k.c), cand = [];
   for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (land(r, c) && walkable(r, c) && !hutTile(r, c) && !objAt(r, c) && !taken(r, c, k) && Math.hypot(r - r0, c - c0) >= 2 && path(r0, c0, r, c)) cand.push([r, c]);
   const [tr, tc] = cand.length ? cand[Math.floor(Math.random() * cand.length)] : [r0, c0];
@@ -713,9 +795,9 @@ function stepActor(dt, F) {
 let INFO = null;
 function infoOf(r, c) {
   const gen = up('generator') ? 1.1 : 1, p = penTile(r, c) && S.plots[r] && S.plots[r][c];
-  if (p && !withered(p) && growth(p) < 1) { const sp = species(p.sp); return { name: `${sp.name} oysters`, icon: tinted('oyster-fat-idle', sp.tint), prog: growth(p), left: (1 - growth(p)) * sp.time / gen, sell: Math.round(sp.sell * sellMul()), xp: sp.xp }; }
+  if (p && !withered(p) && growth(p) < 1) { const sp = species(p.sp); return { id: sp.id, name: `${sp.name} oysters`, icon: tinted('oyster-fat-idle', sp.tint), prog: growth(p), left: (1 - growth(p)) * sp.time / gen, sell: Math.round(sp.sell * sellMul()), xp: sp.xp }; }
   const o = objAt(r, c), it = o && item(o.id); if (!it || !it.pen || !o.fed) return null; const pen = penSpec(o), left = pen.time - (Date.now() - o.fed) / 1000; if (left <= 0) return null;
-  const al = ALBUM.find(a => a.id === pen.what); return { name: pen.win ? 'NILA bottles ageing' : it.id === 'fishcage' ? `${al ? al.name : 'Fish'} (fish cage)` : al ? al.name : it.name, icon: al && al.icon(), prog: 1 - left / pen.time, left, sell: pen.win ? 0 : Math.round(pen.sell * sellMul()), xp: pen.xp };
+  const al = ALBUM.find(a => a.id === pen.what); return { id: pen.what, name: pen.win ? 'NILA bottles ageing' : it.id === 'fishcage' ? `${al ? al.name : 'Fish'} (fish cage)` : al ? al.name : it.name, icon: al && al.icon(), prog: 1 - left / pen.time, left, sell: pen.win ? 0 : Math.round(pen.sell * sellMul()), xp: pen.xp };
 }
 function drawInfo() {
   if (!INFO) return; const d = infoOf(INFO.r, INFO.c); if (!d || Date.now() - INFO.at > 8000) { INFO = null; return; }
@@ -726,6 +808,7 @@ function drawInfo() {
   text(d.name, x + 51, y + 13, C.gold, 8); text(`ready in ${fmt(d.left)}`, x + 51, y + 25, C.sand, 7);
   g.fillStyle = '#1a2a40'; g.fillRect(x + 51, y + 29, w - 58, 5); g.fillStyle = '#9ad0e0'; g.fillRect(x + 51, y + 29, Math.round((w - 58) * Math.min(1, d.prog)), 5);
   text(d.sell ? `sells for S$${d.sell} · +${d.xp}xp` : `+${d.xp}xp`, x + 51, y + 44, C.gold2, 7);
+  if (FACTS[d.id]) { text('learn ›', x + w - 6, y + 13, '#9ee6a8', 7, 'right'); hit(x, y, w, h, () => { INFO = null; openLearn(d.id); }); }
 }
 function tapTile(r, c) {
   INFO = null;
@@ -1201,7 +1284,7 @@ function update(dt) {
   S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepOrders(dt); if (TOAST) TOAST.t += dt; stepSpot(dt); stepTour(dt); stepStorm(dt); stepFest(dt); stepSea(dt); stepOtters(dt); stepHcrab(dt); stepDinner(dt); stepActor(dt, F); idle(F, dt); for (const w of WK) { w.speed = has('dog') ? 1.2 : 1; stepActor(dt, w); think(w, dt); idle(w, dt); }
   const bed = S.objs.find(o => o.id === 'dog'); if (bed && !DOG) DOG = actor({ r: bed.r, c: bed.c, speed: 1.9 }); if (!bed) DOG = null;
   const home = S.objs.find(o => o.id === 'cat'); if (home && !CAT) CAT = actor({ r: home.r, c: home.c, speed: 0.7, pose: 'sleep' }); if (!home) CAT = null;
-  if (DOG && (!PLAY || PLAY.phase === 'gather')) stepActor(dt, DOG); if (DOG && !PLAY) dogThink(DOG, dt, bed);
+  if (DOG && !TRICK && (!PLAY || PLAY.phase === 'gather')) stepActor(dt, DOG); if (DOG && !PLAY && !TRICK) dogThink(DOG, dt, bed); if (!DOG) TRICK = null; stepTrick(dt);
   if (CAT && !PLAY) { stepActor(dt, CAT); catThink(CAT, dt); } stepPlay(dt);
   for (const f of A.fish) { f.x += f.v * dt; if (f.x > 520) f.x = -520; if (f.x < -520) f.x = 520; if (Math.random() < 0.004) f.v = -f.v; }
   for (const j of A.jelly) { j.y -= 4 * dt; if (j.y < -20) j.y = 520; j.x += Math.sin(S.t + j.ph) * 3 * dt; }
@@ -1447,14 +1530,13 @@ function mood(x, y, kind, u) {
   else if (kind === 'heart') { g.fillStyle = '#e04a5a'; g.fillRect(x - 3, y - 2, 2, 2); g.fillRect(x + 1, y - 2, 2, 2); g.fillRect(x - 3, y - 1, 6, 2); g.fillRect(x - 2, y + 1, 4, 1); g.fillRect(x - 1, y + 2, 2, 1); }
   else { g.fillRect(x - 2, y - 2, 1, 2); g.fillRect(x + 2, y - 2, 1, 2); g.fillRect(x - 2, y + 1, 5, 1); g.fillStyle = '#e05a5a'; g.fillRect(x + 1, y + 2, 2, 1); }
 }
-// out in a kayak: a red hull on the water, the paddler's top half, a double paddle dipping side to side
+// out in a kayak: the paddler in a life jacket, sitting in an orange kayak, the double paddle dipping one side then the other
 function drawKayak(a, pre, t) {
-  const sw = a.swim, [sx, sy] = scr(sw.x, sw.y), bob = Math.sin(a.walk * 2.2) * 1, moving = sw.phase === 'swim', ang = moving ? Math.sin(sw.stroke * 4) * 0.6 : 0.15, im = ready(`${pre}-front-idle`);
-  g.globalAlpha = 0.35; ell(sx, sy + 4, 24, 5, '#e8f4ff'); g.globalAlpha = 1;
-  if (im) { g.save(); g.beginPath(); g.rect(sx - 30, sy - 60, 60, 58 + bob); g.clip(); sprite(im, sx, sy + 16 + bob, { flip: a.flip }); g.restore(); }
-  ell(sx, sy + 1 + bob, 22, 5, '#8a2a1a'); ell(sx, sy + bob, 21, 4, '#e0603a'); ell(sx + (a.flip ? 12 : -12), sy - 1 + bob, 6, 1.5, '#f08a5a');
-  g.save(); g.translate(Math.round(sx), Math.round(sy - 12 + bob)); g.rotate(ang); g.fillStyle = '#c8a070'; g.fillRect(-15, 0, 30, 1); g.fillStyle = '#f0c040'; g.fillRect(-18, -1, 4, 3); g.fillRect(14, -1, 4, 3); g.restore();
-  if (moving && Math.random() < 0.25) A.particles.push({ x: sx + (Math.sin(sw.stroke * 4) > 0 ? 16 : -16), y: sy + 2, vx: rnd(-8, 8), vy: rnd(-20, -6), life: 0.4, color: '#e8f4ff' });
+  const sw = a.swim, [sx, sy] = scr(sw.x, sw.y), bob = Math.sin(a.walk * 2.2) * 1, moving = sw.phase === 'swim', side = moving ? Math.sin(sw.stroke * 4) > 0 : true, who = pre.replace('wk-', '');
+  g.globalAlpha = 0.3; ell(sx, sy + 3, 46, 6, '#e8f4ff'); g.globalAlpha = 1; ell(sx, sy + 4, 40, 4, '#00000033');
+  sprite(`kayak-${who}-${side ? 'a' : 'b'}`, sx, sy + 8 + bob, { flip: a.flip });
+  if (moving && Math.random() < 0.3) { const dx = (side ? -1 : 1) * (a.flip ? -1 : 1) * 22; A.particles.push({ x: sx + dx + rnd(-3, 3), y: sy + 4, vx: rnd(-10, 10), vy: rnd(-18, -6), life: 0.35, color: '#e8f4ff' }); } // the blade's splash
+  if (moving && Math.random() < 0.3) foam(sx + (a.flip ? 48 : -48), sy + 5, a.flip ? 1 : -1, 0.6);
 }
 // the newer pens: mussel ropes under a bamboo pole, tiger prawns darting about, spiny lobsters by their traps; they fill out as they grow
 const STOCK = { mussels: 1, prawns: 1, lobsters: 1 };
@@ -1516,9 +1598,10 @@ function drawEntity(e, x, y, t, D) {
     ell(bx, by + 4, 20, 6, '#00000044'); sprite(s.phase === 'leave' ? 'customer-happy' : 'customer-wait', bx, by + 8 + bob, { flip: s.phase !== 'leave' });
     if (s.loaded || s.paid) sprite('shed-crates', bx + 8, by + 4 + bob, { scale: 0.55 });
     if (s.phase === 'wait' && !s.loaded) text('buyer waiting', bx, by - 34, C.sand, 7, 'center'); return; }
-  if (e.kind === 'dog') { const d = DOG, n = d.moving ? `dog-run-${Math.floor(d.walk * 8) % 2 ? 'a' : 'b'}` : `dog-${d.pose || 'sit'}`, hop = d.moving ? -Math.abs(Math.sin(d.walk * 16)) * 2 : 0;
+  if (e.kind === 'dog') { const d = DOG, tp = TRICK && dogTrickPose(d, t), n = tp ? tp.n : d.moving ? `dog-run-${Math.floor(d.walk * 8) % 2 ? 'a' : 'b'}` : `dog-${d.pose || 'sit'}`, hop = tp ? tp.hop : d.moving ? -Math.abs(Math.sin(d.walk * 16)) * 2 : 0;
+    if (TRICK && (TRICK.phase === 'eat' || TRICK.phase === 'pat') && Math.floor(TRICK.t * 3) % 3 === 0) mood(x, y - 30, 'heart', (TRICK.t * 3) % 1); // little hearts while he's happy
     const inBed = !d.moving && S.objs.some(o => o.id === 'dog' && o.r === Math.round(d.r) && o.c === Math.round(d.c)); // lying in his own bed: sink into it, no extra shadow
-    if (!inBed) ell(x, y + 3, 10, 3, '#00000044'); sprite(n, x, y + (inBed ? 1 : 4) + hop, { flip: d.flip });
+    if (!inBed) ell(x, y + 3, 10, 3, '#00000044'); sprite(n, x, y + (inBed && !tp ? 1 : 4) + hop, { flip: tp ? tp.flip : d.flip });
     if (d.moving && Math.random() < 0.2) A.particles.push({ x: x + (d.flip ? 8 : -8), y: y + 2, vx: rnd(-6, 6), vy: rnd(-8, -2), life: 0.4, color: '#c8c2b4' }); return; }
   if (e.kind === 'tank') { // depuration tank: bubbling while it works, a gold dot and a count once oysters are clean to sell
     const n = S.tank.length, clean = S.tank.filter(isClean).length; ell(x, y + 6, 30, 10, '#00000033');
@@ -1735,12 +1818,13 @@ function drawSets() { // album sets, to the left of the album
 }
 function drawAlbum() { drawSets();
   const w = 54, cols = 5, x0 = W - 6 - cols * w, y0 = 22; panelBox(x0 - 6, y0, cols * w + 12, 22 + Math.ceil(ALBUM.length / cols) * 56);
-  const found = ALBUM.filter(a => S.album[a.id]).length; text(`Album  ${found}/${ALBUM.length}`, x0, y0 + 12, C.gold2, 8);
+  const found = ALBUM.filter(a => S.album[a.id]).length; text(`Album  ${found}/${ALBUM.length}`, x0, y0 + 12, C.gold2, 8); text(`learned ${learned()}/${Object.keys(FACTS).length} · tap one to learn`, x0 + 84, y0 + 12, '#9ee6a8', 6);
   ALBUM.forEach((a, i) => {
     const x = x0 + (i % cols) * w + w / 2, y = y0 + 18 + Math.floor(i / cols) * 56, n = S.album[a.id] || 0, im = a.icon();
     if (im) { const s = Math.min(1, 28 / im.height, 40 / im.width); g.globalAlpha = n ? 1 : 0.12; g.drawImage(im, Math.round(x - im.width * s / 2), Math.round(y + 30 - im.height * s), Math.round(im.width * s), Math.round(im.height * s)); g.globalAlpha = 1; }
     if (!n) text('?', x, y + 22, C.grey, 12, 'center');
     text(n ? a.name : '???', x, y + 40, n ? (a.rare ? C.gold : C.sand) : C.grey, 6, 'center'); if (n) text(`×${n}`, x, y + 48, C.gold2, 6, 'center');
+    if (n && FACTS[a.id]) { if (!(S.learned && S.learned[a.id])) { g.fillStyle = '#9ee6a8'; g.fillRect(x + 14, y + 2, 4, 4); } hit(x - w / 2, y, w, 52, () => openLearn(a.id)); } // a green dot: a card you haven't read yet
   });
 }
 async function copySave() {
@@ -1824,7 +1908,7 @@ function draw() {
   if (S.panel === 'boat') drawBoatPanel();
   if (S.panel === 'hut') drawHutPanel();
   if (S.panel === 'tank') drawTankPanel();
-  drawInfo(); drawMini(); drawBanners(); drawToast(); drawOffer();
+  drawInfo(); drawMini(); drawBanners(); drawToast(); drawOffer(); drawLearn(); drawTrickUI();
   for (const f of A.floaters) if (f.ui) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, f.size, 'center'); } g.globalAlpha = 1;
   g.fillStyle = '#0c0c0eb0'; g.fillRect(0, 0, W, 18);
   text(`S$${S.cash}`, 8, 13, C.gold2, 11);
@@ -1868,6 +1952,7 @@ cv.addEventListener('pointerup', e => {
   if (S.won) return;
   if (S.pick || S.pickFish) { S.pick = null; S.pickFish = null; return; }
   const an = nutAir(x, y); if (an) { catchNut(an); return; }
+  if (tapDog(x, y)) return;
   if (tapSpot(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
   if (tapSea(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
   const tl = tileAt(x, y);
