@@ -66,6 +66,9 @@ ITEMS.push(
 // items whose effect only counts once (or up to three palms): the build bar shows "have one" and won't sell another
 const MAXN = { lantern: 1, bench: 1, flag: 1, cat: 1, dog: 1, stall: 1, shed: 1, palm: 3 };
 const full = it => MAXN[it.id] && count(it.id) >= MAXN[it.id];
+// how big each piece stands on the deck, against Darren as a 1.6 m grown-up (the art came in different batches at different scales)
+const SIZE = { palm: 1.35, lantern: 0.75, bench: 0.55, stall: 0.85, flag: 0.85, shed: 0.85, pot: 0.85, chair: 1.15, hammock: 1, kayak: 1.45, rack: 1.2, redlanterns: 1.35, mahjong: 1.4, sofa: 1.3, beacon: 1.45, neon: 1.3 };
+for (const [id, sz] of Object.entries(SIZE)) ITEMS.find(i => i.id === id).scale = sz;
 const LOOKS = [ // shed panel, third row: one-off touches that make the place nicer; each adds charm
   { id: 'railings', name: 'Railings',      cost: 300, lvl: 2, charm: 6, desc: 'Weathered timber railings round the shed platform. +6 charm.' },
   { id: 'bunting',  name: 'Bunting',       cost: 250, lvl: 2, charm: 5, desc: 'Strings of little flags over the platform. +5 charm.' },
@@ -242,14 +245,14 @@ const swing = (pivx, pivy, amp, speed, ph) => (im, px, py, pw, ph2) => { g.trans
 const wave = (amp, speed) => (im, px, py, pw, ph2) => { const gust = 0.7 + 0.3 * Math.sin(S.t * 0.5); for (let i = 0; i < pw; i++) { const dy = Math.round(amp * gust * Math.sin(i * 0.28 - S.t * speed) * (i / pw)); g.drawImage(im, px + i, py, 1, ph2, px + i, py + dy, 1, ph2); } };
 // which part of each decoration moves, and how (palm fronds sway, flag waves, lantern and chimes swing, plants nod)
 const ANIM = {
-  palm:    (x, y, ph) => { g.save(); g.translate(x, y); g.scale(1.35, 1.35); const ok = spritePart('bld-palm', 0, 0, [0, 0, 80, 52], sway(4, 1.1, ph, 1.1)); g.restore(); return ok; }, // a tall coconut palm
+  palm:    (x, y, ph) => spritePart('bld-palm', x, y, [0, 0, 80, 52], sway(4, 1.1, ph, 1.1)), // a tall coconut palm
   flag:    (x, y, ph) => spritePart('bld-flag', x, y, [19, 0, 25, 44], wave(4.5, 4)), // a big, slow billow that swells and eases with the breeze
   lantern: (x, y, ph) => spritePart('bld-lantern', x, y, [14, 9, 23, 52], swing(26, 11, 0.07, 1.7, ph)),
   chimes:  (x, y, ph) => spritePart('dec-chimes', x, y, [8, 6, 13, 42], swing(15, 7, 0.12, 2.1, ph)),
-  hammock: (x, y, ph) => { g.save(); g.translate(x, y); g.scale(1.35, 1.35); const ok = spritePart('lounge-hammock-empty', 0, 0, [5, 6, 52, 30], swing(31, 6, 0.04, 1.3, ph)); g.restore(); return ok; },
+  hammock: (x, y, ph) => spritePart('lounge-hammock-empty', x, y, [5, 6, 52, 30], swing(31, 6, 0.04, 1.3, ph)),
   pot:     (x, y, ph) => spritePart('dec-pot', x, y, [0, 0, 34, 26], sway(0.8, 1.6, ph, 0.3)),
   flowers: (x, y, ph) => spritePart('dec-flowers', x, y, [0, 0, 41, 30], sway(1, 1.4, ph, 0.3)),
-  chair:   (x, y, ph) => { g.save(); g.translate(x, y); g.scale(1.35, 1.35); const ok = spritePart('dec-chair', 0, 0, [0, 0, 33, 16], sway(0.6, 1.8, ph)); g.restore(); return ok; },
+  chair:   (x, y, ph) => spritePart('dec-chair', x, y, [0, 0, 33, 16], sway(0.6, 1.8, ph)),
 };
 function sprite(name, x, y, { flip = false, alpha = 1, scale = 1 } = {}) {
   const im = typeof name === 'string' ? ready(name) : name; if (!im) return false;
@@ -359,7 +362,7 @@ function idle(a, dt) {
 }
 // off duty with the animals and the decor: pet the dog or the cat, nap in the hammock, lounge in the deck chair or on the bench,
 // water the plants, take a kayak out for a paddle
-const SEATS = { bench: { s: 0.55 }, chair: { s: 1.35 }, hammock: { s: 1.35, swing: true } }; // drawn as the piece with that person in it (lounge-<piece>-<who>)
+const SEATS = { bench: { s: 0.55 }, chair: { s: 1.15 }, hammock: { s: 1, swing: true } }; // same sizes as the empty pieces (SIZE) // drawn as the piece with that person in it (lounge-<piece>-<who>)
 function besideFree(r, c, a) { const nb = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([i, j]) => [r + i, c + j]).filter(([i, j]) => walkable(i, j) && !hutTile(i, j) && !objAt(i, j) && !taken(i, j, a)); return nb.sort((p, q) => Math.hypot(p[0] - a.r, p[1] - a.c) - Math.hypot(q[0] - a.r, q[1] - a.c)).find(([i, j]) => path(Math.round(a.r), Math.round(a.c), i, j)); }
 function useSomething(a) {
   const r0 = Math.round(a.r), c0 = Math.round(a.c), near = (r, c) => Math.hypot(r - a.r, c - a.c) < 9, opts = [];
@@ -1531,7 +1534,7 @@ function drawEntity(e, x, y, t, D) {
     return;
   }
   if (e.kind === 'obj') {
-    const o = e.o, it = item(o.id); if (it.id !== 'cellar' && it.id !== 'crabpen' && !STOCK[it.id]) ell(x, y + 5, it.pen ? 30 : it.id === 'cat' || it.id === 'dog' ? 9 : 16, it.pen ? 12 : it.id === 'cat' || it.id === 'dog' ? 3 : 6, '#00000044');
+    const o = e.o, it = item(o.id); if (it.id !== 'cellar' && it.id !== 'crabpen' && !STOCK[it.id]) ell(x, y + 5, it.pen ? 30 : it.id === 'cat' || it.id === 'dog' ? 9 : 16 * Math.min(1.3, it.scale || 1), it.pen ? 12 : it.id === 'cat' || it.id === 'dog' ? 3 : 6 * Math.min(1.3, it.scale || 1), '#00000044');
     if (it.id === 'cellar') { // a crate of NILA bottles on a rope under a marker buoy: it sinks in, gathers barnacles and weed over the six months, then comes up
       const age = o.fed ? (Date.now() - o.fed) / 1000 : 0, mo = Math.min(6, Math.floor(age / 3600)), done = o.fed && mo >= 6, bob = Math.sin(t * 1.6 + o.c) * 1.2;
       const bx = x + 26, by = y - 4 + bob; // the buoy, off to one side of the pen
@@ -1565,13 +1568,14 @@ function drawEntity(e, x, y, t, D) {
     const sitter = SEATS[it.id] && [F, ...WK].find(a => a.working === 'lounge' && !a.moving && Math.round(a.r) === o.r && Math.round(a.c) === o.c);
     if (sitter) { const st = SEATS[it.id], ph = o.r * 1.7 + o.c * 2.3, sw = st.swing ? Math.sin(S.t * 1.3 + ph) * 1.2 : 0, im = ready(`lounge-${it.id}-${sitter.id || 'farmer'}`);
       if (im) { sprite(im, x + sw, y + 10, { scale: st.s }); if (Math.floor(sitter.walk / 3) % 3 === 1) mood(x + 12, y + 10 - im.height * st.s - 4, 'heart', (sitter.walk % 3) / 3); return; } }
-    if (ANIM[it.id] && ANIM[it.id](x, y + 10, o.r * 1.7 + o.c * 2.3)) return;
+    const sc = it.scale || 1, ph = o.r * 1.7 + o.c * 2.3, lit = () => { // the lights' glows, placed for the object's size
+      if (it.id === 'lantern') glow(x + 8 * sc, y + 10 - 62 * sc, 20 + 14 * D.lamp, '#f0c070', D.lamp + 0.05);
+      if (it.id === 'redlanterns') glow(x, y + 10 - 26 * sc, 22 + 10 * D.lamp, '#ff5a3a', D.lamp * 0.8 + 0.05);
+      if (it.id === 'neon') glow(x, y + 10 - 24 * sc, 26, '#ff6ab0', (D.lamp * 0.7 + 0.08) * (Math.random() < 0.02 ? 0.3 : 1));
+      if (it.id === 'beacon') { const ly = y + 10 - 38 * sc; glow(x, ly, 12 + 8 * D.lamp, '#fff0a0', D.lamp + 0.1); if (D.lamp > 0.2) { const a = S.t * 0.8; g.save(); g.globalAlpha = 0.12 * D.lamp; g.fillStyle = '#fff6c0'; g.beginPath(); g.moveTo(x, ly); g.arc(x, ly, 140, a, a + 0.25); g.closePath(); g.fill(); g.restore(); } } };
+    if (ANIM[it.id]) { g.save(); g.translate(x, y + 10); g.scale(sc, sc); const ok = ANIM[it.id](0, 0, ph); g.restore(); if (ok) { lit(); return; } }
     if (it.id === 'cat') { sprite('dog-bed', x, y + 6, { scale: 0.7 }); return; } // her basket; the cat herself wanders
-    sprite(it.sprite, x, y + 10, { scale: it.scale || 1 });
-    if (it.id === 'redlanterns') glow(x, y - 16, 22 + 10 * D.lamp, '#ff5a3a', D.lamp * 0.8 + 0.05);
-    if (it.id === 'neon') glow(x, y - 14, 26, '#ff6ab0', (D.lamp * 0.7 + 0.08) * (Math.random() < 0.02 ? 0.3 : 1));
-    if (it.id === 'beacon') { glow(x, y - 28, 12 + 8 * D.lamp, '#fff0a0', D.lamp + 0.1); if (D.lamp > 0.2) { const a = S.t * 0.8; g.save(); g.globalAlpha = 0.12 * D.lamp; g.fillStyle = '#fff6c0'; g.beginPath(); g.moveTo(x, y - 28); g.arc(x, y - 28, 140, a, a + 0.25); g.closePath(); g.fill(); g.restore(); } }
-    if (it.id === 'lantern') glow(x + 8, y - 52, 20 + 14 * D.lamp, '#f0c070', D.lamp + 0.05); return;
+    sprite(it.sprite, x, y + 10, { scale: sc }); lit(); return;
   }
   if (e.kind === 'plot') {
     const p = e.p, sp = species(p.sp), f = growth(p);
