@@ -1376,15 +1376,21 @@ function tooltip(title, body, bottom, hint) {
   const h = 16 + lines.length * 10, y = bottom - h; g.fillStyle = '#0c0c0ee6'; g.fillRect(W / 2 - 160, y, 320, h); g.strokeStyle = C.deep; g.strokeRect(W / 2 - 159.5, y + 0.5, 319, h - 1);
   text(title, W / 2, y + 11, C.gold2, 8, 'center'); lines.forEach((l, i) => text(l, W / 2, y + 22 + i * 10, hint && i === lines.length - 1 ? C.grey : C.sand, 7, 'center'));
 }
+let buildPage = 0; // the build bar shows nine cards at a time; arrows flip pages
 function drawBuild() {
   const y0 = H - 98; panelBox(4, y0, W - 8, 92);
-  [['farm', 'Farm'], ['decor', 'Decor'], ['move', 'Move']].forEach(([id, label], i) => { const x = 10 + i * 60, on = S.tab === id; g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, y0 + 4, 54, 12); text(label, x + 27, y0 + 13, on ? C.ink : C.sand, 7, 'center'); hit(x, y0, 54, 18, () => { S.tab = id; S.build = null; S.moveSel = null; SFX.pop(); }); });
+  [['farm', 'Farm'], ['decor', 'Decor'], ['move', 'Move']].forEach(([id, label], i) => { const x = 10 + i * 60, on = S.tab === id; g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, y0 + 4, 54, 12); text(label, x + 27, y0 + 13, on ? C.ink : C.sand, 7, 'center'); hit(x, y0, 54, 18, () => { S.tab = id; S.build = null; buildPage = 0; S.moveSel = null; SFX.pop(); }); });
   text(`charm ${charm()} · +${Math.round(Math.min(20, charm() * 0.5))}% sales`, W - 12, y0 + 13, C.gold2, 7, 'right');
   if (S.tab === 'move') {
     text(S.moveSel ? 'Now tap where it should go (tap it again to put it back).' : 'Tap a decoration, the generator, the tank or an empty pen to pick it up.', W / 2, y0 + 48, C.sand, 8, 'center');
     text('Shed, pens with stock, and crops stay where they are.', W / 2, y0 + 62, C.grey, 7, 'center'); return;
   }
-  const list = ITEMS.filter(it => it.tab === S.tab), w = Math.min(62, Math.floor((W - 20) / list.length)), x0 = W / 2 - list.length * w / 2, cy = y0 + 18;
+  const all = ITEMS.filter(it => it.tab === S.tab), per = 9, pages = Math.ceil(all.length / per); buildPage = Math.max(0, Math.min(buildPage, pages - 1));
+  const list = all.slice(buildPage * per, buildPage * per + per), w = 64, x0 = W / 2 - list.length * w / 2, cy = y0 + 18;
+  if (pages > 1) [[-1, 14], [1, W - 14]].forEach(([d, ax]) => { const on = d < 0 ? buildPage > 0 : buildPage < pages - 1, ay = cy + 34; // page arrows, and "page 1/2" by the tabs
+    g.fillStyle = on ? C.gold2 : '#2b3a50'; g.beginPath(); g.moveTo(ax - d * 5, ay - 8); g.lineTo(ax + d * 5, ay); g.lineTo(ax - d * 5, ay + 8); g.closePath(); g.fill();
+    hit(ax - 10, cy, 20, 74, () => { if (!on) return; buildPage += d; SFX.pop(); }); });
+  if (pages > 1) text(`page ${buildPage + 1}/${pages}`, 196, y0 + 13, C.grey, 7);
   list.forEach((it, i) => {
     const x = x0 + i * w + w / 2, locked = S.level < it.lvl, sel = S.build === it.id;
     if (sel) { g.fillStyle = '#c9a96e33'; g.fillRect(x - w / 2, cy, w, 74); }
