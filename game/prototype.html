@@ -67,7 +67,7 @@ ITEMS.push(
 const MAXN = { lantern: 1, bench: 1, flag: 1, cat: 1, dog: 1, stall: 1, shed: 1, palm: 3 };
 const full = it => MAXN[it.id] && count(it.id) >= MAXN[it.id];
 // how big each piece stands on the deck, against Darren as a 1.6 m grown-up (the art came in different batches at different scales)
-const ART = 6;
+const ART = 7;
 const GUESTS = 12; // tourist looks guest1…12: sun-hat lady, cap boy, shades dad, bubble-tea girl, backpacker, visor auntie, tudung lady, spectacles uncle, schoolboy, camera tourist, cyclist, ah gong // bump when sprite files change, so browsers fetch the new art
 // every decor sprite is cut from its hi-res sheet at the size it shows in game (judged against Darren), so all art is drawn 1:1 and shares one pixel size
 const LOOKS = [ // shed panel, third row: one-off touches that make the place nicer; each adds charm
@@ -83,6 +83,20 @@ const WORKERS = [ // hired at the hut; one-off cost, they work forever
   { id: 'keeper',    name: 'Pen keeper', cost: 700, lvl: 4, note: 'feeds & collects pens', desc: 'Feeds empty fish cages and crab pens (feed comes from your coins) and collects them when ready.' },
   { id: 'carpenter', name: 'Carpenter',  cost: 600, lvl: 4, note: 'fixes broken planks', desc: 'Fixes broken planks on his own, S$20 each from your coins.' },
 ];
+// wages: each hired hand is paid at the start of every game day, more as the farm grows; unpaid crew work at half pace that day
+const WAGE = { harvester: 20, keeper: 30, carpenter: 25 };
+const wageOf = w => Math.round((WAGE[w.id] || 20) * (1 + S.level / 5));
+let payDay = null;
+// crew experience: every job they take on counts; each level makes them a little quicker to pick up the next one
+const crewLv = w => Math.min(5, 1 + Math.floor(((S.crew || {})[w.id] || 0) / 40));
+const crewExp = w => { S.crew = S.crew || {}; const before = crewLv(w); S.crew[w.id] = (S.crew[w.id] || 0) + 1; if (crewLv(w) > before) { float(`${WORKERS.find(k => k.id === w.id).name} is now level ${crewLv(w)}: works faster`, W / 2, 110, C.gold2, 8, true); SFX.levelup(); } };
+function payWages() {
+  const due = WK.reduce((t, w) => t + wageOf(w), 0); if (!due) return;
+  if (S.cash >= due) { S.cash -= due; S.unpaid = false; float(`wages paid: S$${due}`, W / 2, 100, C.gold2, 8, true); SFX.coin(); }
+  else { const paid = Math.max(0, S.cash); S.cash -= paid; S.unpaid = true; float(`couldn't pay the crew in full (S$${paid} of S$${due}): they'll work slowly today`, W / 2, 100, C.pink, 8, true); SFX.nope(); }
+}
+// a second pen, palm or stall of the same kind costs 10% more than the last
+const costOf = it => (it.on === 'pen' || (it.tab === 'decor' && !MAXN[it.id])) ? Math.round(it.cost * (1 + 0.1 * count(it.id))) : it.cost;
 const FR0 = 1, FC0 = 6, MAXA = 6, MAXB = 5; // the fish farm: walkway lanes every 3rd row and column, 2×2 net pens between, east of the shed platform
 const EXPAND = [[150, 2], [500, 3], [1500, 5], [4000, 7], [7000, 8], [10000, 9], [14000, 10], [20000, 12]]; // cost and level of each added pen row or pen column, in order
 const UPGRADES = [ // shed upgrades, bought once each from the shed panel
@@ -105,6 +119,8 @@ const ALBUM = [ // collection book entries; counts live in S.album
   { id: 'turtle', name: 'Hawksbill', icon: () => ready('sea2-turtle-a') }, { id: 'shark', name: 'Blacktip', icon: () => ready('sea2-shark') }, { id: 'dolphin', name: 'Pink dolphin', icon: () => ready('sea2-dolphin') },
   { id: 'dugong', name: 'Dugong', icon: () => ready('sea2-dugong'), rare: true }, { id: 'otter', name: 'Otters', icon: () => ready('otter-stand') }, { id: 'hcrab', name: 'Horseshoe crab', icon: () => ready('hcrab-a') },
   { id: 'mussels', name: 'Green mussels', icon: () => ready('stock-mussels') }, { id: 'prawns', name: 'Tiger prawns', icon: () => ready('stock-prawn-a') }, { id: 'lobsters', name: 'Lobster', icon: () => ready('stock-lobster') },
+  { id: 'seastar', name: 'Sea star', icon: () => ready('eco-seastar') }, { id: 'mudskipper', name: 'Mudskipper', icon: () => ready('eco-mudskipper') }, { id: 'fiddler', name: 'Fiddler crab', icon: () => ready('eco-fiddler') },
+  { id: 'clam', name: 'Hard clam', icon: () => ready('eco-clam') }, { id: 'seagrass', name: 'Seagrass', icon: () => ready('eco-seagrass') }, { id: 'seahorse', name: 'Seahorse', icon: () => ready('eco-seahorse'), rare: true },
   { id: 'coconut', name: 'Coconut', icon: () => ready('nut') }, { id: 'croc', name: 'Crocodile', icon: () => ready('croc-lie'), rare: true },
 ];
 // ---- learn: a card for each living thing on the farm and in the strait. what it is, where it lives around Singapore, how it's doing,
@@ -130,30 +146,66 @@ const FACTS = {
   otter:     { name: 'Smooth-coated otter', sci: 'Lutrogale perspicillata', status: 'Vulnerable', where: "Back in Singapore's waters since the late 1990s; families live from Marina Bay to Pulau Ubin.", facts: ['Otters live in family groups and chirp and whistle to keep in touch.', 'Their comeback is a sign that our rivers and coasts are getting cleaner.'], help: "Watch from a distance. Never feed, chase or crowd them, and keep dogs on a leash." },
   hcrab:     { name: 'Mangrove horseshoe crab', sci: 'Carcinoscorpius rotundicauda', status: 'Threatened by nets and habitat loss', where: "Mangroves and mudflats at Mandai, Kranji, Pulau Ubin and Chek Jawa.", facts: ['Older than the dinosaurs: horseshoe crabs have been around for over 400 million years.', 'Not really crabs, they are closer to spiders. Their blue blood is used to test medicines for safety.'], help: "Abandoned fishing nets trap them: report or remove ghost nets, and join a shore clean-up." },
   croc:      { name: 'Estuarine crocodile', sci: 'Crocodylus porosus', status: 'Native · protected here', where: "Sungei Buloh Wetland Reserve and Kranji; sometimes seen off Pulau Ubin.", facts: ['The largest living reptile: big males grow longer than 5 metres.', 'As top predators they keep the wetland food web in balance.'], help: "Keep your distance, stay on paths and never feed wildlife: fed animals lose their fear of people." },
+  seastar:   { name: 'Knobbly sea star', sci: 'Protoreaster nodosus', status: 'Hurt by trampling and collecting', where: "Sandy flats and seagrass meadows at Chek Jawa and Singapore's southern shores.", facts: ['Lose an arm and a sea star can grow it back.', 'It eats by pushing its stomach out of its mouth to digest food outside its body.'], help: "Look, don't lift: taking a sea star out of the water, even for a photo, can kill it." },
+  mudskipper:{ name: 'Mudskipper', sci: 'Periophthalmus species', status: 'Native · common', where: "Mangrove mud at Sungei Buloh, Pasir Ris and Pulau Ubin.", facts: ['A fish that lives mostly out of water, breathing through its wet skin and mouth.', 'Males leap into the air and puff out their fins to show off.'], help: "Stay on the boardwalks: mudflats are their home, and footprints crush burrows." },
+  fiddler:   { name: 'Fiddler crab', sci: 'Austruca and Tubuca species', status: 'Native · common', where: "Mangrove mudflats all round Singapore at low tide.", facts: ['Males have one giant claw, which they wave to attract females.', 'They sift the mud for tiny bits of food, cleaning and turning the mudflats.'], help: "Watch quietly from a distance: they dash into their burrows if they feel your footsteps." },
+  clam:      { name: 'Hard clam', sci: 'Meretrix species', status: 'Fished', where: "Sandy shores and mudflats around Southeast Asia.", facts: ['Like oysters, clams filter seawater for food.', 'A clam digs into the sand with a muscular foot.'], help: "In Singapore's parks and nature areas, collecting animals isn't allowed: leave them for everyone to see." },
+  seagrass:  { name: 'Tape seagrass', sci: 'Enhalus acoroides', status: 'Habitat under pressure', where: "Seagrass meadows at Chek Jawa, Cyrene Reef and Singapore's southern shores.", facts: ['Seagrasses are flowering plants, not seaweed: they have roots, flowers and seeds.', 'Meadows store carbon, shelter baby fish and feed dugongs and turtles.'], help: "At low tide, walk around seagrass rather than on it, and keep anchors off the meadows." },
+  seahorse:  { name: 'Spotted seahorse', sci: 'Hippocampus kuda', status: 'Vulnerable', where: "Seagrass meadows and shallow shores, including Singapore's.", facts: ['The father carries the eggs in a pouch and gives birth to the babies.', 'It anchors itself to seagrass with its curly tail.'], help: "Never buy dried seahorses or wild-caught ones as pets." },
   coconut:   { name: 'Coconut palm', sci: 'Cocos nucifera', status: 'Common', where: "Along beaches and kampung shores all over the region.", facts: ['Coconuts float, and can drift across oceans to sprout on a new shore.', 'Kampung families used every part: husk for rope, leaves for roofs, shells for bowls.'], help: "Coastal trees hold the sand together: help plant them on clean-up and planting days." },
 };
+// real photos for the cards, from Wikimedia Commons (game/photos, credits in photos/CREDITS.md); loaded when a card first opens
+const PHOTO_BY = {
+  belon: "H. Zell · CC BY-SA 3.0",
+  coconut: "Shishirdasika · CC BY-SA 4.0",
+  crabs: "Richard Pillans, CSIRO · CC BY 3.0",
+  croc: "St. Augustine Alligator Farm (US FHWA) · Public domain",
+  dolphin: "takoradee · CC BY 2.5",
+  dugong: "Gejuni · CC BY-SA 3.0 de",
+  grouper: "Sahat Ratmuangkhwang · CC BY 3.0",
+  hcrab: "Amada44 · CC BY 3.0",
+  kumamoto: "Eugene Kim · CC BY 2.0",
+  lobsters: "Elisabeth Morcel · CC BY-SA 4.0",
+  mussels: "U.S. Geological Survey · Public domain",
+  otter: "Charles J. Sharp · CC BY-SA 4.0",
+  pacific: "Wikimedia Commons contributor · CC BY-SA 3.0",
+  pearl: "Didier Descouens · CC BY-SA 4.0",
+  pomfret: "Hamid Badar Osmany · CC BY 3.0",
+  prawns: "CSIRO · CC BY 3.0",
+  rock: "Marie HENNION · CC BY 4.0",
+  seabass: "Mitch Ames · CC BY-SA 4.0",
+  shark: "Charles J. Sharp · CC BY-SA 4.0",
+  snapper: "呂一起(Lu i-chi) · CC BY 4.0",
+  turtle: "Thierry Caro · CC BY-SA 3.0",
+};
+const PHOTO = {};
+const photoOf = id => { if (!PHOTO_BY[id]) return null; if (!PHOTO[id]) { PHOTO[id] = new Image(); PHOTO[id].src = `photos/${id}.jpg?v=${ART}`; } const im = PHOTO[id]; return im.complete && im.naturalWidth ? im : null; };
 const learned = () => Object.keys(S.learned || {}).filter(k => FACTS[k]).length;
 let LEARN = [];
 const openLearn = id => { if (FACTS[id] && LEARN[0] !== id) { LEARN = LEARN.filter(q => q !== id); LEARN.unshift(id); SFX.pop(); } };
 function drawLearn() { // the fact card: picture, name, status, where, two facts, how to help
   const id = LEARN[0]; if (!id || MINI || S.offer) return; const f = FACTS[id], a = ALBUM.find(e => e.id === id), first = !(S.learned && S.learned[id]);
-  const bw = 400, tw = bw - 140, lines = [...wrap(`Where: ${f.where}`, tw), '', ...f.facts.flatMap(t => wrap(`• ${t}`, tw))], help = wrap(f.help, tw - 10), bh = Math.max(150, 62 + lines.length * 9 + help.length * 9 + 50), bx = W / 2 - bw / 2, by = Math.max(24, H / 2 - bh / 2);
+  const bw = 400, tw = bw - 140, lines = [...wrap(`Where: ${f.where}`, tw), '', ...f.facts.flatMap(t => wrap(`• ${t}`, tw))], help = wrap(f.help, tw - 10), bh = Math.max(176, 62 + lines.length * 9 + help.length * 9 + 50), bx = W / 2 - bw / 2, by = Math.max(24, H / 2 - bh / 2);
   hit(0, 0, W, H, () => {}); g.fillStyle = '#05080cb0'; g.fillRect(0, 0, W, H); g.fillStyle = '#0f1824f4'; g.fillRect(bx, by, bw, bh); g.strokeStyle = C.gold; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
   g.fillStyle = '#16314a'; g.fillRect(bx + 10, by + 10, 112, 112); g.strokeStyle = '#2b4a66'; g.strokeRect(bx + 10.5, by + 10.5, 111, 111);
-  const im = a && a.icon(); if (im) { const sc = Math.min(96 / im.width, 96 / im.height, 3), bob = Math.sin(S.t * 2) * 1.5; g.drawImage(im, Math.round(bx + 66 - im.width * sc / 2), Math.round(by + 66 - im.height * sc / 2 + bob), Math.round(im.width * sc), Math.round(im.height * sc)); }
+  const ph = photoOf(id), im = a && a.icon();
+  if (ph) { const sc = Math.max(110 / ph.width, 110 / ph.height), sw = 110 / sc, sh = 110 / sc; g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(ph, (ph.width - sw) / 2, (ph.height - sh) / 2, sw, sh, bx + 11, by + 11, 110, 110); g.restore(); }
+  else if (im) { const sc = Math.min(96 / im.width, 96 / im.height, 3), bob = Math.sin(S.t * 2) * 1.5; g.drawImage(im, Math.round(bx + 66 - im.width * sc / 2), Math.round(by + 66 - im.height * sc / 2 + bob), Math.round(im.width * sc), Math.round(im.height * sc)); }
+  if (ph) wrap(`Photo: ${PHOTO_BY[id]}`, 112).slice(0, 3).forEach((l, i) => text(l, bx + 10, by + 132 + i * 8, C.grey, 7));
   const col = /Critically/.test(f.status) ? '#ff5a5a' : /Endangered/.test(f.status) ? '#ff9a3a' : /Vulnerable|Threatened|threatened|Overfished|overharvested|Lost|Rare|heavily/.test(f.status) ? '#f6d48a' : '#9ad0e0';
-  text('LEARN', bx + 10, by + 136, C.grey, 7); text(`${learned()}/${Object.keys(FACTS).length} learned`, bx + 10, by + 146, C.grey, 7);
+  text(`${learned()}/${Object.keys(FACTS).length} learned`, bx + 10, by + bh - 10, '#9ee6a8', 7);
   const x = bx + 132; text(f.name, x, by + 20, C.gold, 10); text(f.sci, x, by + 31, C.grey, 7);
   g.font = '7px monospace'; const sw = g.measureText(f.status).width + 10; g.fillStyle = col + '33'; g.fillRect(x, by + 36, sw, 11); g.strokeStyle = col; g.strokeRect(x + 0.5, by + 36.5, sw - 1, 10); text(f.status, x + 5, by + 44, col, 7);
   lines.forEach((l, i) => text(l, x, by + 60 + i * 9, C.sand, 7));
   const hy = by + 60 + lines.length * 9 + 2; g.fillStyle = '#1d3a2a'; g.fillRect(x - 4, hy, tw + 8, help.length * 9 + 14); text('How you can help', x, hy + 9, '#9ee6a8', 7); help.forEach((l, i) => text(l, x + 2, hy + 18 + i * 9, C.sand, 7));
   const btw = 120, btx = bx + bw - btw - 10, bty = by + bh - 22; g.fillStyle = C.gold2; g.fillRect(btx, bty, btw, 15); text(first ? 'Got it! +5xp' : 'Got it', btx + btw / 2, bty + 10, C.ink, 7, 'center');
-  hit(btx, bty, btw, 15, () => { if (first) { S.learned = S.learned || {}; S.learned[id] = 1; gainXp(5); float(`learned: ${f.name}`, W / 2, by - 6, '#9ee6a8', 8, true); } LEARN.shift(); SFX.stamp(); save(); });
+  hit(btx, bty, btw, 15, () => { if (first) { S.learned = S.learned || {}; S.learned[id] = 1; gainXp(up('p-lab') ? 10 : 5); float(`learned: ${f.name}`, W / 2, by - 6, '#9ee6a8', 8, true); } LEARN.shift(); SFX.stamp(); save(); });
 }
 const SETS = [ // finish a row of the album for a reward and +5 charm each
   { id: 'oysters', name: 'Oyster connoisseur', ids: SP.map(q => q.id), cash: 500, xp: 100 },
   { id: 'market', name: 'Wet market regular', ids: [...FISH.map(f => f.id), 'crabs', 'mussels', 'prawns', 'lobsters'], cash: 900, xp: 150 },
   { id: 'wild', name: 'Friend of the strait', ids: ['turtle', 'shark', 'dolphin', 'dugong', 'otter', 'hcrab', 'croc'], cash: 1500, xp: 250 },
+  { id: 'shore', name: 'Low-tide explorer', ids: ['seastar', 'mudskipper', 'fiddler', 'clam', 'seagrass'], cash: 800, xp: 150 },
   { id: 'treasure', name: 'Treasure hunter', ids: ['rarepearl', 'gold', 'coconut', 'bottle'], cash: 1000, xp: 200 },
 ];
 const RARE = { rarepearl: { odds: 0.05, cash: 60, sprite: 'sp-pearl', label: 'pearl' }, gold: { odds: 0.01, cash: 400, sprite: 'sp-gold', label: 'GOLD' } }; // per harvest
@@ -231,6 +283,7 @@ S.album = S.album || {}; S.orders = S.orders || []; S.boat = S.boat || { out: nu
 if (S.step < 6 && S.level >= 4) S.step = 6; // old hands skip the guided start
 if (S.tankAt) Object.assign(TANK, S.tankAt);
 S.deck = S.deck || {};
+S.sea = S.sea ?? 55; S.eco = Object.assign({ litter: 0, nets: 0, release: 0, shore: 0, hatch: 0, trips: 0, planted: 0 }, S.eco || {}); // sea health 0–100 and what you've done for it
 if ((S.mapN || 16) !== MAP) { // a save from a smaller map: re-key the deck tiles and widen the crop grid
   const n0 = S.mapN || 16, d = {}; for (const k in S.deck) d[Math.floor(k / n0) * MAP + k % n0] = 1; S.deck = d;
   S.plots = Array.from({ length: MAP }, (_, r) => Array.from({ length: MAP }, (_, c) => (S.plots[r] && S.plots[r][c]) || null)); S.mapN = MAP;
@@ -251,6 +304,7 @@ const WK = (S.workers || []).map(actor); S.workers = WK;
 Object.assign(S, { t: daySeconds * 0.75, tab: 'farm', moveSel: null, pick: null, pickFish: null, build: null, panel: null });
 const F = Object.assign({ tr: null, tc: null, queue: [], walk: 0, back: false, flip: false, moving: false }, S.farmer); S.farmer = F;
 const cam = S.cam || { x: 90, y: 140 }; S.cam = cam;
+const ECO = { litter: [], nets: [], hatch: null, mud: [], low: 0 }; // floating litter, ghost nets, a hatchling night, low-tide creatures
 const A = { fish: [], jelly: [], bubbles: [], ripples: [], floaters: [], particles: [], gulls: [], clouds: [], hops: [] };
 for (let i = 0; i < 8; i++) A.fish.push({ kind: 1 + (i % 3), x: rnd(-500, 500), y: rnd(0, 500), v: rnd(8, 18) * (Math.random() < 0.5 ? 1 : -1), ph: rnd(0, 6) });
 for (let i = 0; i < 3; i++) A.jelly.push({ x: rnd(-400, 400), y: rnd(100, 450), ph: rnd(0, 6) });
@@ -259,12 +313,12 @@ for (let i = 0; i < 1; i++) A.gulls.push({ x: rnd(0, W), y: rnd(30, 70), v: 12, 
 
 function load() { try { return JSON.parse(localStorage.getItem('indigo-farm-v2')); } catch { return null; } }
 let SAVE_OFF = false; // set while loading a save code, so nothing overwrites it before the reload
-function save() { if (SAVE_OFF) return; try { const { t, pick, pickFish, build, panel, tab, moveSel, ...rest } = S; rest.farmer = { r: F.r, c: F.c }; rest.workers = WK.map(w => ({ id: w.id, r: w.r, c: w.c })); localStorage.setItem('indigo-farm-v2', JSON.stringify(rest)); } catch {} }
+function save() { if (SAVE_OFF) return; try { const { t, pick, pickFish, build, panel, tab, moveSel, ...rest } = S; rest.farmer = { r: F.r, c: F.c }; rest.savedAt = Date.now(); rest.workers = WK.map(w => ({ id: w.id, r: w.r, c: w.c })); localStorage.setItem('indigo-farm-v2', JSON.stringify(rest)); } catch {} }
 
 // ---- sprites ----
 const IMG = {};
 ['oyster-baby-idle', 'oyster-baby-blink', 'oyster-medium-idle', 'oyster-medium-blink', 'oyster-fat-idle', 'oyster-fat-blink', 'sp-withered', 'sp-pearl', 'sp-gold', 'sea-crab-a', 'customer-wait', 'customer-happy',
-  'hut-hut', 'bbq-grill', 'bbq-table', ...['steamboat', 'zichar', 'prata', 'nasilemak'].flatMap(k => [`din-${k}-cook`, `din-${k}-table`]), 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', ...[1, 2, 3, 4, 5, 6, 7, 8].map(n => `buyer-${n}`), ...Array.from({ length: GUESTS }, (_, i) => i + 1).flatMap(n => ['idle', 'walk', 'photo'].map(f => `guest${n}-${f}`)), 'shed-tier3', 'shed-tier4', 'stock-prawn-a', 'stock-prawn-b', 'stock-lobster', 'stock-mussels', 'stock-trap', 'dec2-rack', 'dec2-lanterns', 'dec2-mahjong', 'dec2-sofa', 'dec2-beacon', 'dec2-neon', 'lounge-hammock-empty', ...['chair', 'hammock', 'bench'].flatMap(k => ['farmer', 'harvester', 'keeper', 'carpenter'].map(w => `lounge-${k}-${w}`)), 'cellar-crate-0', 'cellar-crate-1', 'cellar-crate-2', 'cellar-buoy', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', ...['farmer', 'harvester', 'keeper', 'carpenter'].flatMap(w => [`kayak-${w}-a`, `kayak-${w}-b`]), ...['beg', 'paw', 'roll', 'jump', 'chew', 'happy', 'bow', 'dance'].map(k => `dog-${k}`), 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
+  'hut-hut', 'bbq-grill', 'bbq-table', ...['steamboat', 'zichar', 'prata', 'nasilemak'].flatMap(k => [`din-${k}-cook`, `din-${k}-table`]), 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', ...[1, 2, 3, 4, 5, 6, 7, 8].map(n => `buyer-${n}`), ...Array.from({ length: GUESTS }, (_, i) => i + 1).flatMap(n => ['idle', 'walk', 'photo'].map(f => `guest${n}-${f}`)), 'shed-tier3', 'shed-tier4', 'stock-prawn-a', 'stock-prawn-b', 'stock-lobster', 'stock-mussels', 'stock-trap', 'dec2-rack', 'dec2-lanterns', 'dec2-mahjong', 'dec2-sofa', 'dec2-beacon', 'dec2-neon', 'lounge-hammock-empty', ...['chair', 'hammock', 'bench'].flatMap(k => ['farmer', 'harvester', 'keeper', 'carpenter'].map(w => `lounge-${k}-${w}`)), 'cellar-crate-0', 'cellar-crate-1', 'cellar-crate-2', 'cellar-buoy', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', ...['net-turtle', 'net-hcrab', 'litter-bottle', 'litter-bag', 'litter-foam', 'litter-can', 'hatchling', 'eco-seastar', 'eco-mudskipper', 'eco-fiddler', 'eco-seahorse', 'eco-clam', 'eco-seagrass', 'eco-babygrouper'], ...['farmer', 'harvester', 'keeper', 'carpenter'].flatMap(w => [`kayak-${w}-a`, `kayak-${w}-b`]), ...['beg', 'paw', 'roll', 'jump', 'chew', 'happy', 'bow', 'dance'].map(k => `dog-${k}`), 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
   ...['carpenter', 'keeper', 'harvester'].flatMap(w => ['front-idle', 'front-walk', 'back-idle', 'back-walk', 'work-a', 'work-b', 'idle-fish', 'idle-rest', 'idle-mend', 'swim-a', 'swim-b', 'swim-play', 'swim-float'].map(f => `wk-${w}-${f}`)), 'farmer-idle-fish', 'farmer-idle-rest', 'farmer-idle-mend', 'farmer-swim-a', 'farmer-swim-b', 'farmer-swim-play', 'farmer-swim-float',
   'bld-stall', 'bld-shed', 'bld-lantern', 'bld-flag', 'bld-palm', 'bld-bench', 'bld-cat', 'pen-fishcage-empty', 'pen-fishcage-full', 'pen-crabpen-empty', 'pen-crabpen-full',
   'fish-seabass', 'fish-pomfret', 'fish-snapper', 'fish-grouper', 'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-gull-a', 'sea-gull-b', 'sea-jelly-a', 'sea-jelly-b', 'sc-cloud1', 'sc-cloud2', 'sc-cloud3',
@@ -350,7 +404,7 @@ const penSpec = o => { const it = item(o.id), f = it.id === 'fishcage' && o.sp &
 const has = id => S.objs.some(o => o.id === id), count = id => S.objs.filter(o => o.id === id).length;
 const growth = p => (Date.now() - p.at) / 1000 / species(p.sp).time * (up('generator') ? 1.1 : 1);
 const withered = p => growth(p) >= 1 + 2 * (has('shed') ? 2 : 1) * (has('lantern') ? 1.25 : 1);
-const sellMul = () => (has('stall') ? 1.1 : 1) + (FEST ? 0.1 : 0) + 0.05 * Math.min(3, count('palm')) + Math.min(0.2, charm() * 0.005);
+const sellMul = () => ((has('stall') ? 1.1 : 1) + (FEST ? 0.1 : 0) + 0.05 * Math.min(3, count('palm')) + Math.min(0.2, charm() * 0.005)) * seaMul();
 
 // ---- farmer: walks in a straight line to the task tile, then does it ----
 // ponytail: no pathfinding; island + deck + raft are convex enough that straight lines rarely cross open sea. BFS if it bothers anyone.
@@ -492,7 +546,7 @@ const actorRC = a => { if (a.swim && (a.working === 'swim' || a.working === 'kay
 const rcOf = (wx, wy) => { const u = wx / (TW / 2), v = (wy - TH / 2) / (TH / 2); return [(v - u) / 2, (v + u) / 2]; }; // world px to (fractional) tile
 let SEA = null, seaWait = rnd(90, 200);
 function spawnSea(kind) {
-  if (!kind) { let n = Math.random() * 100; kind = Object.keys(SEALIFE).find(k => (n -= SEALIFE[k].w) < 0) || 'turtle'; }
+  if (!kind) { let n = Math.random() * 100; kind = Object.keys(SEALIFE).find(k => (n -= SEALIFE[k].w) < 0) || 'turtle'; if (kind === 'dugong' && S.sea < 60) kind = 'turtle'; if (up('p-seagrass') && S.sea >= 70 && Math.random() < 0.25) kind = 'dugong'; } // dugongs only come to a healthy strait
   // past the south edge of everything, or down the west side of the platform: usually whichever passes nearer what you're looking at
   const R = Math.max(PR(), FR0 + 3 * S.farm.a, ...Object.keys(S.deck).map(k => Math.floor(k / MAP))) + 2.6, routes = [[center(R, -6), center(R, MAP + 5)], [center(-3, -2.6), center(MAP + 5, -2.6)]];
   const off = ([a, b]) => Math.abs((b.y - a.y) * cam.x - (b.x - a.x) * cam.y + b.x * a.y - b.y * a.x) / Math.hypot(b.x - a.x, b.y - a.y);
@@ -502,7 +556,7 @@ function spawnSea(kind) {
   return true;
 }
 function stepSea(dt) {
-  if (!SEA) { if ((seaWait -= dt) > 0) return; seaWait = rnd(120, 300); spawnSea(); return; }
+  if (!SEA) { if ((seaWait -= dt) > 0) return; seaWait = rnd(120, 300) * (S.sea > 80 ? 0.6 : S.sea < 30 ? 2 : 1); spawnSea(); return; } // more visitors to a cleaner strait
   const k = SEA; k.t += dt; const u = k.t / k.len; if (u >= 1) { SEA = null; return; }
   k.x = k.x0 + (k.x1 - k.x0) * u; k.y = k.y0 + (k.y1 - k.y0) * u;
   const near = Math.abs(scr(k.x, k.y)[0] - W / 2) < W && Math.abs(scr(k.x, k.y)[1] - H / 2) < H; // only make noise when it's somewhere near the view
@@ -629,9 +683,112 @@ const CRABPEN = 1.25; // crab pen art scale
 function crabsOf(o) { let a = CRABS.get(o); if (!a) { a = [[-14, 0, false], [11, -5, true], [3, 7, false]].map(([dx, dy, face]) => ({ dx, dy, face, shift: 0, next: rnd(3, 9) })); CRABS.set(o, a); } return a; }
 function stepCrabs(dt) { for (const o of S.objs) if (o.id === 'crabpen' && o.fed) for (const k of crabsOf(o)) if ((k.next -= dt) <= 0) { k.shift = k.shift ? 0 : (Math.random() < 0.5 ? -1 : 1); k.next = k.shift ? rnd(1.5, 3) : rnd(5, 12); } }
 // the golden retriever: dashes to a random spot, trots after the farmer, sits, sniffs, flops down on his bed
+// ---- sea health: the strait around the farm, 0–100. oysters and mussels filter it and clean-ups help; crowded fish pens,
+// litter and ghost nets hurt it. a healthy sea brings more fish to the line, more wildlife past the farm and better prices ----
+const seaLabel = v => v < 30 ? 'murky' : v < 60 ? 'okay' : v < 85 ? 'healthy' : 'thriving';
+const seaCol = v => v < 30 ? '#c0704a' : v < 60 ? '#d4bc8a' : v < 85 ? '#9ee6a8' : '#6ad8ff';
+const seaMul = () => 0.9 + S.sea / 500; // sale prices: 0.9× when murky, up to 1.1× when thriving
+function seaRate() { // points a minute
+  let filters = 0, load = 0;
+  for (const row of S.plots) for (const p of row) if (p && !withered(p)) filters++;
+  for (const o of S.objs) { const it = item(o.id); if (!it.pen || it.pen.win || !o.fed) continue; if (o.id === 'mussels') filters += 4; else load++; }
+  return 0.4 + 0.04 * Math.min(filters, 50) - 0.5 * Math.max(0, load - (2 + filters / 6)) - 0.3 * ECO.litter.length - 1 * ECO.nets.length + (up('p-mangrove') ? 0.6 : 0);
+}
+function seaBump(n, x, y) { S.sea = clamp(S.sea + n, 0, 100); if (x !== undefined) float(`${n > 0 ? '+' : ''}${n} sea health`, x, y, n > 0 ? '#9ee6a8' : C.pink, 8); }
+function waterNear() { // a spot of open water just off the deck, somewhere you can see
+  const cand = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) { if (!walkable(r, c) || hutTile(r, c)) continue; const sea = seaSide(r, c); if (!sea) continue; const w = center(sea[0], sea[1]), [sx, sy] = scr(w.x, w.y); if (sx > 60 && sx < W - 60 && sy > 50 && sy < H - 70) cand.push(w); }
+  return cand.length ? cand[Math.floor(Math.random() * cand.length)] : null;
+}
+// tides: two lows a game day. at low tide mudflats come out along the shore side of the platform with things to find
+const TIDE = 150;
+const tideNow = () => Math.sin(S.t * Math.PI * 2 / TIDE + 1); // -1 lowest … 1 highest
+const lowAmt = () => clamp((-tideNow() - 0.35) / 0.4, 0, 1); // how much mud is showing
+const tideText = () => tideNow() < -0.35 ? 'Low tide: mudflats are out by the shed.' : tideNow() > 0.4 ? 'High tide: the fish come closer.' : `The tide is ${Math.cos(S.t * Math.PI * 2 / TIDE + 1) > 0 ? 'coming in' : 'going out'}.`;
+let MUDT = null;
+function mudTiles() { // a band of sea along the top and left of the shed platform, where the shore would be
+  if (MUDT) return MUDT; MUDT = [];
+  for (let r = -2; r <= 8; r++) for (let c = -2; c <= 6; c++) { const band = (r <= 0 && c >= -1) || (c <= 0 && r >= -1); if (!band || (inMap(r, c) && (solid(r, c) || farm(r, c))) || underHouse(r, c) || (r === BOAT.r && c === BOAT.c)) continue; MUDT.push([r, c]); }
+  return MUDT;
+}
+const hash2 = (r, c, n = 1) => { const v = Math.sin(r * 12.9898 + c * 78.233 + n * 37.719) * 43758.5453; return v - Math.floor(v); };
+const MUDKINDS = ['clam', 'clam', 'seastar', 'mudskipper', 'fiddler'];
+function stepTide() {
+  const k = lowAmt();
+  if (k > 0.6 && !ECO.low) { ECO.low = 1; const tl = mudTiles().filter(([r, c]) => hash2(r, c, 3) > 0.25); for (let i = 0; i < 6 && tl.length; i++) { const [r, c] = tl.splice(Math.floor(Math.random() * tl.length), 1)[0]; ECO.mud.push({ r, c, k: MUDKINDS[Math.floor(Math.random() * MUDKINDS.length)], dx: rnd(-10, 10), dy: rnd(-4, 4), seen: false, ph: rnd(0, 6) }); } }
+  if (k === 0 && ECO.low) { ECO.low = 0; ECO.mud = []; }
+}
+function drawMud(t) {
+  const k = lowAmt(); if (!k) return; g.globalAlpha = k;
+  for (const [r, c] of mudTiles()) { const [x, y] = tilePos(r, c); if (x < -40 || x > W + 40 || y < -30 || y > H + 30) continue; g.fillStyle = hash2(r, c) > 0.5 ? '#8a7558' : '#86704f'; diamond(x, y, TW + 1, TH + 1); g.fill();
+    if (hash2(r, c, 2) < 0.45) ell(x + (hash2(r, c, 4) - 0.5) * 30, y + (hash2(r, c, 5) - 0.5) * 10, 7, 2.2, '#9fb8c0aa');
+    if (hash2(r, c, 6) < 0.3) sprite('eco-seagrass', x + (hash2(r, c, 7) - 0.5) * 24, y + 4, { alpha: k }); }
+  for (const m of ECO.mud) { const [x, y] = tilePos(m.r, m.c), hop = m.k === 'mudskipper' ? -Math.max(0, Math.sin(t * 2 + m.ph) * 5 - 3) : 0; ell(x + m.dx, y + m.dy + 2, 6, 2, '#00000033'); sprite(`eco-${m.k}`, x + m.dx, y + m.dy + 3 + hop, { alpha: k, flip: hash2(m.r, m.c, 9) > 0.5 }); if (!m.seen && Math.sin(t * 3 + m.ph) > 0.7) { g.globalAlpha = k * 0.6; ell(x + m.dx, y + m.dy - 12, 1.5, 1.5, '#fff'); } g.globalAlpha = k; }
+  g.globalAlpha = 1;
+}
+const MUD_SAYS = { seastar: 'a knobbly sea star: look, but leave it where it is', mudskipper: 'a mudskipper! a fish that walks on mud', fiddler: 'a fiddler crab waving its big claw' };
+function tapMud(sx, sy) {
+  if (lowAmt() < 0.5) return false; const m = ECO.mud.find(q => { const [x, y] = tilePos(q.r, q.c); return Math.hypot(sx - x - q.dx, sy - y - q.dy + 4) < 12; }); if (!m) return false; const [x, y] = tilePos(m.r, m.c);
+  if (m.k === 'clam') { ECO.mud.splice(ECO.mud.indexOf(m), 1); S.cash += 5; collect('clam'); gainXp(2); float('dug up a big clam +S$5 · the small ones stay to grow', x, y - 20, C.gold2, 7); SFX.coin(); return true; }
+  if (!m.seen) { m.seen = true; S.eco.shore++; gainXp(3); } collect(m.k); float(MUD_SAYS[m.k], x, y - 20, C.sand, 7); SFX.pop(); return true;
+}
+let litterWait = rnd(30, 60), netWait = rnd(200, 420), hatchWait = rnd(150, 400);
+const LITTER_SAYS = ['most sea litter starts on land, washed down drains and rivers', "plastic doesn't rot: it breaks into tiny bits called microplastics", 'turtles mistake floating plastic bags for jellyfish', 'one less bottle in the strait'];
+function stepEco(dt) {
+  S.sea = clamp(S.sea + seaRate() * dt / 60, 0, 100);
+  for (const l of ECO.litter) { l.t += dt; l.x += l.vx * dt; }
+  if ((litterWait -= dt) <= 0) { litterWait = rnd(40, 90) * (S.sea > 80 ? 1.6 : 1); if (ECO.litter.length < 5 && !STORM.on) { const w = waterNear(); if (w) ECO.litter.push({ x: w.x + rnd(-8, 8), y: w.y + rnd(6, 14), vx: rnd(-1.2, 1.2), k: ['bottle', 'bag', 'foam', 'can'][Math.floor(Math.random() * 4)], t: 0, ph: rnd(0, 6) }); } }
+  if ((netWait -= dt) <= 0) { netWait = rnd(360, 720); if (!ECO.nets.length && S.level >= 3 && !STORM.on) { const w = waterNear(); if (w) { ECO.nets.push({ x: w.x, y: w.y + 12, k: Math.random() < 0.6 ? 'turtle' : 'hcrab', t: 0 }); float('A ghost net drifted in with an animal caught in it! Tap it to cut it free', W / 2, 60, C.pink, 8, true); SFX.splash(); } } }
+  for (const n of [...ECO.nets]) { n.t += dt; if (n.busy && Date.now() - n.busy > 30e3) n.busy = 0; // never got there: tap again
+    if (n.t > 200 && !n.busy) { ECO.nets.splice(ECO.nets.indexOf(n), 1); seaBump(-6); float('the ghost net drifted off… it will keep trapping animals', W / 2, 60, C.pink, 8, true); } }
+  stepHatch(dt); stepTide();
+}
+function edgeToward(r, c, who) { // the deck edge closest to a spot out on the water that this person can walk to
+  const r0 = Math.round(who.r), c0 = Math.round(who.c); let best = null, bd = 1e9;
+  for (let i = 0; i < MAP; i++) for (let j = 0; j < MAP; j++) { if (!walkable(i, j) || hutTile(i, j) || objAt(i, j) || !seaSide(i, j)) continue; const d = Math.hypot(i - r, j - c); if (d < bd && path(r0, c0, i, j)) { bd = d; best = { r: i, c: j }; } }
+  return best && bd < 5 ? best : null;
+}
+function tapEco(wx, wy) { // a ghost net, a bit of litter, or a hatchling: world coords
+  const n = ECO.nets.find(q => Math.hypot(wx - q.x, (wy - q.y + 8) * 1.4) < 26);
+  if (n) { if (n.busy) return true; const [r, c] = rcOf(n.x, n.y), who = F, e = edgeToward(r, c, who); // Darren goes himself: the crew's own jobs would override the order
+    if (!e) { SFX.nope(); float("can't reach it from here", ...tilePos(Math.round(r), Math.round(c)), C.pink, 7); return true; } n.busy = Date.now();
+    go(e.r, e.c, () => { const i = ECO.nets.indexOf(n); if (i < 0) return; ECO.nets.splice(i, 1); const [x, y] = scr(n.x, n.y); A.ripples.push({ x: n.x, y: n.y, r: 4, life: 1 }); hop(ready(n.k === 'turtle' ? 'sea2-turtle-a' : 'hcrab-a'), n.x, n.y, 0.8); collect(n.k);
+      S.eco.nets++; seaBump(8, x, y - 30); gainXp(15); float(n.k === 'turtle' ? 'cut free! the turtle swims off' : 'cut free! back to the mudflats', x, y - 44, C.gold2, 8); SFX.levelup(); save(); }, who, 'feed');
+    float('on my way!', ...head(who), C.sand, 7); SFX.pop(); return true; }
+  const l = ECO.litter.find(q => Math.hypot(wx - q.x, (wy - q.y + 4) * 1.4) < 14);
+  if (l) { ECO.litter.splice(ECO.litter.indexOf(l), 1); const [x, y] = scr(l.x, l.y); pop(x, y - 4, '#e8f4ff', 6); S.eco.litter++; seaBump(2, x, y - 16); gainXp(2); if (Math.random() < 0.35) float(LITTER_SAYS[Math.floor(Math.random() * LITTER_SAYS.length)], x, y - 30, C.sand, 7); SFX.pop(); save(); return true; }
+  return false;
+}
+// a hatchling night: baby hawksbills from Ubin's beach swim for the brightest horizon. with the deck lights on they circle the
+// farm and get lost; switch the lights off and they find the open sea
+function stepHatch(dt) {
+  const D = sky();
+  if (ECO.hatch && up('p-darksky') && !ECO.hatch.off) { ECO.hatch.off = true; float('turtle-friendly lights: the hatchlings head straight out to sea', W / 2, 74, '#9ee6a8', 8, true); }
+  if (!ECO.hatch) { if (D.lamp < 0.45 || S.level < 4 || STORM.on || (hatchWait -= dt) > 0) return; hatchWait = rnd(500, 900);
+    const from = { x: cam.x - 300, y: cam.y - 150 }; ECO.hatch = { t: 0, off: false, done: 0, lost: 0, pts: Array.from({ length: 8 }, (_, i) => ({ x: from.x + rnd(-30, 30), y: from.y + rnd(-20, 20), d: rnd(0, 6), sea: false })) };
+    float('Turtle hatchlings are heading out to sea, and our deck lights are pulling them off course!', W / 2, 60, C.gold2, 8, true); SFX.chirp(); return; }
+  const h = ECO.hatch, home = center(4, 3), out = { x: cam.x + 520, y: cam.y + 300 }; h.t += dt;
+  for (const p of h.pts) { if (p.sea) continue; const tg = h.off ? out : { x: home.x + Math.cos(h.t * 0.8 + p.d) * 120, y: home.y + 60 + Math.sin(h.t * 0.8 + p.d) * 60 }, dx = tg.x - p.x, dy = tg.y - p.y, d = Math.hypot(dx, dy) || 1; p.vx = dx / d * 22; p.x += p.vx * dt; p.y += dy / d * 22 * dt; if (h.off && d < 30) { p.sea = true; h.done++; } }
+  if (h.off && h.done === h.pts.length) { const [x, y] = scr(home.x, home.y); seaBump(10, x, y - 40); S.eco.hatch++; gainXp(20); collect('turtle'); float('All the hatchlings found the sea! Only about 1 in 1,000 grows up, so every one counts', W / 2, 60, '#9ee6a8', 8, true); ECO.hatch = null; SFX.levelup(); save(); return; }
+  if (!h.off && h.t > 45) { seaBump(-3); float('Some hatchlings got lost circling the lights. Lights off next time!', W / 2, 60, C.pink, 8, true); ECO.hatch = null; }
+}
+function drawEcoUI() { // the hatchling call to action
+  const h = ECO.hatch; if (!h || h.off) return; const s = `Hatchlings! Tap to switch off the deck lights (${Math.ceil(45 - h.t)}s)`; g.font = '7px monospace'; const w = g.measureText(s).width + 16, x = Math.round(W / 2 - w / 2), y = 52;
+  g.fillStyle = Math.sin(S.t * 6) > 0 ? '#3a2a10e6' : '#0c0c0ee6'; g.fillRect(x, y, w, 14); g.strokeStyle = C.gold; g.strokeRect(x + 0.5, y + 0.5, w - 1, 13); text(s, W / 2, y + 10, C.gold, 7, 'center');
+  hit(x, y, w, 14, () => { h.off = true; SFX.tok(); float('lights off… shh', W / 2, 74, C.sand, 8, true); });
+}
+function drawEcoThing(e, t) {
+  if (e.kind === 'litter') { const l = e.l, [x, y] = scr(l.x, l.y), bob = Math.sin(t * 2 + l.ph) * 1.2; g.globalAlpha = 0.35; ell(x, y + 2, 9, 2.5, '#e8f4ff'); g.globalAlpha = 1; sprite(`litter-${l.k}`, x, y + 3 + bob, { flip: l.vx < 0 }); return true; }
+  if (e.kind === 'gnet') { const n = e.n, [x, y] = scr(n.x, n.y), bob = Math.sin(t * 1.5) * 1.5; g.globalAlpha = 0.35; ell(x, y + 2, 20, 5, '#e8f4ff'); g.globalAlpha = 1; sprite(`net-${n.k}`, x, y + 6 + bob);
+    if (!n.busy) { const b = Math.abs(Math.sin(t * 4)) * 3; g.fillStyle = C.pink; g.beginPath(); g.arc(x, y - 30 - b, 5, 0, 7); g.fill(); text('!', x, y - 27 - b, '#fff', 8, 'center'); } return true; }
+  if (e.kind === 'hatch') { const p = e.p, [x, y] = scr(p.x, p.y); sprite('hatchling', x, y + 3 + Math.sin(t * 6 + p.d) * 0.6, { flip: p.vx > 0 }); if (Math.random() < 0.1) foam(x + (p.vx > 0 ? -5 : 5), y + 3, p.vx > 0 ? -1 : 1, 0.4); return true; }
+  return false;
+}
 let DOG = null;
 // tricks: tap Joji, pick a trick, he does it (now and then he gets it wrong first), then give him a treat or a pat
-const TRICKS = [{ id: 'beg', name: 'Beg', dur: 2.2 }, { id: 'paw', name: 'Shake', dur: 2 }, { id: 'roll', name: 'Roll over', dur: 2.4 }, { id: 'jump', name: 'Jump', dur: 1.7 }, { id: 'dance', name: 'Dance', dur: 2.4 }, { id: 'bow', name: 'Play bow', dur: 1.8 }];
+const TRICKS = [{ id: 'beg', name: 'Beg', dur: 2.2, bond: 0 }, { id: 'paw', name: 'Shake', dur: 2, bond: 0 }, { id: 'bow', name: 'Play bow', dur: 1.8, bond: 0 }, { id: 'roll', name: 'Roll over', dur: 2.4, bond: 10 }, { id: 'jump', name: 'Jump', dur: 1.7, bond: 25 }, { id: 'dance', name: 'Dance', dur: 2.4, bond: 45 }];
+// Joji's bond, 0–100: treats and pats build it; it unlocks harder tricks, and from 30 he sniffs out fish (fishing spots come more often)
+const bondName = b => b < 10 ? 'new pal' : b < 30 ? 'buddy' : b < 60 ? 'best buddy' : b < 90 ? 'loyal friend' : 'soulmate';
+const bondUp = n => { const before = S.bond || 0; S.bond = Math.min(100, before + n); const t = TRICKS.find(q => q.bond > before && q.bond <= S.bond); if (t) float(`Joji learned a new trick: ${t.name}!`, W / 2, 110, C.gold, 9, true); if (before < 30 && S.bond >= 30) float('Joji now sniffs out fish: fishing spots come more often', W / 2, 124, C.gold2, 8, true); };
 let TRICK = null;
 function tapDog(sx, sy) {
   if (!DOG || PLAY || TRICK) return false; const w = center(DOG.r, DOG.c), [x, y] = scr(w.x, w.y); if (Math.hypot(sx - x, sy - (y - 8)) > 16) return false;
@@ -644,8 +801,8 @@ function stepTrick(dt) {
   if (k.phase === 'do' && k.t >= k.k.dur) { if (k.wrong) { float(`he did "${k.k.name.toLowerCase()}" instead… try again?`, x, y + 14, C.sand, 7); TRICK = { phase: 'menu', t: 0 }; } else { float('good boy!', x, y + 14, C.gold2, 8); S.tricks = S.tricks || {}; S.tricks[k.k.id] = (S.tricks[k.k.id] || 0) + 1; TRICK = { phase: 'reward', t: 0, k: k.k }; SFX.woof(); } return; }
   if ((k.phase === 'eat' && k.t > 2.6) || (k.phase === 'pat' && k.t > 1.6)) { if (k.phase === 'eat') { TRICK = { phase: 'pat', t: 0 }; return; } TRICK = null; DOG.idle = rnd(1, 2); }
 }
-function giveTreat() { if (S.cash < 2) { SFX.nope(); return float('no coins for a treat', W / 2, 260, C.pink, 8, true); } S.cash -= 2; S.treats = (S.treats || 0) + 1; const [x, y] = head(DOG); float('nom nom nom', x, y + 14, C.sand, 7); gainXp(3); TRICK = { phase: 'eat', t: 0 }; SFX.chomp(); save(); }
-function patDog() { const [x, y] = head(DOG); float('*happy wiggle*', x, y + 14, C.sand, 7); TRICK = { phase: 'pat', t: 0 }; SFX.woof(); }
+function giveTreat() { if (S.cash < 2) { SFX.nope(); return float('no coins for a treat', W / 2, 260, C.pink, 8, true); } S.cash -= 2; S.treats = (S.treats || 0) + 1; bondUp(6); const [x, y] = head(DOG); float('nom nom nom', x, y + 14, C.sand, 7); gainXp(3); TRICK = { phase: 'eat', t: 0 }; SFX.chomp(); save(); }
+function patDog() { bondUp(2); const [x, y] = head(DOG); float('*happy wiggle*', x, y + 14, C.sand, 7); TRICK = { phase: 'pat', t: 0 }; SFX.woof(); }
 function dogTrickPose(d, t) { // what Joji looks like mid-trick: sprite, hop and which way he faces
   const k = TRICK, u = k.t; let n = 'dog-sit', hop = 0, flip = d.flip;
   if (k.phase === 'do') { const id = k.k.id;
@@ -661,10 +818,10 @@ function dogTrickPose(d, t) { // what Joji looks like mid-trick: sprite, hop and
   return { n, hop, flip };
 }
 function drawTrickUI() {
-  const k = TRICK; if (!k || !DOG || (k.phase !== 'menu' && k.phase !== 'reward')) return; const btns = k.phase === 'menu' ? TRICKS.map(q => [q.name, () => startTrick(q)]) : [[`Give a treat (S$2)`, giveTreat], ['Pat him', patDog]];
+  const k = TRICK; if (!k || !DOG || (k.phase !== 'menu' && k.phase !== 'reward')) return; const btns = k.phase === 'menu' ? TRICKS.map(q => (S.bond || 0) >= q.bond ? [q.name, () => startTrick(q)] : [`♥${q.bond}`, () => { SFX.nope(); float(`bond ${q.bond} needed: treats and pats help`, W / 2, H - 70, C.pink, 7, true); }]) : [[`Give a treat (S$2)`, giveTreat], ['Pat him', patDog]];
   const bw = k.phase === 'menu' ? 66 : 120, pw = btns.length * (bw + 4) + 12, px = Math.round(W / 2 - pw / 2), py = H - 60;
   g.fillStyle = '#0c0c0ee6'; g.fillRect(px, py, pw, 44); g.strokeStyle = C.gold; g.lineWidth = 1; g.strokeRect(px + 0.5, py + 0.5, pw - 1, 43); hit(px, py, pw, 44, () => {});
-  text(k.phase === 'menu' ? 'Joji: which trick?' : `Good boy, Joji! ${k.k ? `(${k.k.name.toLowerCase()} ×${(S.tricks || {})[k.k.id] || 1})` : ''}`, px + 8, py + 12, C.gold, 8);
+  text(k.phase === 'menu' ? `Joji: which trick?  ♥ ${S.bond || 0} ${bondName(S.bond || 0)}` : `Good boy, Joji! ${k.k ? `(${k.k.name.toLowerCase()} ×${(S.tricks || {})[k.k.id] || 1})` : ''}`, px + 8, py + 12, C.gold, 8);
   text('×', px + pw - 8, py + 10, C.grey, 9, 'center'); hit(px + pw - 16, py, 16, 14, () => { TRICK = null; DOG.idle = 0; });
   btns.forEach(([label, fn], i) => { const bx = px + 6 + i * (bw + 4); g.fillStyle = i === 0 && k.phase === 'reward' ? C.gold2 : '#2b3a50'; g.fillRect(bx, py + 20, bw, 16); text(label, bx + bw / 2, py + 31, i === 0 && k.phase === 'reward' ? C.ink : C.sand, 7, 'center'); hit(bx, py + 20, bw, 16, fn); });
 }
@@ -896,10 +1053,10 @@ function moveTap(r, c) {
 function place(r, c) {
   const it = item(S.build), [x, y] = tilePos(r, c);
   if (!canPlace(it, r, c)) { SFX.nope(); return float(it.on === 'land' ? (blocksWay(r, c) && !objAt(r, c) && (land(r, c) || lane(r, c)) ? 'that would block the walkway' : 'needs a deck tile') : it.on === 'sea' ? deckWhy(r, c) : 'needs an empty pen', x, y - 10, C.pink); }
-  if (S.cash < it.cost) { SFX.nope(); return float("Not enough $", x, y - 10, C.pink); }
+  const price = costOf(it); if (S.cash < price) { SFX.nope(); return float("Not enough $", x, y - 10, C.pink); }
   if (full(it)) { SFX.nope(); S.build = null; return float('you already have that', x, y - 10, C.pink); }
-  if (it.on === 'sea') { S.cash -= it.cost; S.deck[r * MAP + c] = 1; syncDock(); pop(x, y, '#d9b48a', 8); SFX.tok(); gainXp(it.xp); save(); return; } // stays in build mode: lay the next one
-  const pp = it.on === 'pen' && penOf(r, c); S.cash -= it.cost; S.objs.push({ id: it.id, r: pp ? pp.r0 : r, c: pp ? pp.c0 : c, fed: null }); S.build = null; S.stats.built++; if (S.step === 4) S.step = 5; refreshQuests();
+  if (it.on === 'sea') { S.cash -= price; S.deck[r * MAP + c] = 1; syncDock(); pop(x, y, '#d9b48a', 8); SFX.tok(); gainXp(it.xp); save(); return; } // stays in build mode: lay the next one
+  const pp = it.on === 'pen' && penOf(r, c); S.cash -= price; S.objs.push({ id: it.id, r: pp ? pp.r0 : r, c: pp ? pp.c0 : c, fed: null }); S.build = null; S.stats.built++; if (S.step === 4) S.step = 5; refreshQuests();
   pop(x, y, C.gold2, 10); float(`+${it.xp}xp`, x, y - 20, '#9ad0e0'); SFX.stamp(); gainXp(it.xp); checkQuests();
 }
 function tapObj(o, who = F) {
@@ -1011,18 +1168,18 @@ function buyUpgrade(u) {
 // workers look for a job every 1.5s when idle; nearest job first
 function think(w, dt) {
   if (DINNER && !DINNER.fade) return; // dinner: the work can wait
-  if (w.queue.some(q => !q.idle) || (w.think -= dt) > 0) return; w.think = 1.5;
+  if (w.queue.some(q => !q.idle) || (w.think -= dt) > 0) return; w.think = 1.5 * (S.unpaid ? 2 : 1) * (1 - 0.08 * (crewLv(w) - 1)); // unpaid: half pace; experienced: quicker
   const near = (a, b) => Math.hypot(a.r - w.r, a.c - w.c) - Math.hypot(b.r - w.r, b.c - w.c);
   if (w.id === 'harvester') {
     const jobs = []; S.plots.forEach((row, r) => row.forEach((p, c) => { if (p && (withered(p) || (growth(p) >= 1 && !tankFull()))) jobs.push({ r, c }); }));
     const j = jobs.sort(near)[0]; if (!j) { if (S.tank.some(isClean)) sellTank(w); return; }
-    go(j.r, j.c, () => { const p = S.plots[j.r][j.c]; if (!p) return; if (withered(p)) { S.plots[j.r][j.c] = null; pop(...tilePos(j.r, j.c), C.grey, 6); } else harvest(j.r, j.c, w); }, w, 'harvest');
+    crewExp(w); go(j.r, j.c, () => { const p = S.plots[j.r][j.c]; if (!p) return; if (withered(p)) { S.plots[j.r][j.c] = null; pop(...tilePos(j.r, j.c), C.grey, 6); } else harvest(j.r, j.c, w); }, w, 'harvest');
   } else if (w.id === 'carpenter') {
-    const j = S.broken.map(([r, c]) => ({ r, c })).sort(near)[0]; if (j && S.cash >= FIX) fixPlank(j.r, j.c, w);
+    const j = S.broken.map(([r, c]) => ({ r, c })).sort(near)[0]; if (j && S.cash >= FIX) { crewExp(w); fixPlank(j.r, j.c, w); }
   } else {
     const done = o => o.fed && Date.now() - o.fed >= penSpec(o).time * 1000, canStock = o => o.id === 'fishcage' ? !!keeperFish(o) : S.cash >= penSpec(o).feed;
     const j = S.objs.filter(o => item(o.id).pen && !item(o.id).pen.win && (done(o) || (!o.fed && S.pickFish !== o && canStock(o)))).sort(near)[0]; // not a cage you're choosing a fish for
-    if (!j) return; if (!done(j) && j.id === 'fishcage') stockFish(j, keeperFish(j), w); else tapObj(j, w);
+    if (!j) return; crewExp(w); if (!done(j) && j.id === 'fishcage') stockFish(j, keeperFish(j), w); else tapObj(j, w);
   }
 }
 
@@ -1115,11 +1272,11 @@ let SPOT = null, spotWait = rnd(15, 30), MINI = null;
 function stepSpot(dt) {
   if (MINI && (MINI.t += dt) > BITE) { MINI.t = 99; MINI.a = 2; endMini(); } // too slow: it gets away
   if (SPOT) { if ((SPOT.t += dt) > 9) SPOT = null; return; }
-  if ((spotWait -= dt) > 0 || CROC || (typeof STORM !== 'undefined' && STORM && STORM.on)) return; spotWait = rnd(25, 50);
+  if ((spotWait -= dt) > 0 || CROC || (typeof STORM !== 'undefined' && STORM && STORM.on)) return; spotWait = rnd(25, 50) * (S.sea > 60 ? 0.8 : S.sea < 30 ? 1.5 : 1) * (tideNow() > 0.4 ? 0.8 : 1) * ((S.bond || 0) >= 30 && DOG ? 0.85 : 1) * (up('p-reef') ? 0.7 : 1); // healthy water and high tide bring the fish
   const cand = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) { if (!walkable(r, c) || hutTile(r, c)) continue; const sea = seaSide(r, c); if (!sea) continue; const w = center(sea[0], sea[1]), [sx, sy] = scr(w.x, w.y); if (sx > 70 && sx < W - 70 && sy > 60 && sy < H - 110) cand.push(w); }
   if (cand.length) { const w = cand[Math.floor(Math.random() * cand.length)]; SPOT = { x: w.x, y: w.y + 6, t: 0 }; }
 }
-function tapSpot(wx, wy) { if (!SPOT || Math.hypot(wx - SPOT.x, (wy - SPOT.y) * 1.6) > 28) return false; const w = 0.2 + Math.random() * 0.08; const pool = FISH.filter(f => f.lvl <= S.level + 1); MINI = { t: 0, a: Math.random() * (1 - w), w, x: SPOT.x, y: SPOT.y, f: (pool[Math.floor(Math.random() * pool.length)] || FISH[0]).id }; SPOT = null; SFX.splash(); return true; }
+function tapSpot(wx, wy) { if (!SPOT || Math.hypot(wx - SPOT.x, (wy - SPOT.y) * 1.6) > 28) return false; const w = 0.2 + Math.random() * 0.08; const pool = FISH.filter(f => f.lvl <= S.level + 1); MINI = { t: 0, a: Math.random() * (1 - w), w, x: SPOT.x, y: SPOT.y, f: (pool[Math.floor(Math.random() * pool.length)] || FISH[0]).id, sp: S.level >= 3 && Math.random() < 0.07 ? 'seahorse' : Math.random() < 0.18 ? 'baby' : null }; SPOT = null; SFX.splash(); return true; } // sometimes a baby fish, now and then a seahorse
 const BITE = 6; // seconds a fish stays on the hook before it gets away
 const needle = (m = MINI) => { const u = (m.t * 1.05) % 2; return u < 1 ? u : 2 - u; };
 // how a strike lands: dead centre (within 2.5%) is PERFECT, a huge fish; inside the gold the fish is bigger the closer you were;
@@ -1127,7 +1284,8 @@ const needle = (m = MINI) => { const u = (m.t * 1.05) % 2; return u < 1 ? u : 2 
 function endMini() {
   const m = MINI; MINI = null; const [x, y] = scr(m.x, m.y), mid = m.a + m.w / 2, d = Math.abs(needle(m) - mid); A.ripples.push({ x: m.x, y: m.y, r: 4, life: 1 });
   const tier = d <= 0.025 ? 'perfect' : d <= m.w / 2 ? 'good' : d <= m.w / 2 + 0.1 ? 'small' : 'miss';
-  if (tier === 'miss') { float(`the ${fishOf(m.f).name.toLowerCase()} got away…`, x, y - 20, C.grey, 8); SFX.nope(); return; }
+  if (tier === 'miss') { float(`the ${m.sp === 'seahorse' ? 'seahorse' : fishOf(m.f).name.toLowerCase()} got away…`, x, y - 20, C.grey, 8); SFX.nope(); return; }
+  if (m.sp) { RELEASE = { sp: m.sp, f: fishOf(m.f), x: m.x, y: m.y }; SFX.pop(); return; } // a baby or a seahorse: you decide
   const f = fishOf(m.f), [lo, hi, perKg] = KG[f.id], close = 1 - Math.max(0, d - 0.025) / Math.max(0.01, m.w / 2 - 0.025);
   const kg = Math.round((tier === 'perfect' ? hi * rnd(1.05, 1.3) : tier === 'good' ? lo + (hi - lo) * (0.3 + 0.6 * close) * rnd(0.92, 1.05) : lo * rnd(0.5, 0.9)) * 10) / 10;
   const cash = Math.round((8 + kg * perKg) * (tier === 'perfect' ? 1.5 : 1)); S.cash += cash; collect(f.id); S.records = S.records || {};
@@ -1145,12 +1303,127 @@ function drawSpot(t) {
     text('fish! tap', x, y - 18, C.sand, 7, 'center'); }
   if (MINI) { const [x, y] = scr(MINI.x, MINI.y); g.globalAlpha = 0.6; g.strokeStyle = '#ffffff'; g.beginPath(); g.ellipse(x, y, 14 + Math.sin(t * 8) * 2, 6, 0, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }
 }
+// catch and release: a baby fish or a seahorse comes up, and you choose
+// ---- the story: six chapters, each a few goals; finishing one pays out and opens the next ----
+const harvested = () => Object.values(S.stats.harvest || {}).reduce((a, b) => a + b, 0);
+const CHAPTERS = [
+  { name: 'A kelong of our own', blurb: 'Get the farm going: oysters in the water, a fish cage, a first good harvest.', cash: 300, xp: 100, goals: [{ t: 'Reach level 3', ok: () => S.level >= 3, p: () => `${Math.min(S.level, 3)}/3` }, { t: 'Build a fish cage', ok: () => has('fishcage') }, { t: 'Harvest 20 oysters', ok: () => harvested() >= 20, p: () => `${Math.min(harvested(), 20)}/20` }] },
+  { name: 'Clean water', blurb: 'The strait looks after us. Time to look after it.', cash: 1000, xp: 300, goals: [{ t: 'Pick up 10 bits of litter', ok: () => S.eco.litter >= 10, p: () => `${Math.min(S.eco.litter, 10)}/10` }, { t: 'Free an animal from a ghost net', ok: () => S.eco.nets >= 1 }, { t: 'Sea health 60 or more', ok: () => S.sea >= 60, p: () => `${Math.round(S.sea)}` }] },
+  { name: 'Friends of the shore', blurb: 'Get to know who else lives here, and give the young ones a chance.', cash: 2000, xp: 500, goals: [{ t: 'Find 3 creatures at low tide', ok: () => S.eco.shore >= 3, p: () => `${Math.min(S.eco.shore, 3)}/3` }, { t: 'Let 2 small catches go', ok: () => S.eco.release >= 2, p: () => `${Math.min(S.eco.release, 2)}/2` }, { t: 'Learn 8 fact cards', ok: () => learned() >= 8, p: () => `${Math.min(learned(), 8)}/8` }] },
+  { name: 'Night of the hatchlings', blurb: 'Baby turtles need dark nights and healthy shores.', cash: 4000, xp: 800, goals: [{ t: 'Guide a hatchling night', ok: () => S.eco.hatch >= 1 }, { t: 'Visit Chek Jawa', ok: () => S.eco.trips >= 1 }, { t: 'Plant 3 seagrass shoots at Chek Jawa', ok: () => S.eco.planted >= 3, p: () => `${Math.min(S.eco.planted, 3)}/3` }] },
+  { name: 'Seagrass for the dugongs', blurb: 'Bring the meadows back, and maybe the dugongs too.', cash: 8000, xp: 1500, goals: [{ t: 'Fund the seagrass replanting', ok: () => up('p-seagrass') }, { t: 'Sea health 80 or more', ok: () => S.sea >= 80, p: () => `${Math.round(S.sea)}` }, { t: 'Spot a dugong', ok: () => !!S.album.dugong }] },
+  { name: 'Guardians of the strait', blurb: 'Know it, protect it, teach it.', cash: 20000, xp: 3000, goals: [{ t: 'Learn every fact card', ok: () => learned() >= Object.keys(FACTS).length, p: () => `${learned()}/${Object.keys(FACTS).length}` }, { t: 'Score 8 or more in the quiz', ok: () => (S.quizBest || 0) >= 8, p: () => `best ${S.quizBest || 0}/10` }, { t: 'Fund turtle-friendly lights', ok: () => up('p-darksky') }] },
+];
+let storyCheck = 0;
+function stepStory(dt) {
+  if ((storyCheck -= dt) > 0) return; storyCheck = 1; const ch = CHAPTERS[S.chapter || 0]; if (!ch || !ch.goals.every(q => q.ok())) return;
+  S.cash += ch.cash; gainXp(ch.xp); S.chapter = (S.chapter || 0) + 1; float(`Chapter complete: ${ch.name}! +S$${ch.cash} +${ch.xp}xp`, W / 2, 130, C.gold, 10, true); SFX.levelup(); for (let i = 0; i < 30; i++) A.particles.push({ x: W / 2 + rnd(-60, 60), y: 130, vx: rnd(-70, 70), vy: rnd(-90, -20), life: 0.9, color: i % 2 ? '#f6d48a' : '#9ee6a8' }); save();
+}
+// projects: big things to save up for, each doing some good for the strait (stored in S.up like the shed upgrades)
+const PROJECTS = [
+  { id: 'p-seagrass', name: 'Replant seagrass', cost: 5000, lvl: 4, desc: 'Volunteers replant the meadows at Chek Jawa: +10 sea health, and dugongs come by more often.', fx: () => seaBump(10) },
+  { id: 'p-mangrove', name: 'Mangrove nursery', cost: 12000, lvl: 6, desc: 'Grow mangrove seedlings for the shore: sea health recovers faster, all the time.' },
+  { id: 'p-darksky', name: 'Turtle-friendly lights', cost: 20000, lvl: 8, desc: 'Shielded amber lamps that hatchlings ignore: every hatchling night goes right by itself.' },
+  { id: 'p-reef', name: 'Reef modules', cost: 40000, lvl: 10, desc: 'Concrete reef balls beside the farm grow coral and shelter fish: fishing spots come 30% more often.' },
+  { id: 'p-lab', name: 'Marine field station', cost: 80000, lvl: 12, desc: 'A little lab for school visits: tour groups tip double and fact cards give double XP.' },
+];
+function fundProject(q) { if (up(q.id) || S.level < q.lvl) return; if (S.cash < q.cost) { SFX.nope(); return float('not enough coins yet', W / 2, 300, C.pink, 8, true); } S.cash -= q.cost; S.up[q.id] = true; if (q.fx) q.fx(); gainXp(Math.round(q.cost / 50)); float(`${q.name}: funded!`, W / 2, 120, C.gold, 10, true); SFX.levelup(); save(); }
+function drawStory() {
+  const x0 = 16, y0 = 22, pw = W - 32, ph = H - 34; panelBox(x0, y0, pw, ph); const ci = S.chapter || 0, ch = CHAPTERS[ci];
+  text(`Story · ${Math.min(ci + 1, CHAPTERS.length)} of ${CHAPTERS.length}`, x0 + 10, y0 + 14, C.grey, 7); text(`${SEASON.name} · sea health ${Math.round(S.sea)} (${seaLabel(S.sea)})`, x0 + pw - 24, y0 + 14, seaCol(S.sea), 7, 'right');
+  if (ch) { text(ch.name, x0 + 10, y0 + 30, C.gold, 11); wrap(ch.blurb, 280).forEach((l, i) => text(l, x0 + 10, y0 + 44 + i * 9, C.sand, 7));
+    ch.goals.forEach((q, i) => { const y = y0 + 70 + i * 16, ok = q.ok(); g.fillStyle = ok ? '#2a5a3a' : '#1a2a40'; g.fillRect(x0 + 10, y - 9, 290, 13); text(`${ok ? '✓' : '○'}  ${q.t}`, x0 + 14, y, ok ? '#9ee6a8' : C.sand, 7); if (q.p && !ok) text(q.p(), x0 + 296, y, C.grey, 7, 'right'); });
+    text(`Reward: S$${ch.cash} · ${ch.xp} XP`, x0 + 10, y0 + 128, C.gold2, 7); }
+  else { text('Guardian of the strait', x0 + 10, y0 + 30, C.gold, 11); wrap('Every chapter done. The strait is in good hands: keep it that way, and pass it on.', 280).forEach((l, i) => text(l, x0 + 10, y0 + 46 + i * 9, C.sand, 7)); }
+  const e = S.eco; [`litter picked up ${e.litter}`, `ghost nets cleared ${e.nets}`, `hatchling nights ${e.hatch}`, `small fish let go ${e.release}`, `low-tide finds ${e.shore}`, `seagrass planted ${e.planted} · Chek Jawa trips ${e.trips}`].forEach((l, i) => text(l, x0 + 10, y0 + 148 + i * 10, '#9ad0e0', 7));
+  text('Projects', x0 + 316, y0 + 30, C.gold, 9);
+  PROJECTS.forEach((q, i) => { const x = x0 + 316, y = y0 + 38 + i * 40, done = up(q.id), locked = S.level < q.lvl; g.fillStyle = done ? '#1f3a2a' : '#1a2a40'; g.fillRect(x, y, 276, 36); text(q.name, x + 6, y + 11, done ? '#9ee6a8' : locked ? C.grey : C.sand, 8);
+    text(done ? 'funded ✓' : locked ? `level ${q.lvl}` : `S$${q.cost}`, x + 270, y + 11, done ? '#9ee6a8' : locked ? C.grey : S.cash >= q.cost ? C.gold2 : C.pink, 7, 'right'); wrap(q.desc, 262).slice(0, 2).forEach((l, j) => text(l, x + 6, y + 21 + j * 8, C.grey, 7));
+    if (!done && !locked) hit(x, y, 276, 36, () => fundProject(q)); });
+  const by = y0 + ph - 22, b = (x, w, label, gold, fn) => { g.fillStyle = gold ? C.gold2 : '#2b3a50'; g.fillRect(x, by, w, 15); text(label, x + w / 2, by + 10, gold ? C.ink : C.sand, 7, 'center'); hit(x, by, w, 15, fn); };
+  b(x0 + 10, 150, S.level >= 4 ? 'Trip to Chek Jawa (S$40)' : 'Chek Jawa trips at level 4', S.level >= 4, () => { if (S.level < 4) return SFX.nope(); startTrip(); });
+  b(x0 + 168, 110, 'Take the quiz', false, startQuiz); b(x0 + 286, 150, 'Copy my learning report', false, copyReport);
+}
+async function copyReport() {
+  const e = S.eco, ch = CHAPTERS[S.chapter || 0], names = Object.keys(FACTS).filter(k => S.learned && S.learned[k]).map(k => FACTS[k].name);
+  const txt = [`Indigo Tides learning report (${new Date().toLocaleDateString()})`, `Level ${S.level} · sea health ${Math.round(S.sea)} (${seaLabel(S.sea)}) · ${ch ? `chapter ${(S.chapter || 0) + 1}: ${ch.name}` : 'all chapters done'}`, `Fact cards learned: ${names.length}/${Object.keys(FACTS).length}${names.length ? ' (' + names.join(', ') + ')' : ''}`, `Quiz best: ${S.quizBest || 0}/10`, `Conservation: ${e.litter} litter picked up, ${e.nets} ghost nets cleared, ${e.hatch} hatchling nights, ${e.release} small fish released, ${e.shore} low-tide finds, ${e.planted} seagrass shoots planted, ${e.trips} Chek Jawa trips`].join('\n');
+  try { await navigator.clipboard.writeText(txt); float('learning report copied: paste it to your teacher', W / 2, 300, C.gold, 8, true); SFX.coin(); } catch { prompt('Copy your learning report:', txt); }
+}
+// ---- quiz: ten questions from the fact cards (name the animal from its picture, or how it's doing in the wild) ----
+let QUIZ = null;
+function startQuiz() {
+  const ids = Object.keys(FACTS), pick = (arr, n) => [...arr].sort(() => Math.random() - 0.5).slice(0, n), qs = [];
+  for (const id of pick(ids, 7)) { const opts = pick([id, ...pick(ids.filter(k => k !== id), 3)], 4); qs.push({ kind: 'name', id, q: 'What is this?', opts: opts.map(k => FACTS[k].name), a: FACTS[id].name }); }
+  const statuses = [...new Set(ids.map(k => FACTS[k].status))];
+  for (const id of pick(ids, 3)) { const others = pick(statuses.filter(v => v !== FACTS[id].status), 3); qs.push({ kind: 'status', id, q: `How is the ${FACTS[id].name.toLowerCase()} doing?`, opts: pick([FACTS[id].status, ...others], 4), a: FACTS[id].status }); }
+  QUIZ = { qs: pick(qs, 10), i: 0, score: 0, picked: null }; S.panel = null; SFX.pop();
+}
+function drawQuiz() {
+  const Z = QUIZ; if (!Z) return; const bw = 420, bh = 210, bx = W / 2 - bw / 2, by = 60; hit(0, 0, W, H, () => {}); g.fillStyle = '#05080cc8'; g.fillRect(0, 0, W, H); g.fillStyle = '#0f1824f6'; g.fillRect(bx, by, bw, bh); g.strokeStyle = C.gold; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  if (Z.i >= Z.qs.length) { const best = Math.max(S.quizBest || 0, Z.score); text('Quiz done!', W / 2, by + 40, C.gold, 12, 'center'); text(`${Z.score} out of ${Z.qs.length}`, W / 2, by + 70, C.sand, 14, 'center'); text(`best: ${best}/10 · +${Z.score * 5} XP`, W / 2, by + 92, C.gold2, 8, 'center'); text(Z.score >= 8 ? 'A true friend of the strait.' : 'Read a few more fact cards in the album, then try again!', W / 2, by + 112, C.grey, 7, 'center');
+    g.fillStyle = C.gold2; g.fillRect(W / 2 - 50, by + bh - 30, 100, 16); text('Done', W / 2, by + bh - 19, C.ink, 7, 'center'); hit(W / 2 - 50, by + bh - 30, 100, 16, () => { S.quizBest = best; gainXp(Z.score * 5); QUIZ = null; save(); }); return; }
+  const q = Z.qs[Z.i]; text(`Question ${Z.i + 1} of ${Z.qs.length}`, bx + 12, by + 16, C.grey, 7); text(`score ${Z.score}`, bx + bw - 12, by + 16, C.gold2, 7, 'right');
+  g.fillStyle = '#16314a'; g.fillRect(bx + 12, by + 26, 120, 120); const ph = photoOf(q.id), al = ALBUM.find(a => a.id === q.id), im = al && al.icon();
+  if (ph) { const sc = Math.max(118 / ph.width, 118 / ph.height), sw = 118 / sc, sh = 118 / sc; g.save(); g.imageSmoothingEnabled = true; g.drawImage(ph, (ph.width - sw) / 2, (ph.height - sh) / 2, sw, sh, bx + 13, by + 27, 118, 118); g.restore(); } else if (im) { const sc = Math.min(100 / im.width, 100 / im.height, 3); g.drawImage(im, Math.round(bx + 72 - im.width * sc / 2), Math.round(by + 86 - im.height * sc / 2), Math.round(im.width * sc), Math.round(im.height * sc)); }
+  if (q.kind === 'status' && Z.picked === null) { g.fillStyle = '#16314ae8'; g.fillRect(bx + 12, by + 128, 120, 18); text(FACTS[q.id].name, bx + 72, by + 140, C.sand, 7, 'center'); }
+  wrap(q.q, 260).forEach((l, i) => text(l, bx + 144, by + 36 + i * 11, C.gold, 9));
+  q.opts.forEach((o, i) => { const y = by + 62 + i * 22, right = o === q.a, chosen = Z.picked === o; g.fillStyle = Z.picked === null ? '#2b3a50' : right ? '#2a6a3a' : chosen ? '#7a2a2a' : '#1a2a40'; g.fillRect(bx + 144, y, 262, 18); text(o, bx + 152, y + 12, C.sand, 7);
+    if (Z.picked === null) hit(bx + 144, y, 262, 18, () => { Z.picked = o; if (right) { Z.score++; SFX.coin(); } else SFX.nope(); }); });
+  if (Z.picked !== null) { g.fillStyle = C.gold2; g.fillRect(bx + bw - 92, by + bh - 24, 80, 15); text(Z.i + 1 < Z.qs.length ? 'Next' : 'See score', bx + bw - 52, by + bh - 14, C.ink, 7, 'center'); hit(bx + bw - 92, by + bh - 24, 80, 15, () => { Z.i++; Z.picked = null; SFX.pop(); }); }
+}
+// ---- second location: a trip to Chek Jawa on Pulau Ubin at low tide. find the creatures on the flats (look, don't take),
+// pick up litter, plant seagrass shoots, and if the sea's healthy and the meadows replanted, maybe a dugong offshore ----
+const CJ = new Image(); CJ.src = `sprites/bg-chekjawa.jpg?v=${ART}`;
+const CJ_SPOTS = [[118, 318], [196, 244], [262, 318], [332, 266], [404, 326], [436, 236], [500, 300], [556, 250], [352, 206], [176, 206], [470, 186], [86, 260], [290, 214]];
+const CJ_SAYS = { seastar: 'a knobbly sea star, sunning on the sand', mudskipper: 'a mudskipper, skipping across the mud', fiddler: 'a fiddler crab, waving hello', hcrab: 'a mangrove horseshoe crab, older than the dinosaurs', clam: "a clam's siphons poking out of the sand", otter: 'a family of smooth-coated otters!', seagrass: 'tape seagrass, the dugongs\' favourite food' };
+let SCENE = null;
+const sfloat = (...a) => { float(...a); A.floaters[A.floaters.length - 1].scene = true; }; // a message that shows in the Chek Jawa scene
+function startTrip() {
+  if (S.cash < 40) { SFX.nope(); return float('a trip costs S$40', W / 2, 300, C.pink, 8, true); } S.cash -= 40; S.eco.trips++; S.panel = null;
+  const spots = [...CJ_SPOTS].sort(() => Math.random() - 0.5), kinds = ['seastar', 'seastar', 'mudskipper', 'fiddler', 'fiddler', 'hcrab', 'clam', 'otter'];
+  SCENE = { t: 0, things: kinds.map(k => ({ k, at: spots.pop(), seen: false })), litter: ['bottle', 'bag', 'can'].map(k => ({ k, at: spots.pop() })), plant: [[300, 300], [380, 292], [236, 282]].map(at => ({ at, done: false })), dugong: up('p-seagrass') && S.sea >= 70 && Math.random() < 0.6 };
+  SFX.splash(); save();
+}
+function drawScene() {
+  const Z = SCENE, t = S.t; g.fillStyle = '#4a7a9a'; g.fillRect(0, 0, W, H); if (CJ.complete && CJ.naturalWidth) { g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(CJ, 0, 0, W, Math.round(W * CJ.height / CJ.width)); g.restore(); }
+  const thing = (name, [x, y], sc, fn, flip = false, hop = 0) => { ell(x, y + 1, 8 * sc, 2.5 * sc, '#00000033'); sprite(name, x, y + 2 + hop, { scale: sc, flip }); hit(x - 12 * sc, y - 14 * sc, 24 * sc, 18 * sc, fn); };
+  for (const p of Z.plant) { const [x, y] = p.at; if (p.done) sprite('eco-seagrass', x, y + 2, { scale: 1.6 }); else { g.strokeStyle = '#f6d48a'; g.setLineDash([2, 2]); g.beginPath(); g.ellipse(x, y, 11, 4, 0, 0, 7); g.stroke(); g.setLineDash([]); text('plant', x, y - 6, C.gold2, 7, 'center'); }
+    if (!p.done) hit(x - 14, y - 12, 28, 18, () => { p.done = true; S.eco.planted++; seaBump(2); gainXp(5); sfloat('seagrass shoot planted · +2 sea health', x, y - 22, '#9ee6a8', 7); SFX.tok(); save(); }); }
+  for (const l of [...Z.litter]) thing(`litter-${l.k}`, l.at, 1.4, () => { Z.litter.splice(Z.litter.indexOf(l), 1); S.eco.litter++; seaBump(1); sfloat('litter picked up · +1 sea health', l.at[0], l.at[1] - 18, '#9ee6a8', 7); SFX.pop(); });
+  for (const o of Z.things) { const sp = o.k === 'hcrab' ? 'hcrab-a' : o.k === 'otter' ? 'otter-stand' : `eco-${o.k}`, hop = o.k === 'mudskipper' ? -Math.max(0, Math.sin(t * 2 + o.at[0]) * 6 - 4) : 0;
+    thing(sp, o.at, 1.5, () => { const [x, y] = o.at; if (!o.seen) { o.seen = true; S.eco.shore++; gainXp(3); } collect(o.k); sfloat(CJ_SAYS[o.k], x, y - 24, C.sand, 7); SFX.pop(); }, o.at[0] > 320, hop);
+    if (!o.seen && Math.sin(t * 3 + o.at[0]) > 0.6) { g.fillStyle = '#ffffffcc'; g.beginPath(); g.arc(o.at[0], o.at[1] - 22, 1.6, 0, 7); g.fill(); } }
+  if (Z.dugong) { const x = 600 + Math.sin(t * 0.3) * 14, y = 268; sprite(tinted('sea2-dugong', '#1b5a8a'), x, y, { alpha: 0.6 }); hit(x - 22, y - 14, 44, 20, () => { collect('dugong'); sfloat('a dugong, grazing the replanted meadow!', x - 60, y - 24, C.gold, 8); openLearn('dugong'); }); }
+  g.fillStyle = '#0c0c0ec8'; g.fillRect(0, 0, W, 18); text('Chek Jawa, Pulau Ubin · low tide', 8, 13, C.gold, 9); const found = Z.things.filter(o => o.seen).length; text(`found ${found}/${Z.things.length} · litter left ${Z.litter.length} · planted ${Z.plant.filter(p => p.done).length}/3`, 330, 13, C.sand, 7, 'center');
+  g.fillStyle = C.gold2; g.fillRect(W - 128, 2, 122, 14); text('Back to the kelong', W - 67, 12, C.ink, 7, 'center'); hit(W - 128, 0, 122, 18, () => { SCENE = null; SFX.splash(); save(); });
+  text('Tap the creatures to learn about them: look, but leave them where they are.', W / 2, H - 8, '#ffffffdd', 7, 'center');
+  for (const f of A.floaters) if (f.ui || f.scene) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, f.size, 'center'); } g.globalAlpha = 1; drawLearn();
+}
+let RELEASE = null, AWAY = null;
+function drawAway() { // welcome back: what happened while you were gone
+  const k = AWAY; if (!k || S.offer || MINI) return; const bw = 300, bh = 54 + k.lines.length * 11, bx = W / 2 - bw / 2, by = 70, h = Math.floor(k.away / 3600), m = Math.floor(k.away % 3600 / 60);
+  hit(0, 0, W, H, () => {}); g.fillStyle = '#05080c99'; g.fillRect(0, 0, W, H); g.fillStyle = '#0f1824f4'; g.fillRect(bx, by, bw, bh); g.strokeStyle = C.gold; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  text('Welcome back!', bx + 12, by + 16, C.gold, 10); text(`You were away ${h ? `${h}h ` : ''}${m}m. Meanwhile:`, bx + 12, by + 28, C.grey, 7);
+  k.lines.forEach((l, i) => text(`• ${l}`, bx + 14, by + 42 + i * 11, C.sand, 7));
+  g.fillStyle = C.gold2; g.fillRect(bx + bw - 90, by + bh - 20, 80, 14); text("Let's go", bx + bw - 50, by + bh - 10, C.ink, 7, 'center'); hit(bx + bw - 90, by + bh - 20, 80, 14, () => { AWAY = null; SFX.pop(); });
+}
+function drawRelease() {
+  const R = RELEASE; if (!R || MINI) return; const sea = R.sp === 'seahorse', bw = 340, bh = 128, bx = W / 2 - bw / 2, by = 80;
+  hit(0, 0, W, H, () => {}); g.fillStyle = '#05080cb0'; g.fillRect(0, 0, W, H); g.fillStyle = '#0f1824f4'; g.fillRect(bx, by, bw, bh); g.strokeStyle = C.gold; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  g.fillStyle = '#16314a'; g.fillRect(bx + 10, by + 10, 64, 64); const im = ready(sea ? 'eco-seahorse' : `fish-${R.f.id}`); if (im) { const sc = Math.min(54 / im.width, 54 / im.height) * (sea ? 1 : 0.55); g.drawImage(im, Math.round(bx + 42 - im.width * sc / 2), Math.round(by + 42 - im.height * sc / 2 + Math.sin(S.t * 8)), Math.round(im.width * sc), Math.round(im.height * sc)); }
+  text(sea ? 'A spotted seahorse!' : `A baby ${R.f.name.toLowerCase()}: too small to keep`, bx + 84, by + 22, C.gold, 9);
+  wrap(sea ? 'Seahorses are threatened in the wild: they are caught for traditional medicine and the aquarium trade. This one belongs in the sea.' : `A fish this small hasn't bred yet. Let it grow up and it can lay thousands of eggs, which means more fish for everyone.`, bw - 96).forEach((l, i) => text(l, bx + 84, by + 36 + i * 9, C.sand, 7));
+  const btn = (x, w, label, gold, fn) => { g.fillStyle = gold ? C.gold2 : '#2b3a50'; g.fillRect(x, by + bh - 26, w, 16); text(label, x + w / 2, by + bh - 15, gold ? C.ink : C.sand, 7, 'center'); hit(x, by + bh - 26, w, 16, fn); };
+  const [x, y] = scr(R.x, R.y), done = () => { RELEASE = null; save(); };
+  btn(bx + 84, 120, 'Let it go  +3 sea health', true, () => { A.ripples.push({ x: R.x, y: R.y, r: 3, life: 1 }); hop(im, R.x, R.y, 0.5); seaBump(3, x, y - 24); gainXp(5); S.eco.release++; if (sea) collect('seahorse'); float(sea ? 'off it swims. bye, little seahorse!' : 'grow big!', x, y - 38, '#9ee6a8', 8); SFX.splash(); done(); });
+  btn(bx + 212, 118, sea ? 'Keep it' : `Keep it (+S$${8 + Math.round(KG[R.f.id][0] * 4)})`, false, () => { if (!sea) S.cash += 8 + Math.round(KG[R.f.id][0] * 4); seaBump(sea ? -8 : -4, x, y - 24); float(sea ? "it can't be sold, and the strait has one less seahorse" : "it'll never get to breed", x, y - 38, C.pink, 8); SFX.nope(); done(); });
+}
 function drawMini() { // the bite pop-up: the fish on the line, how long before it gets away, and the strike meter
   if (!MINI) return; const f = fishOf(MINI.f), [lo, hi] = KG[f.id], left = Math.max(0, BITE - MINI.t), pw = 300, px = W / 2 - pw / 2, py = H - 112, bw = 240, bx = W / 2 - bw / 2, by = H - 40, mid = MINI.a + MINI.w / 2;
-  g.fillStyle = '#0c0c0ee6'; g.fillRect(px, py, pw, 100); g.strokeStyle = C.gold; // no close button: any tap is the strike g.lineWidth = 1; g.strokeRect(px + 0.5, py + 0.5, pw - 1, 99);
+  g.fillStyle = '#0c0c0ee6'; g.fillRect(px, py, pw, 100); g.strokeStyle = C.gold; g.lineWidth = 1; g.strokeRect(px + 0.5, py + 0.5, pw - 1, 99); // no close button: any tap is the strike
   g.fillStyle = '#16314a'; g.fillRect(px + 8, py + 8, 56, 46); g.strokeStyle = '#2b4a66'; g.strokeRect(px + 8.5, py + 8.5, 55, 45);
-  const im = ready(`fish-${f.id}`); if (im) { const sc = Math.min(48 / im.width, 36 / im.height); g.save(); g.translate(px + 36, py + 31 + Math.sin(S.t * 9) * 1.5); g.rotate(Math.sin(S.t * 14) * 0.12); g.drawImage(im, -im.width * sc / 2, -im.height * sc / 2, im.width * sc, im.height * sc); g.restore(); } // it thrashes on the line
-  text(`A ${f.name.toLowerCase()} is biting!`, px + 72, py + 18, C.gold, 9); text(`${lo}–${hi} kg · best: ${S.records && S.records[f.id] ? S.records[f.id] + ' kg' : 'none yet'}`, px + 72, py + 30, C.grey, 7);
+  const im = ready(MINI.sp === 'seahorse' ? 'eco-seahorse' : `fish-${f.id}`); if (im) { const sc = Math.min(48 / im.width, 36 / im.height) * (MINI.sp === 'baby' ? 0.5 : 1); g.save(); g.translate(px + 36, py + 31 + Math.sin(S.t * 9) * 1.5); g.rotate(Math.sin(S.t * 14) * 0.12); g.drawImage(im, -im.width * sc / 2, -im.height * sc / 2, im.width * sc, im.height * sc); g.restore(); } // it thrashes on the line
+  text(MINI.sp === 'seahorse' ? 'Something small is on the hook…' : MINI.sp === 'baby' ? `A little ${f.name.toLowerCase()} is biting…` : `A ${f.name.toLowerCase()} is biting!`, px + 72, py + 18, C.gold, 9); text(`${lo}–${hi} kg · best: ${S.records && S.records[f.id] ? S.records[f.id] + ' kg' : 'none yet'}`, px + 72, py + 30, C.grey, 7);
   const urgent = left < 2, tw = pw - 80; text(`gets away in ${Math.ceil(left)}s`, px + 72, py + 44, urgent ? C.pink : C.sand, 8);
   g.fillStyle = '#1a2a40'; g.fillRect(px + 72, py + 49, tw, 4); g.fillStyle = urgent ? (Math.sin(S.t * 20) > 0 ? '#ff5a5a' : '#c03a3a') : '#9ad0e0'; g.fillRect(px + 72, py + 49, Math.round(tw * left / BITE), 4);
   text('Stop the needle on the bright line for a PERFECT catch!', W / 2, by - 8, C.sand, 7, 'center');
@@ -1171,7 +1444,7 @@ let TOUR = null, tourWait = rnd(60, 120);
 const SAYS = ['so pretty!', 'wah, nice', 'photo!', 'so shiok here', 'can stay here forever'];
 function stepTour(dt) {
   if (!TOUR) { if (S.level < 3 || S.sale || STORM.on || STORM.wait < 150 || DINNER || sky().lamp > 0.3 || CROC) return; if ((tourWait -= dt) > 0) return;
-    tourWait = Math.max(120, 420 - charm() * 4) * rnd(0.8, 1.2); TOUR = { phase: 'arrive', t: 0, guests: [], n: 2 + (charm() >= 20) + (charm() >= 45), tips: 0, looks: Array.from({ length: GUESTS }, (_, i) => i + 1).sort(() => Math.random() - 0.5) }; SFX.splash(); return; } // looks: a different mix of faces each boat
+    tourWait = Math.max(120, 420 - charm() * 4) * rnd(0.8, 1.2) * SEASON.tour; TOUR = { phase: 'arrive', t: 0, guests: [], n: 2 + (charm() >= 20) + (charm() >= 45), tips: 0, looks: Array.from({ length: GUESTS }, (_, i) => i + 1).sort(() => Math.random() - 0.5) }; SFX.splash(); return; } // looks: a different mix of faces each boat
   const k = TOUR; k.t += dt;
   if (k.phase === 'arrive' && k.t >= 4) { k.phase = 'wait'; k.t = 0; k.land = nearestWalkable(DOCK.r, DOCK.c); for (let i = 0; i < k.n; i++) k.guests.push(guest(i)); }
   if (k.phase === 'wait') { for (const v of k.guests) { if ((v.delay -= dt) > 0) continue; stepActor(dt, v); if (!v.queue.length && !v.gone) v.gone = true; }
@@ -1190,7 +1463,7 @@ function guest(i) { // a visitor's afternoon: out along the walkways to a pen or
   for (const o of decor) if (canSee(o.r, o.c)) goBeside(o.r, o.c, () => say(SAYS), v, 'admire');
   goBeside(TANK.r, TANK.c, () => { const [x, y] = head(v), i2 = S.tank.findIndex(isClean);
     if (i2 < 0) return float('no oysters today :(', x, y, C.grey, 7); const o = S.tank.splice(i2, 1)[0], pay = Math.round(species(o.sp).sell * 1.5 * sellMul()); S.cash += pay; float(`slurp! so fresh +S$${pay}`, x, y, C.gold, 8); SFX.coin(); }, v, 'dine');
-  go(lr, lc, () => { const tip = Math.round(3 + charm() * 0.4); S.cash += tip; TOUR.tips += tip; }, v, null);
+  go(lr, lc, () => { const tip = Math.round(3 + charm() * 0.4) * (up('p-lab') ? 2 : 1); S.cash += tip; TOUR.tips += tip; }, v, null);
   return v;
 }
 function drawGuest(v, x, y, t) {
@@ -1203,12 +1476,15 @@ function drawGuest(v, x, y, t) {
 // ---- storms: every 15–30 minutes of play (from level 3) a squall blows through for 45 seconds. Two minutes' warning on a
 // banner: tap it to secure the farm for a small fee and it rides the storm out. If not, everything growing is set back a quarter
 // of its time and a few more planks break. The crew shelter by the shed till it passes. ----
-const STORM = { on: false, wait: rnd(900, 1800), t: 0, secured: false, flash: 0, warned: false };
+// Singapore's seasons, from today's date: northeast monsoon (Dec–early Mar) wet and windy, southwest (Jun–Sep) drier and calmer,
+// the inter-monsoons between with afternoon thunderstorms
+const SEASON = (() => { const m = new Date().getMonth(); return m === 11 || m <= 2 ? { name: 'Northeast monsoon', note: 'wet and windy: storms come more often', storm: 0.6, tour: 1.1 } : m >= 5 && m <= 8 ? { name: 'Southwest monsoon', note: 'drier, calmer seas: more visitors', storm: 1.3, tour: 0.75 } : { name: 'Inter-monsoon', note: 'hot, with afternoon thunderstorms', storm: 0.8, tour: 1 }; })();
+const STORM = { on: false, wait: rnd(900, 1800) * SEASON.storm, t: 0, secured: false, flash: 0, warned: false };
 const secureCost = () => 20 + 10 * S.objs.filter(o => item(o.id).pen).length;
 function stepStorm(dt) {
   const st = STORM; st.flash = Math.max(0, st.flash - dt * 2.5);
   if (st.on) { st.t += dt; if (Math.random() < dt / 6) { st.flash = 1; SFX.thunder(); } if (Math.random() < dt * 8) A.ripples.push({ x: cam.x + rnd(-W / 2, W / 2), y: cam.y + rnd(-H / 2, H / 2), r: 1, life: 0.6 });
-    if (st.t > 45) { st.on = false; st.wait = rnd(900, 1800); st.t = 0; float(st.secured ? 'the storm passed. all tied down, no harm done' : 'the storm passed', W / 2, 60, C.sand, 9, true); st.secured = false; for (const a of [F, ...WK]) if (a.working === 'shelter') { a.queue = []; a.working = false; } } return; }
+    if (st.t > 45) { st.on = false; st.wait = rnd(900, 1800) * SEASON.storm; st.t = 0; float(st.secured ? 'the storm passed. all tied down, no harm done' : 'the storm passed', W / 2, 60, C.sand, 9, true); st.secured = false; for (const a of [F, ...WK]) if (a.working === 'shelter') { a.queue = []; a.working = false; } } return; }
   if (S.level < 3) return; st.wait -= dt;
   if (st.wait <= 120 && !st.warned) { st.warned = true; float('A storm is coming! Tap the banner to secure the farm.', W / 2, 60, C.pink, 9, true); SFX.nope(); }
   if (st.wait <= 0) startStorm();
@@ -1281,7 +1557,8 @@ function checkQuests() {
 // ---- update ----
 function update(dt) {
   if (press && press.touch && !press.drag && !press.held && performance.now() - press.t0 > 420) { press.held = true; hover = { x: press.x, y: press.y }; } // touch: hold to see a name tag or a tooltip
-  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepOrders(dt); if (TOAST) TOAST.t += dt; stepSpot(dt); stepTour(dt); stepStorm(dt); stepFest(dt); stepSea(dt); stepOtters(dt); stepHcrab(dt); stepDinner(dt); stepActor(dt, F); idle(F, dt); for (const w of WK) { w.speed = has('dog') ? 1.2 : 1; stepActor(dt, w); think(w, dt); idle(w, dt); }
+  S.t += dt; breakPlanks(); stepCrabs(dt); stepSale(dt); stepNuts(dt); stepCroc(dt); stepOrders(dt); if (TOAST) TOAST.t += dt; stepSpot(dt); stepTour(dt); stepStorm(dt); stepFest(dt); stepSea(dt); stepOtters(dt); stepHcrab(dt); stepDinner(dt); stepEco(dt); stepStory(dt);
+  { const d = Math.floor(S.t / daySeconds); if (payDay === null) payDay = d; else if (d !== payDay) { payDay = d; payWages(); } } stepActor(dt, F); idle(F, dt); for (const w of WK) { w.speed = has('dog') ? 1.2 : 1; stepActor(dt, w); think(w, dt); idle(w, dt); }
   const bed = S.objs.find(o => o.id === 'dog'); if (bed && !DOG) DOG = actor({ r: bed.r, c: bed.c, speed: 1.9 }); if (!bed) DOG = null;
   const home = S.objs.find(o => o.id === 'cat'); if (home && !CAT) CAT = actor({ r: home.r, c: home.c, speed: 0.7, pose: 'sleep' }); if (!home) CAT = null;
   if (DOG && !TRICK && (!PLAY || PLAY.phase === 'gather')) stepActor(dt, DOG); if (DOG && !PLAY && !TRICK) dogThink(DOG, dt, bed); if (!DOG) TRICK = null; stepTrick(dt);
@@ -1307,7 +1584,8 @@ const KEYS = [ // dusk, night, dawn, day: sea deep, sea shallow, overlay colour,
 ];
 const hex = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
 const mix = (a, b, k) => `rgb(${hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * k)).join(',')})`;
-function sky() { const p = (S.t % daySeconds) / daySeconds * 4, i = Math.floor(p), k = p - i, a = KEYS[i], b = KEYS[(i + 1) % 4], l = (x, y) => x + (y - x) * k; return { sea: mix(a.sea, b.sea, k), shallow: mix(a.shallow, b.shallow, k), skyc: mix(a.sky, b.sky, k), tint: mix(a.tint, b.tint, k), ta: l(a.ta, b.ta), lamp: l(a.lamp, b.lamp) }; }
+function sky() { const d = sky0(); if (ECO.hatch && ECO.hatch.off) d.lamp *= 0.15; return d; }
+function sky0() { const p = (S.t % daySeconds) / daySeconds * 4, i = Math.floor(p), k = p - i, a = KEYS[i], b = KEYS[(i + 1) % 4], l = (x, y) => x + (y - x) * k; return { sea: mix(a.sea, b.sea, k), shallow: mix(a.shallow, b.shallow, k), skyc: mix(a.sky, b.sky, k), tint: mix(a.tint, b.tint, k), ta: l(a.ta, b.ta), lamp: l(a.lamp, b.lamp) }; }
 
 // ---- sound ----
 let AC = null, muted = false; try { muted = localStorage.getItem('indigo-tides-muted') === '1'; } catch {}
@@ -1397,7 +1675,8 @@ const CAUSTIC = (() => { const N = 12, w = 128, h = 64, TAU = Math.PI * 2, out =
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const a = Math.abs(Math.sin(TAU * 2 * x / w + 1.5 * Math.sin(TAU * y / h + t) + 0.7 * Math.sin(TAU * 3 * y / h - 2 * t) + t)), b = Math.abs(Math.sin(TAU * 2 * y / h + 1.5 * Math.sin(TAU * x / w - t) + 0.7 * Math.sin(TAU * 3 * x / w + 2 * t) + 2 * t)), m = Math.min(a, b), i = (y * w + x) * 4; id.data[i] = id.data[i + 1] = id.data[i + 2] = 255; id.data[i + 3] = m < 0.06 ? 100 : m < 0.14 ? 40 : 0; }
     sg.putImageData(id, 0, 0); const big = document.createElement('canvas'); big.width = w * 2; big.height = h * 2; const bg = big.getContext('2d'); bg.imageSmoothingEnabled = false; bg.drawImage(sm, 0, 0, w * 2, h * 2); out.push(big); }
   return out; })();
-function drawWater(t, D) {
+function drawWater(t, D) { drawWaterBase(t, D); drawMud(t); }
+function drawWaterBase(t, D) {
   g.fillStyle = D.sea; g.fillRect(0, 0, W, H);
   // soft lighter patches, breathing slowly
   for (const p of PATCH) { const [x, y] = scr(p.x + Math.sin(t * 0.1 + p.ph) * 20, p.y); if (x < -p.r || x > W + p.r || y < -p.r || y > H + p.r) continue; const gr = g.createRadialGradient(x, y, 0, x, y, p.r); gr.addColorStop(0, D.shallow); gr.addColorStop(1, 'transparent'); g.globalAlpha = 0.18 + 0.08 * Math.sin(t * 0.3 + p.ph); g.fillStyle = gr; g.fillRect(x - p.r, y - p.r, p.r * 2, p.r * 2); }
@@ -1566,6 +1845,7 @@ function plank(x, y, flip) {
   g.save(); g.translate(x + (flip ? -9 : 9), y - 24); g.rotate(flip ? 0.45 : -0.45); g.fillStyle = '#5a3a24'; g.fillRect(-17, -2, 34, 5); g.fillStyle = '#d9b07a'; g.fillRect(-16, -1, 32, 3); g.fillStyle = '#9a7048'; g.fillRect(-10, 0, 6, 1); g.fillRect(4, -1, 7, 1); g.restore();
 }
 function drawEntity(e, x, y, t, D) {
+  if (drawEcoThing(e, t)) return;
   if (e.kind === 'hut') { // the blue plywood shed with a rusty tin roof; it grows with the Bigger shed upgrade
     const tier = shedTier(), big = tier >= 2, [fx, fy] = scr(big ? 64 : 0, big ? 128 : 96), [nm, ax, ay, top] = SHEDART[tier], im = ready(nm);
     if (tier === 4) glow(fx + 60, fy - 100, 80, '#ff7040', D.lamp * 0.55); // the lanterns along the eaves
@@ -1742,6 +2022,7 @@ function drawWorld(t, D) {
   if (TOUR) { ents0.push({ kind: 'tour', r: DOCK.r, c: DOCK.c }); if (TOUR.phase === 'wait') TOUR.guests.forEach(v => ents0.push({ kind: 'guest', v, r: v.r, c: v.c })); }
   if (OTTERS) { if (OTTERS.swim) { const [r, c] = rcOf(OTTERS.x, OTTERS.y); ents0.push({ kind: 'otterswim', r, c }); } else OTTERS.pack.forEach((o, i) => ents0.push({ kind: 'otter', o, i, r: o.r, c: o.c })); }
   if (HCRAB && HCRAB.phase === 'pen') ents0.push({ kind: 'hcrab', r: HCRAB.r, c: HCRAB.c });
+  for (const l of ECO.litter) { const [r, c] = rcOf(l.x, l.y); ents0.push({ kind: 'litter', l, r, c }); } for (const n of ECO.nets) { const [r, c] = rcOf(n.x, n.y); ents0.push({ kind: 'gnet', n, r, c }); } if (ECO.hatch) for (const p of ECO.hatch.pts) if (!p.sea) { const [r, c] = rcOf(p.x, p.y); ents0.push({ kind: 'hatch', p, r, c }); }
   if (DINNER) { ents0.push({ kind: 'grill', r: DINNER.r, c: DINNER.c }); if (DINNER.table) ents0.push({ kind: 'dtable', r: DINNER.table[0], c: DINNER.table[1] }); DINNER.stools.forEach(([r, c], i) => ents0.push({ kind: 'stool', i, r: r - 0.01, c })); } if (CAT) ents0.push({ kind: 'cat', r: CAT.r + 0.03, c: CAT.c }); for (const n of NUTS) ents0.push({ kind: 'nut', n, r: n.r, c: n.c });
   const ents = [...ents0, ...(S.sale ? [{ kind: 'buyer', r: DOCK.r, c: DOCK.c }] : []), ...(DOG ? [{ kind: 'dog', r: DOG.r + 0.03, c: DOG.c }] : []), { kind: 'hut', r: HUT.r, c: up('bigshed') ? 3 : HUT.c }, { kind: 'tank', r: TANK.r, c: TANK.c }, { kind: 'farmer', ...actorRC(F) }, ...WK.map(w => ({ kind: 'worker', w, ...actorRC(w) })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => { const k = item(o.id).on === 'pen' ? 0.5 : 0; return { kind: 'obj', o, r: o.r + k, c: o.c + k }; })];
   for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (S.plots[r][c]) ents.push({ kind: 'plot', p: S.plots[r][c], r, c });
@@ -1779,7 +2060,7 @@ function tooltip(title, body, bottom, hint) {
 }
 // money an hour a pen makes on its own (the best fish you can rear, for a fish cage), shown in the build tooltip
 const perHour = it => { if (!it.pen || it.pen.win) return 0; const gen = up('generator') ? 1.1 : 1; if (it.id === 'fishcage') { const f = [...FISH].reverse().find(q => q.lvl <= S.level) || FISH[0]; return Math.round((f.sell * festMul(f.id) - f.cost) / f.time * 3600 * gen); } const pn = it.pen; return Math.round((pn.sell * festMul(pn.what) - pn.feed) / pn.time * 3600 * gen); };
-let buildPage = 0, nextTip = 0; // the build bar shows nine cards at a time; arrows flip pages
+let buildPage = 0, nextTip = 0, seaTip = 0; // the build bar shows nine cards at a time; arrows flip pages
 function drawBuild() {
   const y0 = H - 98; panelBox(4, y0, W - 8, 92);
   [['farm', 'Farm'], ['decor', 'Decor'], ['move', 'Move']].forEach(([id, label], i) => { const x = 10 + i * 60, on = S.tab === id; g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, y0 + 4, 54, 12); text(label, x + 27, y0 + 13, on ? C.ink : C.sand, 7, 'center'); hit(x, y0, 54, 18, () => { S.tab = id; S.build = null; buildPage = 0; S.moveSel = null; SFX.pop(); }); });
@@ -1802,7 +2083,7 @@ function drawBuild() {
     if (sel) { g.fillStyle = '#c9a96e33'; g.fillRect(x - w / 2, cy, w, 74); }
     g.globalAlpha = locked ? 0.3 : done ? 0.55 : 1; const nm = it.icon || (it.pen && !it.pen.win ? `${it.sprite}-full` : it.id === 'cellar' ? 'cellar-crate-0' : it.sprite), im = ready(nm);
     if (im) { const s = Math.min(1, 34 / im.height, (w - 8) / im.width); g.drawImage(im, Math.round(x - im.width * s / 2), Math.round(cy + 38 - im.height * s), Math.round(im.width * s), Math.round(im.height * s)); }
-    text(it.name, x, cy + 49, locked ? C.grey : C.sand, 6, 'center'); text(locked ? `lv ${it.lvl}` : done ? (MAXN[it.id] === 1 ? 'have one' : `${MAXN[it.id]} max`) : `S$${it.cost}`, x, cy + 59, locked || done ? C.grey : S.cash < it.cost ? C.pink : C.gold2, 6, 'center'); text(it.note, x, cy + 69, locked ? C.grey : '#9ad0e0', 6, 'center'); g.globalAlpha = 1;
+    text(it.name, x, cy + 49, locked ? C.grey : C.sand, 6, 'center'); text(locked ? `lv ${it.lvl}` : done ? (MAXN[it.id] === 1 ? 'have one' : `${MAXN[it.id]} max`) : `S$${costOf(it)}`, x, cy + 59, locked || done ? C.grey : S.cash < costOf(it) ? C.pink : C.gold2, 6, 'center'); text(it.note, x, cy + 69, locked ? C.grey : '#9ad0e0', 6, 'center'); g.globalAlpha = 1;
     hit(x - w / 2, cy, w, 74, () => { if (locked) { SFX.nope(); return float(`level ${it.lvl}`, x, y0 - 6, C.pink, 8, true); } if (done) { SFX.nope(); return float(MAXN[it.id] === 1 ? `you already have one: a second ${it.name.toLowerCase()} does nothing more` : `${MAXN[it.id]} is the most that count`, W / 2, y0 - 6, C.pink, 8, true); } S.build = sel ? null : it.id; SFX.pop(); });
   });
   const hv = hover && hover.y >= cy && hover.x >= x0 && hover.x < x0 + list.length * w ? list[Math.floor((hover.x - x0) / w)] : null, tip = hv || (S.build && item(S.build));
@@ -1840,7 +2121,7 @@ async function loadSave() {
 }
 function drawHutPanel() {
   const cap = up('bigshed') ? 3 : 1, row1 = [{ name: 'Daily gift', sub: giftReady() ? `S$${25 * S.level} · +10xp · tap to claim` : 'claimed · back tomorrow', desc: 'Free coins once a real day. Worth more at higher levels.', fn: claimGift, ok: giftReady() },
-    ...WORKERS.map((k, i) => { const hired = WK.some(w => w.id === k.id), locked = S.level < k.lvl, full = !hired && WK.length >= cap; return { name: k.name, sub: hired ? 'hired, working for you' : locked ? `unlocks at level ${k.lvl}` : full ? 'needs a bigger shed' : `hire for S$${k.cost}, once`, desc: k.desc, fn: () => hire(i), ok: !hired && !locked && !full && S.cash >= k.cost, id: k.id }; })];
+    ...WORKERS.map((k, i) => { const hired = WK.some(w => w.id === k.id), locked = S.level < k.lvl, full = !hired && WK.length >= cap; return { name: k.name, sub: hired ? `level ${crewLv(WK.find(w => w.id === k.id))} · wage S$${wageOf(WK.find(w => w.id === k.id))} a day` : locked ? `unlocks at level ${k.lvl}` : full ? 'needs a bigger shed' : `hire for S$${k.cost}, once`, desc: k.desc, fn: () => hire(i), ok: !hired && !locked && !full && S.cash >= k.cost, id: k.id }; })];
   const card = u => ({ name: u.name, sub: up(u.id) ? 'built' : S.level < u.lvl ? `unlocks at level ${u.lvl}` : `build for S$${u.cost}`, desc: u.desc, fn: () => buyUpgrade(u), ok: !up(u.id) && S.level >= u.lvl && S.cash >= u.cost, done: up(u.id) }), row2 = UPGRADES.map(card), row3 = LOOKS.map(card);
   const w = 156, h = 64, x0 = W / 2 - 2 * w, y0 = 22; panelBox(x0 - 6, y0, 4 * w + 12, 3 * h + 106); text(shedName(), W / 2, y0 + 14, C.gold2, 8, 'center'); text('Upgrades', x0 + 6, y0 + 22 + h + 16, C.gold2, 7); text(`Looks  ·  charm ${charm()} = +${Math.round(Math.min(20, charm() * 0.5))}% sales`, x0 + 6, y0 + 22 + 2 * (h + 22) - 6, C.gold2, 7);
   [[row1, y0 + 22], [row2, y0 + 22 + h + 22], [row3, y0 + 22 + 2 * (h + 22)]].forEach(([cards, cy]) => cards.forEach((k, i) => {
@@ -1878,6 +2159,7 @@ function drawBanners() { // stacked under the top bar: the storm, then the hint
   if (STORM.on) pill(`Storm! ${fmt(45 - STORM.t)}${STORM.secured ? ' · farm secured' : ''}`, C.pink);
   else if (STORM.warned) pill(`Storm in ${fmt(STORM.wait)} · ${STORM.secured ? 'farm secured ✓' : `tap here to secure the farm (S$${secureCost()})`}`, STORM.secured ? C.gold2 : C.pink, STORM.secured ? null : secureFarm);
   if (S.step < 6 && !S.panel && hint()) pill(hint(), C.sand);
+  else if (lowAmt() > 0.5 && !S.panel) pill('Low tide: the mudflats are out by the shed. Tap what you find!', '#d8c49a');
   if (FEST && !S.panel) { g.fillStyle = '#0c0c0ed9'; g.fillRect(6, 21, 150, 12); text(`${FESTS[FEST].name} · +10% sales`, 12, 30, C.pink, 7); }
 }
 function drawQuests() { // the board: orders on top, today's quests under them
@@ -1889,8 +2171,15 @@ function drawQuests() { // the board: orders on top, today's quests under them
   text("Today's quests", x0 + 10, qy, C.gold2, 8);
   S.quests.forEach((q, i) => { const y = qy + 14 + i * 14, pr = questProg(q); text(q.text, x0 + 10, y, C.sand, 7); text(`${pr}/${q.n}`, x0 + w - 104, y, pr >= q.n ? C.gold : C.grey, 7, 'right'); text(`S$${q.cash} +${q.xp}xp`, x0 + w - 10, y, C.gold2, 7, 'right'); });
 }
+let PHOTO_MODE = false, PHOTO_SNAP = false;
+function snapPhoto() { // save the view (no buttons or panels) as a picture
+  cv.toBlob(b => { if (!b) return; const f = new File([b], 'indigo-tides.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], title: 'My kelong in Indigo Tides' }).catch(() => {});
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'indigo-tides.png'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); } }, 'image/png');
+}
 function draw() {
   hits.length = 0; const t = S.t, D = sky();
+  if (SCENE) { drawScene(); return; }
   drawWater(t, D);
   drawWorld(t, D);
   // time of day tint, then sky-layer life (gulls, clouds) in screen space
@@ -1899,6 +2188,7 @@ function draw() {
   for (const c of A.clouds) sprite(`sc-${c.k}`, c.x, c.y, { alpha: 0.5, scale: 1.5 });
   for (const b of A.gulls) sprite(Math.floor(t * 4 + b.ph) % 2 ? 'sea-gull-a' : 'sea-gull-b', b.x, b.y + Math.sin(t * 1.5 + b.ph) * 2, { flip: b.v < 0, scale: 0.7, alpha: 0.85 });
   const v = g.createRadialGradient(W / 2, H / 2, 220, W / 2, H / 2, 440); v.addColorStop(0, 'transparent'); v.addColorStop(1, '#00000044'); g.fillStyle = v; g.fillRect(0, 0, W, H);
+  if (PHOTO_MODE) { if (!PHOTO_SNAP && Math.floor(performance.now() / 600) % 4) { g.fillStyle = '#0c0c0eb0'; g.fillRect(W / 2 - 120, H - 22, 240, 14); text('photo mode · tap to save the picture · drag to frame', W / 2, H - 12, C.sand, 7, 'center'); } hit(0, 0, W, H, () => { PHOTO_SNAP = true; draw(); snapPhoto(); PHOTO_SNAP = false; PHOTO_MODE = false; float('picture saved', W / 2, 60, C.gold2, 9, true); }); return; }
   // panels and hud
   if (S.pick) drawPicker(SP, sp => tinted('oyster-fat-idle', sp.tint), plant);
   if (S.pickFish) drawPicker(FISH, f => ready(`fish-${f.id}`), f => stockFish(S.pickFish, f, F));
@@ -1908,20 +2198,26 @@ function draw() {
   if (S.panel === 'boat') drawBoatPanel();
   if (S.panel === 'hut') drawHutPanel();
   if (S.panel === 'tank') drawTankPanel();
-  drawInfo(); drawMini(); drawBanners(); drawToast(); drawOffer(); drawLearn(); drawTrickUI();
+  if (S.panel === 'story') drawStory();
+  drawInfo(); drawMini(); drawBanners(); drawToast();
   for (const f of A.floaters) if (f.ui) { g.globalAlpha = Math.min(1, f.life); text(f.s, f.x, f.y, f.color, f.size, 'center'); } g.globalAlpha = 1;
+  drawEcoUI(); drawRelease(); drawAway(); drawQuiz(); drawOffer(); drawLearn(); drawTrickUI(); // cards go over the floating messages, so text never lands on them
   g.fillStyle = '#0c0c0eb0'; g.fillRect(0, 0, W, 18);
   text(`S$${S.cash}`, 8, 13, C.gold2, 11);
   const a = lvlXp(S.level), b = lvlXp(S.level + 1), k = (S.xp - a) / (b - a);
   text(`Lv ${S.level}`, 150, 13, C.sand, 9, 'right'); g.fillStyle = '#2b3a50'; g.fillRect(156, 6, 80, 6); g.fillStyle = '#9ad0e0'; g.fillRect(156, 6, Math.round(80 * k), 6); text(`${S.xp}/${b}`, 242, 13, C.grey, 7);
-  text(`${S.farm.a * S.farm.b} pens`, 300, 13, C.sand, 8, 'center');
+  text(`${S.farm.a * S.farm.b} pens`, 304, 13, C.sand, 8, 'center');
+  text('sea', 330, 13, seaCol(S.sea), 7); g.fillStyle = '#2b3a50'; g.fillRect(346, 6, 24, 6); g.fillStyle = seaCol(S.sea); g.fillRect(346, 6, Math.round(24 * S.sea / 100), 6); hit(326, 0, 48, 18, () => { seaTip = performance.now() + 6000; SFX.pop(); });
+  if (((hover && hover.y < 18 && hover.x > 326 && hover.x < 374) || seaTip > performance.now()) && !S.panel) tooltip(`Sea health ${Math.round(S.sea)}: ${seaLabel(S.sea)}`, `Oysters and mussels filter the water; picking up litter, freeing ghost nets and guiding hatchlings help too. Crowded fish pens, litter and ghost nets hurt it. A healthier sea brings more fish, more wildlife and better prices (now ${Math.round(seaMul() * 100)}%). ${tideText()} ${SEASON.name}: ${SEASON.note}.`, 130);
   hit(110, 0, 170, 18, () => { nextTip = performance.now() + 4000; SFX.pop(); });
   if (((hover && hover.y < 18 && hover.x > 110 && hover.x < 280) || nextTip > performance.now()) && !S.panel) { const n = nextUnlock(); tooltip(n ? `Next, at level ${n.L}` : 'Everything unlocked', n ? n.u.join(', ') : 'You have the lot. Keep farming!', 70, `${b - S.xp} xp to go`); } if (S.bottles) text(`🍾 ${S.bottles}`, 350, 13, C.gold2, 8, 'center');
-  const btn = (x, label, on, fn) => { g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, 3, 54, 12); text(label, x + 27, 12, on ? C.ink : C.sand, 7, 'center'); hit(x, 0, 54, 18, fn); };
-  btn(410, 'album', S.panel === 'album', () => { S.panel = S.panel === 'album' ? null : 'album'; S.build = null; SFX.pop(); });
-  btn(470, 'board', S.panel === 'quests', () => { S.panel = S.panel === 'quests' ? null : 'quests'; S.build = null; SFX.pop(); });
-  if ((S.orders || []).length) { const hot = S.orders.some(o => o.due - Date.now() < 300e3); ell(520, 5, 4, 4, hot ? C.pink : C.gold); text(`${S.orders.length}`, 520, 8, C.ink, 7, 'center'); } // open orders, pink if one is about to lapse
-  btn(530, 'build', S.panel === 'build', () => { S.panel = S.panel === 'build' ? null : 'build'; S.build = null; S.pick = null; SFX.pop(); });
+  const btn = (x, label, on, fn) => { g.fillStyle = on ? C.gold2 : '#2b3a50'; g.fillRect(x, 3, 46, 12); text(label, x + 23, 12, on ? C.ink : C.sand, 7, 'center'); hit(x, 0, 46, 18, fn); };
+  btn(376, 'story', S.panel === 'story', () => { S.panel = S.panel === 'story' ? null : 'story'; S.build = null; SFX.pop(); });
+  btn(424, 'album', S.panel === 'album', () => { S.panel = S.panel === 'album' ? null : 'album'; S.build = null; SFX.pop(); });
+  btn(474, 'board', S.panel === 'quests', () => { S.panel = S.panel === 'quests' ? null : 'quests'; S.build = null; SFX.pop(); });
+  if ((S.orders || []).length) { const hot = S.orders.some(o => o.due - Date.now() < 300e3); ell(518, 5, 4, 4, hot ? C.pink : C.gold); text(`${S.orders.length}`, 518, 8, C.ink, 7, 'center'); } // open orders, pink if one is about to lapse
+  btn(524, 'build', S.panel === 'build', () => { S.panel = S.panel === 'build' ? null : 'build'; S.build = null; S.pick = null; SFX.pop(); });
+  g.fillStyle = C.sand; g.fillRect(584, 6, 12, 8); g.fillStyle = '#0c0c0e'; g.beginPath(); g.arc(590, 10, 2.5, 0, 7); g.fill(); g.fillStyle = C.sand; g.fillRect(587, 4, 4, 2); hit(578, 0, 24, 18, () => { PHOTO_MODE = true; closePanels(); SFX.tok(); }); // camera: photo mode
   text(muted ? '♪̸' : '♪', 620, 13, muted ? '#777' : C.gold2, 11, 'center'); hit(606, 0, 30, 18, toggleMute);
   if (S.won) {
     if (ready('win')) g.drawImage(IMG.win, 0, 0, W, H); else { g.fillStyle = '#0c0c0ed0'; g.fillRect(0, 0, W, H); }
@@ -1949,10 +2245,13 @@ cv.addEventListener('pointerup', e => {
   if (MINI) { endMini(); return; } // the strike
   const x = was.x, y = was.y, h = [...hits].reverse().find(h => x >= h.x && x < h.x + h.w && y >= h.y && y < h.y + h.h);
   if (h) { h.fn(); save(); return; }
+  if (SCENE) return;
   if (S.won) return;
   if (S.pick || S.pickFish) { S.pick = null; S.pickFish = null; return; }
   const an = nutAir(x, y); if (an) { catchNut(an); return; }
   if (tapDog(x, y)) return;
+  if (tapEco(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
+  if (tapMud(x, y)) return;
   if (tapSpot(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
   if (tapSea(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
   const tl = tileAt(x, y);
@@ -1962,7 +2261,8 @@ cv.addEventListener('pointerup', e => {
 if (up('generator') && !S.objs.some(o => o.id === 'generator')) placeFree('generator'); // older saves drew it beside the shed
 if (up('bigshed')) clearFootprint();
 refreshQuests();
-{ breakPlanks(); let n = 0; for (const row of S.plots) for (const p of row) if (p && growth(p) >= 1 && !withered(p)) n++; const w = S.plots.flat().filter(p => p && withered(p)).length, b = S.broken.length, cl = S.tank.filter(isClean).length; if (n || w || b || cl) setTimeout(() => float([n && `${n} ready`, cl && `${cl} clean in the tank`, w && `${w} withered`, b && `${b} planks to fix`].filter(Boolean).join(', ') + ' while you were away', W / 2, 100, C.gold, 10, true), 600); }
+{ breakPlanks(); let n = 0; for (const row of S.plots) for (const p of row) if (p && growth(p) >= 1 && !withered(p)) n++; const w = S.plots.flat().filter(p => p && withered(p)).length, b = S.broken.length, cl = S.tank.filter(isClean).length; const away = S.savedAt ? (Date.now() - S.savedAt) / 1000 : 0, pens = S.objs.filter(o => { const it = item(o.id); return it.pen && !it.pen.win && o.fed && Date.now() - o.fed >= penSpec(o).time * 1000; }).length;
+  if (away > 120 && (n || w || b || cl || pens)) AWAY = { away, lines: [n && `${n} oyster bed${n > 1 ? 's' : ''} ready to harvest`, pens && `${pens} pen${pens > 1 ? 's' : ''} ready to collect`, cl && `${cl} clean oyster${cl > 1 ? 's' : ''} waiting in the tank`, w && `${w} withered: clear them and replant`, b && `${b} broken plank${b > 1 ? 's' : ''} to fix`].filter(Boolean) }; }
 let last = performance.now();
 (function loop(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; update(dt); draw(); music(); requestAnimationFrame(loop); })(last);
 </script>
