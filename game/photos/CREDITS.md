@@ -31,3 +31,4 @@ Real photos on the Learn cards, from Wikimedia Commons, resized to 480 px wide. 
 | clam | [Meretrix meretrix 01.jpg](https://commons.wikimedia.org/wiki/File:Meretrix_meretrix_01.jpg) | H. Zell | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) |
 | seagrass | [Enhalus acoroides01.jpg](https://commons.wikimedia.org/wiki/File:Enhalus_acoroides01.jpg) | Ria Tan | [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/) |
 | seahorse | [Spotted seahorse (Hippocampus kuda) (40554459970).jpg](https://commons.wikimedia.org/wiki/File:Spotted_seahorse_(Hippocampus_kuda)_(40554459970).jpg) | Rickard Zerpe | [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/) |
+| tern | [Black-naped tern (Sterna sumatrana) adult breeding plumage.jpg](https://commons.wikimedia.org/wiki/File:Black-naped_tern_(Sterna_sumatrana)_adult_breeding_plumage.jpg) | Charles J. Sharp | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) |

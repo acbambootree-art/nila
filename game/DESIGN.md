@@ -41,8 +41,13 @@ Every level opens something, so there is always a next thing to look forward to.
 - **Quiz and learning report**: ten questions from the fact cards (seven "what is this?" from the photo, three "how is it doing?" from the status); best score saved, 5 XP a right answer. "Copy my learning report" puts a plain-text summary on the clipboard for a teacher: level, sea health, chapter, which cards are learned, quiz best and the conservation tally. There's no teacher dashboard: the game runs on the player's device with no server.
 - **Chek Jawa trip** (second location, from level 4, S$40, from the story panel): a low-tide scene of the Chek Jawa boardwalk, mangroves and seagrass flats (`sprites/bg-chekjawa.jpg`). Eight creatures to find (sea stars, mudskippers, fiddler crabs, a horseshoe crab, a clam, otters), three bits of litter, and three spots to plant seagrass shoots. With the seagrass project funded and the sea healthy, a dugong often grazes offshore. Tapping opens the creature's fact card the first time.
 - **New album entries and cards**: knobbly sea star, mudskipper, fiddler crab, hard clam, tape seagrass and spotted seahorse (27 cards in all), plus a Low-tide explorer set. Their cards have real Commons photos too (the seagrass one is by Ria Tan of wildsingapore), so all 27 cards show a photo.
+- **Seabirds**: black-naped terns, the white seabirds of Singapore's waters (true gulls are rare here), replace the old cartoon gull.
+  - 2 of them, 3 when sea health is above 60, 4 above 85. They circle over the open water by the deck, flapping then gliding, with a shadow below.
+  - They dive headfirst for fish (a splash, and often they come up with one), rest on a few old wooden stakes standing in the water off the deck (calling now and then), and bob on the water.
+  - At night and in storms they sit on the stakes. Tap one for its fact card (it takes off if it was sitting). Sprites `tern-*`, raw `raw/tern-sheet-v1.png`; card photo by Charles J. Sharp.
+- **Cloud shadows**: from above you don't see the clouds, only their soft shade sliding slowly over the water and the deck on sunny days, faster as the wind gets up. They replace the yellow cartoon clouds that used to float across the screen.
 - **Storms you can see coming**: over the two minutes before a storm, the scene builds with it (`stormAmt`, 0 calm to 1 full storm):
-  - the sky darkens and a heavy cloud band rolls in at the top, darkening the clouds too;
+  - the sky darkens and a heavy cloud band rolls in at the top;
   - wind streaks and blown leaves cross the screen, palms, flags, lanterns and chimes whip harder and faster (`windK`), whitecaps break on the water, and gusts sound;
   - nobody goes swimming or kayaking, and anyone in the water heads back.
   When it hits: rain, lightning, thunder and louder wind.

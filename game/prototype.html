@@ -110,7 +110,7 @@ ITEMS.push(
 const MAXN = { lantern: 1, bench: 1, flag: 1, cat: 1, dog: 1, stall: 1, shed: 1, palm: 3 };
 const full = it => MAXN[it.id] && count(it.id) >= MAXN[it.id];
 // how big each piece stands on the deck, against Darren as a 1.6 m grown-up (the art came in different batches at different scales)
-const ART = 7;
+const ART = 8;
 const GUESTS = 12; // tourist looks guest1…12: sun-hat lady, cap boy, shades dad, bubble-tea girl, backpacker, visor auntie, tudung lady, spectacles uncle, schoolboy, camera tourist, cyclist, ah gong // bump when sprite files change, so browsers fetch the new art
 // every decor sprite is cut from its hi-res sheet at the size it shows in game (judged against Darren), so all art is drawn 1:1 and shares one pixel size
 const LOOKS = [ // shed panel, third row: one-off touches that make the place nicer; each adds charm
@@ -164,7 +164,7 @@ const ALBUM = [ // collection book entries; counts live in S.album
   { id: 'mussels', name: 'Green mussels', icon: () => ready('stock-mussels') }, { id: 'prawns', name: 'Tiger prawns', icon: () => ready('stock-prawn-a') }, { id: 'lobsters', name: 'Lobster', icon: () => ready('stock-lobster') },
   { id: 'seastar', name: 'Sea star', icon: () => ready('eco-seastar') }, { id: 'mudskipper', name: 'Mudskipper', icon: () => ready('eco-mudskipper') }, { id: 'fiddler', name: 'Fiddler crab', icon: () => ready('eco-fiddler') },
   { id: 'clam', name: 'Hard clam', icon: () => ready('eco-clam') }, { id: 'seagrass', name: 'Seagrass', icon: () => ready('eco-seagrass') }, { id: 'seahorse', name: 'Seahorse', icon: () => ready('eco-seahorse'), rare: true },
-  { id: 'coconut', name: 'Coconut', icon: () => ready('nut') }, { id: 'croc', name: 'Crocodile', icon: () => ready('croc-lie'), rare: true },
+  { id: 'tern', name: 'Black-naped tern', icon: () => ready('tern-glide') }, { id: 'coconut', name: 'Coconut', icon: () => ready('nut') }, { id: 'croc', name: 'Crocodile', icon: () => ready('croc-lie'), rare: true },
 ];
 // ---- learn: a card for each living thing on the farm and in the strait. what it is, where it lives around Singapore, how it's doing,
 // two things worth knowing, and one thing anyone can do to help. statuses are the IUCN Red List (global) ----
@@ -195,10 +195,12 @@ const FACTS = {
   clam:      { name: 'Hard clam', sci: 'Meretrix species', status: 'Fished', where: "Sandy shores and mudflats around Southeast Asia.", facts: ['Like oysters, clams filter seawater for food.', 'A clam digs into the sand with a muscular foot.'], help: "In Singapore's parks and nature areas, collecting animals isn't allowed: leave them for everyone to see." },
   seagrass:  { name: 'Tape seagrass', sci: 'Enhalus acoroides', status: 'Habitat under pressure', where: "Seagrass meadows at Chek Jawa, Cyrene Reef and Singapore's southern shores.", facts: ['Seagrasses are flowering plants, not seaweed: they have roots, flowers and seeds.', 'Meadows store carbon, shelter baby fish and feed dugongs and turtles.'], help: "At low tide, walk around seagrass rather than on it, and keep anchors off the meadows." },
   seahorse:  { name: 'Spotted seahorse', sci: 'Hippocampus kuda', status: 'Vulnerable', where: "Seagrass meadows and shallow shores, including Singapore's.", facts: ['The father carries the eggs in a pouch and gives birth to the babies.', 'It anchors itself to seagrass with its curly tail.'], help: "Never buy dried seahorses or wild-caught ones as pets." },
+  tern:      { name: 'Black-naped tern', sci: 'Sterna sumatrana', status: 'Least Concern', where: "Over Singapore's southern waters and islets; it nests on bare offshore rocks.", facts: ['It hovers over the water, then dives headfirst to snatch small fish.', 'Singapore has very few gulls: the white seabirds you see over our sea are mostly terns.'], help: "Keep boats and visitors away from rocky islets where terns nest: disturbed parents can leave their eggs." },
   coconut:   { name: 'Coconut palm', sci: 'Cocos nucifera', status: 'Common', where: "Along beaches and kampung shores all over the region.", facts: ['Coconuts float, and can drift across oceans to sprout on a new shore.', 'Kampung families used every part: husk for rope, leaves for roofs, shells for bowls.'], help: "Coastal trees hold the sand together: help plant them on clean-up and planting days." },
 };
 // real photos for the cards, from Wikimedia Commons (game/photos, credits in photos/CREDITS.md); loaded when a card first opens
 const PHOTO_BY = {
+  tern: "Charles J. Sharp · CC BY-SA 4.0",
   seastar: "Doreen · CC BY 4.0",
   mudskipper: "George Berninger Jr. · CC BY-SA 3.0",
   fiddler: "Kramthenik27 · CC BY-SA 4.0",
@@ -253,7 +255,7 @@ function drawLearn() { // the fact card: picture, name, status, where, two facts
 const SETS = [ // finish a row of the album for a reward and +5 charm each
   { id: 'oysters', name: 'Oyster connoisseur', ids: SP.map(q => q.id), cash: 500, xp: 100 },
   { id: 'market', name: 'Wet market regular', ids: [...FISH.map(f => f.id), 'crabs', 'mussels', 'prawns', 'lobsters'], cash: 900, xp: 150 },
-  { id: 'wild', name: 'Friend of the strait', ids: ['turtle', 'shark', 'dolphin', 'dugong', 'otter', 'hcrab', 'croc'], cash: 1500, xp: 250 },
+  { id: 'wild', name: 'Friend of the strait', ids: ['turtle', 'shark', 'dolphin', 'dugong', 'otter', 'hcrab', 'croc', 'tern'], cash: 1500, xp: 250 },
   { id: 'shore', name: 'Low-tide explorer', ids: ['seastar', 'mudskipper', 'fiddler', 'clam', 'seagrass'], cash: 800, xp: 150 },
   { id: 'treasure', name: 'Treasure hunter', ids: ['rarepearl', 'gold', 'coconut', 'bottle'], cash: 1000, xp: 200 },
 ];
@@ -355,11 +357,9 @@ Object.assign(S, { t: daySeconds * 0.75, tab: 'farm', moveSel: null, pick: null,
 const F = Object.assign({ tr: null, tc: null, queue: [], walk: 0, back: false, flip: false, moving: false }, S.farmer); S.farmer = F;
 const cam = S.cam || { x: 90, y: 140 }; S.cam = cam;
 const ECO = { litter: [], nets: [], hatch: null }; // floating litter, ghost nets, a hatchling night
-const A = { fish: [], jelly: [], bubbles: [], ripples: [], floaters: [], particles: [], gulls: [], clouds: [], hops: [] };
+const A = { fish: [], jelly: [], bubbles: [], ripples: [], floaters: [], particles: [], hops: [] };
 for (let i = 0; i < 8; i++) A.fish.push({ kind: 1 + (i % 3), x: rnd(-500, 500), y: rnd(0, 500), v: rnd(8, 18) * (Math.random() < 0.5 ? 1 : -1), ph: rnd(0, 6) });
 for (let i = 0; i < 3; i++) A.jelly.push({ x: rnd(-400, 400), y: rnd(100, 450), ph: rnd(0, 6) });
-for (let i = 0; i < 1; i++) A.gulls.push({ x: rnd(0, W), y: rnd(30, 70), v: 12, ph: rnd(0, 6) });
-[['cloud1', 40, 40, 3], ['cloud2', 300, 70, 2], ['cloud3', 520, 30, 4]].forEach(([k, x, y, v]) => A.clouds.push({ k, x, y, v }));
 
 function load() { try { return JSON.parse(localStorage.getItem('indigo-farm-v2')); } catch { return null; } }
 let SAVE_OFF = false; // set while loading a save code, so nothing overwrites it before the reload
@@ -415,10 +415,10 @@ function save() { if (SAVE_OFF) return; try { const { t, pick, pickFish, build, 
 // ---- sprites ----
 const IMG = {};
 ['oyster-baby-idle', 'oyster-baby-blink', 'oyster-medium-idle', 'oyster-medium-blink', 'oyster-fat-idle', 'oyster-fat-blink', 'sp-withered', 'sp-pearl', 'sp-gold', 'sea-crab-a', 'customer-wait', 'customer-happy',
-  'hut-hut', 'bbq-grill', 'bbq-table', ...['steamboat', 'zichar', 'prata', 'nasilemak'].flatMap(k => [`din-${k}-cook`, `din-${k}-table`]), 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', ...[1, 2, 3, 4, 5, 6, 7, 8].map(n => `buyer-${n}`), ...Array.from({ length: GUESTS }, (_, i) => i + 1).flatMap(n => ['idle', 'walk', 'photo'].map(f => `guest${n}-${f}`)), 'shed-tier3', 'shed-tier4', 'stock-prawn-a', 'stock-prawn-b', 'stock-lobster', 'stock-mussels', 'stock-trap', 'dec2-rack', 'dec2-lanterns', 'dec2-mahjong', 'dec2-sofa', 'dec2-beacon', 'dec2-neon', 'lounge-hammock-empty', ...['chair', 'hammock', 'bench'].flatMap(k => ['farmer', 'harvester', 'keeper', 'carpenter'].map(w => `lounge-${k}-${w}`)), 'cellar-crate-0', 'cellar-crate-1', 'cellar-crate-2', 'cellar-buoy', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', ...['net-turtle', 'net-hcrab', 'litter-bottle', 'litter-bag', 'litter-foam', 'litter-can', 'hatchling', 'eco-seastar', 'eco-mudskipper', 'eco-fiddler', 'eco-seahorse', 'eco-clam', 'eco-seagrass', 'eco-babygrouper'], ...['farmer', 'harvester', 'keeper', 'carpenter'].flatMap(w => [`kayak-${w}-a`, `kayak-${w}-b`]), ...['beg', 'paw', 'roll', 'jump', 'chew', 'happy', 'bow', 'dance'].map(k => `dog-${k}`), 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
+  'hut-hut', 'bbq-grill', 'bbq-table', ...['steamboat', 'zichar', 'prata', 'nasilemak'].flatMap(k => [`din-${k}-cook`, `din-${k}-table`]), 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', ...[1, 2, 3, 4, 5, 6, 7, 8].map(n => `buyer-${n}`), ...Array.from({ length: GUESTS }, (_, i) => i + 1).flatMap(n => ['idle', 'walk', 'photo'].map(f => `guest${n}-${f}`)), 'shed-tier3', 'shed-tier4', 'stock-prawn-a', 'stock-prawn-b', 'stock-lobster', 'stock-mussels', 'stock-trap', 'dec2-rack', 'dec2-lanterns', 'dec2-mahjong', 'dec2-sofa', 'dec2-beacon', 'dec2-neon', 'lounge-hammock-empty', ...['chair', 'hammock', 'bench'].flatMap(k => ['farmer', 'harvester', 'keeper', 'carpenter'].map(w => `lounge-${k}-${w}`)), 'cellar-crate-0', 'cellar-crate-1', 'cellar-crate-2', 'cellar-buoy', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', ...['up', 'mid', 'down', 'glide', 'dive', 'fish', 'stand', 'call', 'float'].map(k => `tern-${k}`), ...['net-turtle', 'net-hcrab', 'litter-bottle', 'litter-bag', 'litter-foam', 'litter-can', 'hatchling', 'eco-seastar', 'eco-mudskipper', 'eco-fiddler', 'eco-seahorse', 'eco-clam', 'eco-seagrass', 'eco-babygrouper'], ...['farmer', 'harvester', 'keeper', 'carpenter'].flatMap(w => [`kayak-${w}-a`, `kayak-${w}-b`]), ...['beg', 'paw', 'roll', 'jump', 'chew', 'happy', 'bow', 'dance'].map(k => `dog-${k}`), 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
   ...['carpenter', 'keeper', 'harvester'].flatMap(w => ['front-idle', 'front-walk', 'back-idle', 'back-walk', 'work-a', 'work-b', 'idle-fish', 'idle-rest', 'idle-mend', 'swim-a', 'swim-b', 'swim-play', 'swim-float'].map(f => `wk-${w}-${f}`)), 'farmer-idle-fish', 'farmer-idle-rest', 'farmer-idle-mend', 'farmer-swim-a', 'farmer-swim-b', 'farmer-swim-play', 'farmer-swim-float',
   'bld-stall', 'bld-shed', 'bld-lantern', 'bld-flag', 'bld-palm', 'bld-bench', 'bld-cat', 'pen-fishcage-empty', 'pen-fishcage-full', 'pen-crabpen-empty', 'pen-crabpen-full',
-  'fish-seabass', 'fish-pomfret', 'fish-snapper', 'fish-grouper', 'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-gull-a', 'sea-gull-b', 'sea-jelly-a', 'sea-jelly-b', 'sc-cloud1', 'sc-cloud2', 'sc-cloud3',
+  'fish-seabass', 'fish-pomfret', 'fish-snapper', 'fish-grouper', 'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-jelly-a', 'sea-jelly-b', ,
 ].forEach(n => { const im = new Image(); im.src = `sprites/${n}.png?v=${ART}`; IMG[n] = im; });
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 // backing store at an integer multiple of 640×360 so text renders sharp; sprites stay blocky via nearest sampling
@@ -868,6 +868,57 @@ function drawEcoThing(e, t) {
   if (e.kind === 'hatch') { const p = e.p, [x, y] = scr(p.x, p.y); sprite('hatchling', x, y + 3 + Math.sin(t * 6 + p.d) * 0.6, { flip: p.vx > 0 }); if (Math.random() < 0.1) foam(x + (p.vx > 0 ? -5 : 5), y + 3, p.vx > 0 ? -1 : 1, 0.4); return true; }
   return false;
 }
+// ---- seabirds: black-naped terns, the white seabirds of Singapore's waters (true gulls are rare here). they wheel round the farm,
+// flapping then gliding, dive headfirst for fish, rest on the kelong's old stakes and bob on the water. a healthier sea brings more ----
+const TERNS = [];
+let STAKES = null;
+let SEAPTS = null;
+function seaPts() { // open water just off the deck, all round the farm
+  if (SEAPTS && SEAPTS.length) return SEAPTS; SEAPTS = [];
+  for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) { if (!walkable(r, c) || hutTile(r, c)) continue; const sea = seaSide(r, c); if (sea) { const w = center(sea[0], sea[1]), o = center(r, c); SEAPTS.push({ x: w.x + (w.x - o.x) * 1.5, y: w.y + (w.y - o.y) * 1.5 }); } }
+  return SEAPTS;
+}
+function stakes() { // a few old wooden stakes standing in the water off the deck, where terns like to sit
+  if (STAKES) return STAKES; STAKES = []; const cand = seaPts().map(p => ({ ...p }));
+  for (let i = 0; i < 4 && cand.length; i++) { const w = cand.splice(Math.floor((i * 0.37 + 0.11) % 1 * cand.length), 1)[0]; STAKES.push({ x: w.x + (i % 2 ? 10 : -10), y: w.y + 10, who: null }); }
+  return STAKES;
+}
+const ternCall = () => { tone(2400, 1900, 0.07, 'triangle', 0.025); tone(2500, 2000, 0.07, 'triangle', 0.02, 0.1); };
+const ternCentre = () => { const pts = seaPts(), p = pts[Math.floor(Math.random() * pts.length)] || center(FR0 + 3, FC0 + 3); return { cx: p.x + rnd(-40, 40), cy: p.y + rnd(-20, 20) }; }; // circle over open water by the deck
+function newTern() { const h = ternCentre(); return { x: h.cx + rnd(-200, 200), y: h.cy + rnd(-120, 120), z: rnd(45, 75), cx: h.cx, cy: h.cy, rad: rnd(60, 120), a: rnd(0, 6), sp: rnd(0.22, 0.36) * (Math.random() < 0.5 ? -1 : 1), st: 'fly', t: 0, next: rnd(6, 16), flap: rnd(0, 6), glide: false, vx: 0 }; }
+function stepTerns(dt) {
+  const want = 2 + (S.sea > 60) + (S.sea > 85), night = sky().lamp > 0.4; while (TERNS.length < want) TERNS.push(newTern()); if (TERNS.length > want && TERNS[TERNS.length - 1].st === 'fly') TERNS.pop();
+  for (const b of TERNS) { b.t += dt; b.flap += dt;
+    if (b.st === 'fly') { const px = b.x; b.a += b.sp * dt * windK(); b.x = b.cx + Math.cos(b.a) * b.rad; b.y = b.cy + Math.sin(b.a) * b.rad * 0.5; b.vx = b.x - px; b.z += (55 + Math.sin(b.t * 0.7) * 12 - b.z) * dt; if (Math.random() < dt / 3) b.glide = !b.glide;
+      if (b.t > b.next) { b.t = 0; const [r, c] = rcOf(b.x, b.y), sea = !solid(Math.round(r), Math.round(c)) && !penTile(Math.round(r), Math.round(c)), roll = Math.random(), free = stakes().find(k => !k.who);
+        if (night || STORM.on) { if (free) Object.assign(b, { st: 'land', from: [b.x, b.y, b.z], to: free, t: 0 }), free.who = b; else b.next = rnd(4, 8); }
+        else if (roll < 0.45 && sea) Object.assign(b, { st: 'dive', z0: b.z, t: 0 });
+        else if (roll < 0.7 && free) { Object.assign(b, { st: 'land', from: [b.x, b.y, b.z], to: free, t: 0 }); free.who = b; }
+        else if (roll < 0.85 && sea) Object.assign(b, { st: 'swim', t: 0, z0: b.z, dur: rnd(8, 15) });
+        else { Object.assign(b, ternCentre()); b.next = rnd(6, 16); } } }
+    else if (b.st === 'dive') { b.z = b.z0 * Math.max(0, 1 - b.t / 0.45); if (b.t >= 0.45) { const [x, y] = scr(b.x, b.y); A.ripples.push({ x: b.x, y: b.y, r: 2, life: 1 }); for (let i = 0; i < 6; i++) A.particles.push({ x, y, vx: rnd(-18, 18), vy: rnd(-40, -12), life: 0.45, color: '#e8f4ff' }); if (Math.abs(x - W / 2) < W / 2 && Math.abs(y - H / 2) < H / 2) SFX.splash(); Object.assign(b, { st: 'rise', t: 0, fish: Math.random() < 0.55 }); } }
+    else if (b.st === 'rise') { b.z = 50 * Math.min(1, b.t / 1.4); if (b.t >= 1.6) Object.assign(b, { st: 'fly', t: 0, next: rnd(6, 14), a: Math.atan2((b.y - b.cy) / 0.5, b.x - b.cx) }); }
+    else if (b.st === 'land') { const u = Math.min(1, b.t / 2.2), [fx, fy, fz] = b.from, k = b.to; b.vx = k.x - fx; b.x = fx + (k.x - fx) * u; b.y = fy + (k.y - fy) * u; b.z = fz + (14 - fz) * u; if (u >= 1) { Object.assign(b, { st: 'perch', t: 0, dur: night || STORM.on ? 999 : rnd(8, 16) }); ternCall(); } }
+    else if (b.st === 'perch') { b.z = 14; if (Math.random() < dt / 5) { b.calling = 0.6; ternCall(); } if (b.calling) b.calling = Math.max(0, b.calling - dt); if (b.t > b.dur && !night && !STORM.on) takeOff(b); }
+    else if (b.st === 'swim') { b.z = Math.max(0, b.z - dt * 60); if (b.t > b.dur || night || STORM.on) takeOff(b); } }
+}
+function takeOff(b) { if (b.to) { b.to.who = null; b.to = null; } Object.assign(b, { st: 'rise', t: 0, fish: false }); }
+function drawTerns(t, D) {
+  for (const b of TERNS) { const [x, y] = scr(b.x, b.y); if (x < -40 || x > W + 40 || y < -80 || y > H + 40) continue; const flip = b.vx > 0;
+    if (b.z > 2) { g.globalAlpha = 0.18 * Math.max(0, 1 - b.z / 120); ell(x, y + 2, 8, 2, '#000'); g.globalAlpha = 1; } // its shadow on the water
+    let n;
+    if (b.st === 'dive') n = 'tern-dive'; else if (b.st === 'perch') n = b.calling ? 'tern-call' : 'tern-stand'; else if (b.st === 'swim' && b.z < 2) n = 'tern-float';
+    else if (b.st === 'rise' && b.fish && b.t > 0.2) n = 'tern-fish'; else if (b.glide && b.st === 'fly') n = 'tern-glide'; else n = ['tern-up', 'tern-mid', 'tern-down', 'tern-mid'][Math.floor(b.flap * (b.st === 'rise' ? 12 : 8)) % 4];
+    if (b.st === 'swim' && b.z < 2) { g.globalAlpha = 0.35; ell(x, y + 2, 10, 2.5, '#e8f4ff'); g.globalAlpha = 1; }
+    sprite(n, x, y - b.z + (b.st === 'swim' && b.z < 2 ? 3 + Math.sin(t * 2 + b.a) : 0) + (b.st === 'fly' ? Math.sin(b.flap * 3) * 1 : 0), { flip, alpha: 1 - D.lamp * 0.3 }); b.sx = x; b.sy = y - b.z; }
+}
+function drawStakes() { for (const k of stakes()) { const [x, y] = scr(k.x, k.y); if (x < -20 || x > W + 20 || y < -40 || y > H + 20) continue; g.globalAlpha = 0.35; ell(x, y + 1, 5, 1.6, '#e8f4ff'); g.globalAlpha = 1; g.fillStyle = '#4a3a28'; g.fillRect(Math.round(x) - 2, Math.round(y) - 14, 4, 15); g.fillStyle = '#6a5438'; g.fillRect(Math.round(x) - 2, Math.round(y) - 14, 2, 15); g.fillStyle = '#2a2018'; g.fillRect(Math.round(x) - 2, Math.round(y) - 15, 4, 1); } }
+function tapTern(sx, sy) { const b = TERNS.find(q => q.sx !== undefined && Math.hypot(sx - q.sx, sy - q.sy + 4) < 13); if (!b) return false; collect('tern'); ternCall(); float('kik-kik!', b.sx, b.sy - 14, C.sand, 7); if (b.st === 'perch' || b.st === 'swim') takeOff(b); openLearn('tern'); return true; }
+// cloud shadows: from up here you don't see the clouds, only their shade sliding over the water and the deck on a sunny day
+const CLOUDSH = Array.from({ length: 4 }, (_, i) => ({ x: (i - 1.5) * 420 + rnd(-80, 80), y: rnd(-60, 420), rx: rnd(150, 240), ry: rnd(60, 100) }));
+function stepCloudShadows(dt) { for (const c of CLOUDSH) { c.x += 7 * windK() * dt; c.y += 1.5 * dt; if (c.x - c.rx > cam.x + W) { c.x = cam.x - W - c.rx; c.y = cam.y + rnd(-H, H); } } }
+function drawCloudShadows(D) { const a = 0.13 * Math.max(0, 1 - D.lamp * 2.2) * (STORM.on ? 0 : 1); if (a <= 0.01) return;
+  for (const c of CLOUDSH) { const [x, y] = scr(c.x, c.y); if (x + c.rx < 0 || x - c.rx > W || y + c.ry < 0 || y - c.ry > H) continue; g.save(); g.translate(x, y); g.scale(1, c.ry / c.rx); const gr = g.createRadialGradient(0, 0, c.rx * 0.2, 0, 0, c.rx); gr.addColorStop(0, `rgba(8,20,32,${a})`); gr.addColorStop(1, 'rgba(8,20,32,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, c.rx, 0, 7); g.fill(); g.restore(); } }
 let DOG = null;
 // tricks: tap Joji, pick a trick, he does it (now and then he gets it wrong first), then give him a treat or a pat
 const TRICKS = [{ id: 'beg', name: 'Beg', dur: 2.2, bond: 0 }, { id: 'paw', name: 'Shake', dur: 2, bond: 0 }, { id: 'bow', name: 'Play bow', dur: 1.8, bond: 0 }, { id: 'roll', name: 'Roll over', dur: 2.4, bond: 10 }, { id: 'jump', name: 'Jump', dur: 1.7, bond: 25 }, { id: 'dance', name: 'Dance', dur: 2.4, bond: 45 }];
@@ -1676,8 +1727,7 @@ function update(dt) {
   if (CAT && !PLAY) { stepActor(dt, CAT); catThink(CAT, dt); } stepPlay(dt);
   for (const f of A.fish) { f.x += f.v * dt; if (f.x > 520) f.x = -520; if (f.x < -520) f.x = 520; if (Math.random() < 0.004) f.v = -f.v; }
   for (const j of A.jelly) { j.y -= 4 * dt; if (j.y < -20) j.y = 520; j.x += Math.sin(S.t + j.ph) * 3 * dt; }
-  for (const b of A.gulls) { b.x += b.v * dt; if (b.x > W + 40) b.x = -40; if (b.x < -40) b.x = W + 40; }
-  for (const c of A.clouds) { c.x += c.v * dt; if (c.x > W + 60) c.x = -80; }
+  stepTerns(dt); stepCloudShadows(dt);
   if (Math.random() < dt * 2) A.bubbles.push({ x: rnd(-500, 500), y: rnd(0, 520), v: rnd(8, 16), r: rnd(1, 2.5), life: 3 });
   for (const b of A.bubbles) { b.y -= b.v * dt; b.x += Math.sin(S.t * 3 + b.y) * 6 * dt; b.life -= dt; } A.bubbles = A.bubbles.filter(b => b.life > 0);
   for (const r of A.ripples) { r.r += 30 * dt; r.life -= dt * 1.2; } A.ripples = A.ripples.filter(r => r.life > 0);
@@ -1791,7 +1841,7 @@ const CAUSTIC = (() => { const N = 12, w = 128, h = 64, TAU = Math.PI * 2, out =
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const a = Math.abs(Math.sin(TAU * 2 * x / w + 1.5 * Math.sin(TAU * y / h + t) + 0.7 * Math.sin(TAU * 3 * y / h - 2 * t) + t)), b = Math.abs(Math.sin(TAU * 2 * y / h + 1.5 * Math.sin(TAU * x / w - t) + 0.7 * Math.sin(TAU * 3 * x / w + 2 * t) + 2 * t)), m = Math.min(a, b), i = (y * w + x) * 4; id.data[i] = id.data[i + 1] = id.data[i + 2] = 255; id.data[i + 3] = m < 0.06 ? 100 : m < 0.14 ? 40 : 0; }
     sg.putImageData(id, 0, 0); const big = document.createElement('canvas'); big.width = w * 2; big.height = h * 2; const bg = big.getContext('2d'); bg.imageSmoothingEnabled = false; bg.drawImage(sm, 0, 0, w * 2, h * 2); out.push(big); }
   return out; })();
-function drawWater(t, D) { drawWaterBase(t, D); drawWhitecaps(t); }
+function drawWater(t, D) { drawWaterBase(t, D); drawWhitecaps(t); drawStakes(); }
 function drawWhitecaps(t) { // choppy water as the wind gets up
   const b = stormAmt(); if (!b) return; g.strokeStyle = '#eef6ff'; g.lineWidth = 1;
   for (let i = 0; i < 70 * b; i++) { const x = ((i * 137.5 + t * (30 + (i % 3) * 14)) % (W + 80)) - 40, y = 30 + ((i * 71.3) % (H - 30)), a = Math.sin(t * 2.4 + i * 1.7); if (a < 0.2) continue; g.globalAlpha = a * 0.55 * b; g.beginPath(); g.moveTo(x - 5, y + 1); g.quadraticCurveTo(x, y - 2, x + 5, y + 1); g.stroke(); }
@@ -2306,8 +2356,7 @@ function draw() {
   // time of day tint, then sky-layer life (gulls, clouds) in screen space
   g.fillStyle = D.tint; g.globalAlpha = D.ta; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
   drawFW();
-  for (const c of A.clouds) sprite(`sc-${c.k}`, c.x, c.y, { alpha: 0.5, scale: 1.5 });
-  for (const b of A.gulls) sprite(Math.floor(t * 4 + b.ph) % 2 ? 'sea-gull-a' : 'sea-gull-b', b.x, b.y + Math.sin(t * 1.5 + b.ph) * 2, { flip: b.v < 0, scale: 0.7, alpha: 0.85 });
+  drawCloudShadows(D); drawTerns(t, D);
   drawStorm(t); // over the clouds too, so they darken with the sky
   const v = g.createRadialGradient(W / 2, H / 2, 220, W / 2, H / 2, 440); v.addColorStop(0, 'transparent'); v.addColorStop(1, '#00000044'); g.fillStyle = v; g.fillRect(0, 0, W, H);
   if (PHOTO_MODE) { if (!PHOTO_SNAP && Math.floor(performance.now() / 600) % 4) { g.fillStyle = '#0c0c0eb0'; g.fillRect(W / 2 - 120, H - 22, 240, 14); text('photo mode · tap to save the picture · drag to frame', W / 2, H - 12, C.sand, 7, 'center'); } hit(0, 0, W, H, () => { PHOTO_SNAP = true; draw(); snapPhoto(); PHOTO_SNAP = false; PHOTO_MODE = false; float('picture saved', W / 2, 60, C.gold2, 9, true); }); return; }
@@ -2374,6 +2423,7 @@ cv.addEventListener('pointerup', e => {
   const an = nutAir(x, y); if (an) { catchNut(an); return; }
   if (tapDog(x, y)) return;
   if (tapOtters(x, y)) return;
+  if (tapTern(x, y)) return;
   if (tapEco(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
   if (tapSpot(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
   if (tapSea(x - W / 2 + cam.x, y - H / 2 + cam.y)) return;
