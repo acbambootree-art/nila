@@ -28,6 +28,7 @@ const FISH = [ // what Singapore kelongs rear and wet markets sell; tap an empty
   { id: 'grouper', name: 'Grouper',    time: 8 * 3600,  cost: 300, sell: 2600, xp: 250, lvl: 6 },
 ];
 const fishOf = id => FISH.find(f => f.id === id);
+const KG = { seabass: [0.5, 3.5, 14], pomfret: [0.3, 1.5, 34], snapper: [0.6, 5, 22], grouper: [1.2, 9, 28] }; // a line-caught one: min kg, max kg, S$ a kg
 const ITEMS = [ // buildable: on land or sea; pens have a feed→wait→collect cycle; effects are read where they apply
   { tab: 'decor', id: 'lantern',  name: 'Lantern',     cost: 60,   xp: 5,   lvl: 1, on: 'land', sprite: 'bld-lantern', note: 'wither -25%', desc: 'A ready oyster withers if left too long. A lantern gives you 25% more time to harvest it.' , charm: 2 },
   { tab: 'farm', id: 'plank',    name: 'Deck tile',   cost: 40,   xp: 2,   lvl: 1, on: 'sea',  sprite: 'shed-drum', note: '+1 tile', desc: 'A square of sun-bleached planks on blue drums. Lay them on any water touching the deck or a walkway, one at a time, to make room for decor.' },
@@ -35,7 +36,7 @@ const ITEMS = [ // buildable: on land or sea; pens have a feed→wait→collect 
   { tab: 'decor', id: 'bench',    name: 'Bench',       cost: 80,   xp: 6,   lvl: 2, on: 'land', sprite: 'bld-bench', scale: 0.55, note: '+1 quest', desc: 'A fourth quest every day, so more coins and XP from the quest board.' , charm: 3 },
   { tab: 'decor', id: 'palm',     name: 'Palm',        cost: 120,  xp: 10,  lvl: 2, on: 'land', sprite: 'bld-palm', note: '+5% sales', desc: 'Each palm adds 5% to every sale. Up to three palms count.' , charm: 4 },
   { tab: 'farm', id: 'crabpen',  name: 'Crab pen',    cost: 250,  xp: 15,  lvl: 3, on: 'pen',  sprite: 'pen-crabpen', pen: { feed: 40, time: 3600, sell: 420, xp: 35, what: 'crabs' }, note: 'crabs every 1h', desc: 'Feed it S$40, wait an hour, collect S$420 of crabs. Goes in an empty pen.' },
-  { tab: 'farm', id: 'stall',    name: 'Market',      cost: 500,  xp: 40,  lvl: 3, on: 'land', sprite: 'bld-stall', note: '+10% sales', desc: 'Every oyster, fish and crab sale pays 10% more.' },
+  { tab: 'farm', id: 'stall',    name: 'Market',      cost: 500,  xp: 40,  lvl: 3, on: 'land', sprite: 'bld-stall', note: '+10% sales', desc: 'Every oyster, fish and crab sale pays 10% more, and buyers can have a fourth order open.' },
   { tab: 'decor', id: 'flag',     name: 'Flag',        cost: 200,  xp: 15,  lvl: 3, on: 'land', sprite: 'bld-flag', note: 'boat -20%', desc: 'Bumboat trips come back 20% sooner.' , charm: 3 },
   { tab: 'decor', id: 'cat',      name: 'Cat',         cost: 300,  xp: 25,  lvl: 4, on: 'land', sprite: 'cat-sleep', note: '2× rares', desc: 'Pearl and gold shell finds on harvest are twice as likely.' , charm: 3 },
   { tab: 'decor', id: 'dog',      name: 'Joji',         cost: 350,  xp: 25,  lvl: 3, on: 'land', sprite: 'dog-sit', note: 'crew +20%', desc: 'Joji, a golden retriever who runs about the farm and keeps the crew cheerful: workers walk 20% faster. Place his bed on the platform.' , charm: 4 },
@@ -62,6 +63,9 @@ ITEMS.push(
   { tab: 'decor', id: 'neon',     name: 'NILA sign',     cost: 1500, xp: 80, lvl: 11, on: 'land', sprite: 'dec2-neon',     charm: 15, note: '+15 charm', desc: 'A neon NILA sign on two posts, glowing pink and gold after dark. +15 charm (0.5% sales each).' },
   { tab: 'none',  id: 'generator', name: 'Generator',   cost: 0,   xp: 0,  lvl: 99, on: 'land', sprite: 'shed-gen',   note: 'lights · +10% growth', desc: 'Runs the walkway lamps and speeds growth 10%.' },
 );
+// items whose effect only counts once (or up to three palms): the build bar shows "have one" and won't sell another
+const MAXN = { lantern: 1, bench: 1, flag: 1, cat: 1, dog: 1, stall: 1, shed: 1, palm: 3 };
+const full = it => MAXN[it.id] && count(it.id) >= MAXN[it.id];
 const LOOKS = [ // shed panel, third row: one-off touches that make the place nicer; each adds charm
   { id: 'railings', name: 'Railings',      cost: 300, lvl: 2, charm: 6, desc: 'Weathered timber railings round the shed platform. +6 charm.' },
   { id: 'bunting',  name: 'Bunting',       cost: 250, lvl: 2, charm: 5, desc: 'Strings of little flags over the platform. +5 charm.' },
@@ -424,6 +428,7 @@ const SEALIFE = {
   dolphin: { w: 20, v: 38, call: 'dolphins!!', note: 'pink dolphins! Indo-Pacific humpbacks turn pinker as they age' },
   dugong:  { w: 15, v: 8,  call: 'is that... a dugong?!', note: 'a dugong, up from the Chek Jawa seagrass. very rare' },
 };
+const actorRC = a => { if (a.swim && (a.working === 'swim' || a.working === 'kayak')) { const [r, c] = rcOf(a.swim.x, a.swim.y - 8); return { r, c }; } return { r: a.r + (a.working === 'lounge' ? 0.02 : 0), c: a.c }; };
 const rcOf = (wx, wy) => { const u = wx / (TW / 2), v = (wy - TH / 2) / (TH / 2); return [(v - u) / 2, (v + u) / 2]; }; // world px to (fractional) tile
 let SEA = null, seaWait = rnd(90, 200);
 function spawnSea(kind) {
@@ -751,6 +756,7 @@ function place(r, c) {
   const it = item(S.build), [x, y] = tilePos(r, c);
   if (!canPlace(it, r, c)) { SFX.nope(); return float(it.on === 'land' ? 'needs a deck tile' : it.on === 'sea' ? deckWhy(r, c) : 'needs an empty pen', x, y - 10, C.pink); }
   if (S.cash < it.cost) { SFX.nope(); return float("Not enough $", x, y - 10, C.pink); }
+  if (full(it)) { SFX.nope(); S.build = null; return float('you already have that', x, y - 10, C.pink); }
   if (it.on === 'sea') { S.cash -= it.cost; S.deck[r * MAP + c] = 1; syncDock(); pop(x, y, '#d9b48a', 8); SFX.tok(); gainXp(it.xp); save(); return; } // stays in build mode: lay the next one
   const pp = it.on === 'pen' && penOf(r, c); S.cash -= it.cost; S.objs.push({ id: it.id, r: pp ? pp.r0 : r, c: pp ? pp.c0 : c, fed: null }); S.build = null; S.stats.built++; if (S.step === 4) S.step = 5; refreshQuests();
   pop(x, y, C.gold2, 10); float(`+${it.xp}xp`, x, y - 20, '#9ad0e0'); SFX.stamp(); gainXp(it.xp); checkQuests();
@@ -965,19 +971,28 @@ function orderProgress(id) {
 // while the needle is in the gold to land one (counts for orders and the album). Coconuts can be caught as they fall, too. ----
 let SPOT = null, spotWait = rnd(15, 30), MINI = null;
 function stepSpot(dt) {
-  if (MINI && (MINI.t += dt) > 6) endMini(false);
+  if (MINI && (MINI.t += dt) > 6) { MINI.t = 99; MINI.a = 2; endMini(); } // too slow: it gets away
   if (SPOT) { if ((SPOT.t += dt) > 9) SPOT = null; return; }
   if ((spotWait -= dt) > 0 || CROC || (typeof STORM !== 'undefined' && STORM && STORM.on)) return; spotWait = rnd(25, 50);
   const cand = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) { if (!walkable(r, c) || hutTile(r, c)) continue; const sea = seaSide(r, c); if (!sea) continue; const w = center(sea[0], sea[1]), [sx, sy] = scr(w.x, w.y); if (sx > 70 && sx < W - 70 && sy > 60 && sy < H - 110) cand.push(w); }
   if (cand.length) { const w = cand[Math.floor(Math.random() * cand.length)]; SPOT = { x: w.x, y: w.y + 6, t: 0 }; }
 }
-function tapSpot(wx, wy) { if (!SPOT || Math.hypot(wx - SPOT.x, (wy - SPOT.y) * 1.6) > 28) return false; const w = 0.16 + Math.random() * 0.1; MINI = { t: 0, a: Math.random() * (1 - w), w, x: SPOT.x, y: SPOT.y }; SPOT = null; SFX.splash(); return true; }
-const needle = () => { const u = (MINI.t * 0.95) % 2; return u < 1 ? u : 2 - u; };
-function endMini(hit) {
-  const m = MINI; MINI = null; const [x, y] = scr(m.x, m.y); A.ripples.push({ x: m.x, y: m.y, r: 4, life: 1 });
-  if (!hit) { float('it got away…', x, y - 20, C.grey, 8); SFX.nope(); return; }
-  const pool = FISH.filter(f => f.lvl <= S.level + 1), f = pool[Math.floor(Math.random() * pool.length)] || FISH[0], big = Math.random() < 0.15, cash = Math.round((big ? 3 : 1) * (12 + f.sell * 0.12));
-  S.cash += cash; collect(f.id); hop(ready(`fish-${f.id}`), m.x, m.y, big ? 0.9 : 0.6); float(`${big ? 'a BIG ' : 'a '}${f.name.toLowerCase()}! +S$${cash}`, x, y - 26, C.gold, 9); SFX.coin(); gainXp(big ? 15 : 5);
+function tapSpot(wx, wy) { if (!SPOT || Math.hypot(wx - SPOT.x, (wy - SPOT.y) * 1.6) > 28) return false; const w = 0.2 + Math.random() * 0.08; MINI = { t: 0, a: Math.random() * (1 - w), w, x: SPOT.x, y: SPOT.y }; SPOT = null; SFX.splash(); return true; }
+const needle = (m = MINI) => { const u = (m.t * 1.05) % 2; return u < 1 ? u : 2 - u; };
+// how a strike lands: dead centre (within 2.5%) is PERFECT, a huge fish; inside the gold the fish is bigger the closer you were;
+// just outside the gold a tiddler; any further and it gets away. Each species keeps your heaviest catch as a record.
+function endMini() {
+  const m = MINI; MINI = null; const [x, y] = scr(m.x, m.y), mid = m.a + m.w / 2, d = Math.abs(needle(m) - mid); A.ripples.push({ x: m.x, y: m.y, r: 4, life: 1 });
+  const tier = d <= 0.025 ? 'perfect' : d <= m.w / 2 ? 'good' : d <= m.w / 2 + 0.1 ? 'small' : 'miss';
+  if (tier === 'miss') { float('it got away…', x, y - 20, C.grey, 8); SFX.nope(); return; }
+  const pool = FISH.filter(f => f.lvl <= S.level + 1), f = pool[Math.floor(Math.random() * pool.length)] || FISH[0], [lo, hi, perKg] = KG[f.id], close = 1 - Math.max(0, d - 0.025) / Math.max(0.01, m.w / 2 - 0.025);
+  const kg = Math.round((tier === 'perfect' ? hi * rnd(1.05, 1.3) : tier === 'good' ? lo + (hi - lo) * (0.3 + 0.6 * close) * rnd(0.92, 1.05) : lo * rnd(0.5, 0.9)) * 10) / 10;
+  const cash = Math.round((8 + kg * perKg) * (tier === 'perfect' ? 1.5 : 1)); S.cash += cash; collect(f.id); S.records = S.records || {};
+  const rec = kg > (S.records[f.id] || 0); if (rec) S.records[f.id] = kg; hop(ready(`fish-${f.id}`), m.x, m.y, 0.45 + Math.min(1, kg / hi) * 0.55);
+  float(`${tier === 'perfect' ? 'PERFECT! ' : tier === 'small' ? 'just a tiddler: ' : ''}a ${kg} kg ${f.name.toLowerCase()}! +S$${cash}`, x, y - 26, tier === 'perfect' ? C.gold : tier === 'small' ? C.grey : C.sand, tier === 'perfect' ? 10 : 8);
+  if (rec && tier !== 'small') float(`new record ${f.name.toLowerCase()}!`, x, y - 40, C.pink, 8);
+  if (tier === 'perfect') { for (let i = 0; i < 24; i++) A.particles.push({ x, y: y - 10, vx: rnd(-60, 60), vy: rnd(-90, -20), life: 0.8, color: i % 2 ? '#f6d48a' : '#ffffff' }); SFX.levelup(); } else SFX.coin();
+  gainXp(tier === 'perfect' ? 25 : tier === 'good' ? 8 : 2);
 }
 function drawSpot(t) {
   if (SPOT) { const [x, y] = scr(SPOT.x, SPOT.y), a = Math.min(1, SPOT.t, 9 - SPOT.t);
@@ -987,11 +1002,16 @@ function drawSpot(t) {
     text('fish! tap', x, y - 18, C.sand, 7, 'center'); }
   if (MINI) { const [x, y] = scr(MINI.x, MINI.y); g.globalAlpha = 0.6; g.strokeStyle = '#ffffff'; g.beginPath(); g.ellipse(x, y, 14 + Math.sin(t * 8) * 2, 6, 0, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }
 }
-function drawMini() { // the strike meter
-  if (!MINI) return; const bw = 220, bx = W / 2 - bw / 2, by = H - 64;
-  panelBox(bx - 10, by - 22, bw + 20, 40); text('Tap when the needle is in the gold!', W / 2, by - 9, C.sand, 7, 'center');
-  g.fillStyle = '#1a2a40'; g.fillRect(bx, by, bw, 10); g.fillStyle = C.gold; g.fillRect(bx + MINI.a * bw, by, MINI.w * bw, 10); g.fillStyle = '#ffffff'; g.fillRect(Math.round(bx + needle() * bw) - 1, by - 3, 3, 16);
+function drawMini() { // the strike meter: gold zone, a bright sweet spot in the middle of it, the needle
+  if (!MINI) return; const bw = 240, bx = W / 2 - bw / 2, by = H - 64, mid = MINI.a + MINI.w / 2;
+  panelBox(bx - 10, by - 24, bw + 20, 46); text('Stop the needle on the bright line for a PERFECT catch!', W / 2, by - 11, C.sand, 7, 'center');
+  g.fillStyle = '#1a2a40'; g.fillRect(bx, by, bw, 10); g.fillStyle = '#4a5a6a'; g.fillRect(bx + Math.max(0, MINI.a - 0.1) * bw, by, (Math.min(1, MINI.a + MINI.w + 0.1) - Math.max(0, MINI.a - 0.1)) * bw, 10); // the tiddler fringe
+  const grd = g.createLinearGradient(bx + MINI.a * bw, 0, bx + (MINI.a + MINI.w) * bw, 0); grd.addColorStop(0, '#8a6a30'); grd.addColorStop(0.5, '#f6d48a'); grd.addColorStop(1, '#8a6a30'); g.fillStyle = grd; g.fillRect(bx + MINI.a * bw, by, MINI.w * bw, 10);
+  g.fillStyle = '#ffffff'; g.globalAlpha = 0.7 + 0.3 * Math.sin(S.t * 12); g.fillRect(Math.round(bx + (mid - 0.025) * bw), by - 1, Math.max(2, Math.round(0.05 * bw)), 12); g.globalAlpha = 1;
+  g.fillStyle = '#0c0c0e'; g.fillRect(Math.round(bx + needle() * bw) - 2, by - 4, 5, 18); g.fillStyle = '#ff5a5a'; g.fillRect(Math.round(bx + needle() * bw) - 1, by - 3, 3, 16);
+  text('small', bx + Math.max(0.05, MINI.a - 0.05) * bw, by + 19, C.grey, 7, 'center'); text('PERFECT', bx + mid * bw, by + 19, C.gold, 7, 'center');
 }
+
 function nutAir(x, y) { return NUTS.find(n => { if (n.t >= 0.75) return false; const w = center(n.r, n.c), k = Math.min(1, n.t / 0.75), [sx, sy] = scr(n.x + (w.x - n.x) * k, n.y + (w.y - n.y) * k * k); return Math.hypot(sx - x, sy - y) < 16; }); }
 function catchNut(n) { const w = center(n.r, n.c), [x, y] = scr(w.x, w.y); NUTS.splice(NUTS.indexOf(n), 1); S.cash += 16; collect('coconut'); float('nice catch! +S$16', x, y - 40, C.gold, 9); SFX.coin(); gainXp(3); }
 
@@ -1564,7 +1584,7 @@ function drawWorld(t, D) {
   if (OTTERS) { if (OTTERS.swim) { const [r, c] = rcOf(OTTERS.x, OTTERS.y); ents0.push({ kind: 'otterswim', r, c }); } else OTTERS.pack.forEach((o, i) => ents0.push({ kind: 'otter', o, i, r: o.r, c: o.c })); }
   if (HCRAB && HCRAB.phase === 'pen') ents0.push({ kind: 'hcrab', r: HCRAB.r, c: HCRAB.c });
   if (DINNER) { ents0.push({ kind: 'grill', r: DINNER.r, c: DINNER.c }); if (DINNER.table) ents0.push({ kind: 'dtable', r: DINNER.table[0], c: DINNER.table[1] }); DINNER.stools.forEach(([r, c], i) => ents0.push({ kind: 'stool', i, r: r - 0.01, c })); } if (CAT) ents0.push({ kind: 'cat', r: CAT.r + 0.03, c: CAT.c }); for (const n of NUTS) ents0.push({ kind: 'nut', n, r: n.r, c: n.c });
-  const ents = [...ents0, ...(S.sale ? [{ kind: 'buyer', r: DOCK.r, c: DOCK.c }] : []), ...(DOG ? [{ kind: 'dog', r: DOG.r + 0.03, c: DOG.c }] : []), { kind: 'hut', r: HUT.r, c: up('bigshed') ? 3 : HUT.c }, { kind: 'tank', r: TANK.r, c: TANK.c }, { kind: 'farmer', r: F.r + (F.working === 'lounge' ? 0.02 : 0), c: F.c }, ...WK.map(w => ({ kind: 'worker', w, r: w.r + (w.working === 'lounge' ? 0.02 : 0), c: w.c })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => { const k = item(o.id).on === 'pen' ? 0.5 : 0; return { kind: 'obj', o, r: o.r + k, c: o.c + k }; })];
+  const ents = [...ents0, ...(S.sale ? [{ kind: 'buyer', r: DOCK.r, c: DOCK.c }] : []), ...(DOG ? [{ kind: 'dog', r: DOG.r + 0.03, c: DOG.c }] : []), { kind: 'hut', r: HUT.r, c: up('bigshed') ? 3 : HUT.c }, { kind: 'tank', r: TANK.r, c: TANK.c }, { kind: 'farmer', ...actorRC(F) }, ...WK.map(w => ({ kind: 'worker', w, ...actorRC(w) })), { kind: 'boat', r: BOAT.r, c: BOAT.c }, ...S.objs.map(o => { const k = item(o.id).on === 'pen' ? 0.5 : 0; return { kind: 'obj', o, r: o.r + k, c: o.c + k }; })];
   for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (S.plots[r][c]) ents.push({ kind: 'plot', p: S.plots[r][c], r, c });
   ents.sort((a, b) => (a.r + a.c) - (b.r + b.c));
   for (const e of ents) { const p = center(e.r, e.c), [x, y] = scr(p.x, p.y); if (x < -120 || x > W + 120 || y < -140 || y > H + 60) continue; drawEntity(e, x, y, t, D); }
@@ -1607,7 +1627,10 @@ function drawBuild() {
   text(`charm ${charm()} · +${Math.round(Math.min(20, charm() * 0.5))}% sales`, W - 12, y0 + 13, C.gold2, 7, 'right');
   if (S.tab === 'move') {
     text(S.moveSel ? 'Now tap where it should go (tap it again to put it back).' : 'Tap a decoration, the generator, the tank or an empty pen to pick it up.', W / 2, y0 + 48, C.sand, 8, 'center');
-    text('Shed, pens with stock, and crops stay where they are.', W / 2, y0 + 62, C.grey, 7, 'center'); return;
+    text('Shed, pens with stock, and crops stay where they are.', W / 2, y0 + 62, C.grey, 7, 'center');
+    const m = S.moveSel, it = m && m.o && item(m.o.id); if (it && it.cost) { const back = Math.floor(it.cost / 2), bx = W / 2 - 70, by2 = y0 + 70; g.fillStyle = '#5a2a2a'; g.fillRect(bx, by2, 140, 14); text(`Sell it back for S$${back}`, W / 2, by2 + 10, C.sand, 7, 'center');
+      hit(bx, by2, 140, 14, () => { S.objs.splice(S.objs.indexOf(m.o), 1); S.cash += back; S.moveSel = null; const [x, y] = tilePos(m.o.r, m.o.c); float(`sold back +S$${back}`, x, y - 20, C.gold, 9); pop(x, y, C.gold2, 8); SFX.coin(); save(); }); }
+    return;
   }
   const all = ITEMS.filter(it => it.tab === S.tab), per = 9, pages = Math.ceil(all.length / per); buildPage = Math.max(0, Math.min(buildPage, pages - 1));
   const list = all.slice(buildPage * per, buildPage * per + per), w = 64, x0 = W / 2 - list.length * w / 2, cy = y0 + 18;
@@ -1616,12 +1639,12 @@ function drawBuild() {
     hit(ax - 10, cy, 20, 74, () => { if (!on) return; buildPage += d; SFX.pop(); }); });
   if (pages > 1) text(`page ${buildPage + 1}/${pages}`, 196, y0 + 13, C.grey, 7);
   list.forEach((it, i) => {
-    const x = x0 + i * w + w / 2, locked = S.level < it.lvl, sel = S.build === it.id;
+    const x = x0 + i * w + w / 2, locked = S.level < it.lvl, sel = S.build === it.id, done = !locked && full(it);
     if (sel) { g.fillStyle = '#c9a96e33'; g.fillRect(x - w / 2, cy, w, 74); }
-    g.globalAlpha = locked ? 0.3 : 1; const nm = it.icon || (it.pen && !it.pen.win ? `${it.sprite}-full` : it.id === 'cellar' ? 'cellar-crate-0' : it.sprite), im = ready(nm);
+    g.globalAlpha = locked ? 0.3 : done ? 0.55 : 1; const nm = it.icon || (it.pen && !it.pen.win ? `${it.sprite}-full` : it.id === 'cellar' ? 'cellar-crate-0' : it.sprite), im = ready(nm);
     if (im) { const s = Math.min(1, 34 / im.height, (w - 8) / im.width); g.drawImage(im, Math.round(x - im.width * s / 2), Math.round(cy + 38 - im.height * s), Math.round(im.width * s), Math.round(im.height * s)); }
-    text(it.name, x, cy + 49, locked ? C.grey : C.sand, 6, 'center'); text(locked ? `lv ${it.lvl}` : `S$${it.cost}`, x, cy + 59, locked ? C.grey : S.cash < it.cost ? C.pink : C.gold2, 6, 'center'); text(it.note, x, cy + 69, locked ? C.grey : '#9ad0e0', 6, 'center'); g.globalAlpha = 1;
-    hit(x - w / 2, cy, w, 74, () => { if (locked) { SFX.nope(); return float(`level ${it.lvl}`, x, y0 - 6, C.pink, 8, true); } S.build = sel ? null : it.id; SFX.pop(); });
+    text(it.name, x, cy + 49, locked ? C.grey : C.sand, 6, 'center'); text(locked ? `lv ${it.lvl}` : done ? (MAXN[it.id] === 1 ? 'have one' : `${MAXN[it.id]} max`) : `S$${it.cost}`, x, cy + 59, locked || done ? C.grey : S.cash < it.cost ? C.pink : C.gold2, 6, 'center'); text(it.note, x, cy + 69, locked ? C.grey : '#9ad0e0', 6, 'center'); g.globalAlpha = 1;
+    hit(x - w / 2, cy, w, 74, () => { if (locked) { SFX.nope(); return float(`level ${it.lvl}`, x, y0 - 6, C.pink, 8, true); } if (done) { SFX.nope(); return float(MAXN[it.id] === 1 ? `you already have one: a second ${it.name.toLowerCase()} does nothing more` : `${MAXN[it.id]} is the most that count`, W / 2, y0 - 6, C.pink, 8, true); } S.build = sel ? null : it.id; SFX.pop(); });
   });
   const hv = hover && hover.y >= cy && hover.x >= x0 && hover.x < x0 + list.length * w ? list[Math.floor((hover.x - x0) / w)] : null, tip = hv || (S.build && item(S.build));
   if (tip) tooltip(`${tip.name}${tip.lvl > S.level ? ` (level ${tip.lvl})` : ''}`, tip.desc + (perHour(tip) ? ` About S$${perHour(tip)} an hour, hands-off.` : ''), y0 - 6, tip === item(S.build) ? (tip.on === 'land' ? 'tap a deck or walkway tile to place it' : tip.on === 'sea' ? 'tap water next to the deck, as many as you like' : 'tap an empty pen to place it') : null);
@@ -1763,7 +1786,7 @@ cv.addEventListener('pointermove', e => {
 cv.addEventListener('pointerup', e => {
   if (!press) return; const was = press; press = null; if (was.drag) { save(); return; }
   if (was.held) { hover = null; return; } // a press-and-hold only shows info
-  if (MINI) { endMini(Math.abs(needle() - (MINI.a + MINI.w / 2)) <= MINI.w / 2); return; } // the strike
+  if (MINI) { endMini(); return; } // the strike
   const x = was.x, y = was.y, h = [...hits].reverse().find(h => x >= h.x && x < h.x + h.w && y >= h.y && y < h.y + h.h);
   if (h) { h.fn(); save(); return; }
   if (S.won) return;
