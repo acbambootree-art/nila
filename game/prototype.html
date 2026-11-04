@@ -90,6 +90,9 @@ const UPGRADES = [ // shed upgrades, bought once each from the shed panel
 const up = id => !!(S.up && S.up[id]);
 const TIERS = { 6: 'Kelong house', 10: 'Grand kelong house' }; // the bigger shed grows on its own at these levels
 const shedTier = () => !up('bigshed') ? 1 : S.level >= 10 ? 4 : S.level >= 6 ? 3 : 2;
+const SHEDART = [null, ['shed-small', 74, 135, 140], ['shed-big', 67, 154, 160], ['shed-tier3', 67, 199, 205], ['shed-tier4', 67, 194, 200]]; // sprite, anchor x, anchor y, top
+// water the house picture covers on screen (behind it or under its overhang): nobody fishes, swims or hauls out there
+const underHouse = (r, c) => { const [nm, ax, ay] = SHEDART[shedTier()], im = ready(nm), w = center(r, c), fx = shedTier() >= 2 ? 64 : 0, fy = shedTier() >= 2 ? 128 : 96; return !!im && w.x > fx - ax - 8 && w.x < fx - ax + im.width + 8 && w.y > fy - ay && w.y < fy + 4; };
 const shedName = () => ['', 'The shed', 'The big shed', 'The kelong house', 'The grand kelong house'][shedTier()];
 const ALBUM = [ // collection book entries; counts live in S.album
   ...SP.map(s => ({ id: s.id, name: s.name, icon: () => tinted('oyster-fat-idle', s.tint) })),
@@ -305,7 +308,7 @@ const head = who => { const w = center(who.r, who.c), [x, y] = scr(w.x, w.y); re
 // a tile is taken if another character stands on it or is already heading there
 const taken = (r, c, me) => (CROC && CROC.phase === 'bask' && Math.abs(CROC.r - r) + Math.abs(CROC.c - c) <= 2) || [F, ...WK].some(o => o !== me && ((Math.round(o.r) === r && Math.round(o.c) === c) || o.queue.some(q => q.tr === r && q.tc === c)));
 function goBeside(r, c, fn, who = F, kind = 'feed') {
-  const nb = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => [r + a, c + b]).filter(([i, j]) => walkable(i, j) && !hutTile(i, j));
+  const r0 = Math.round(who.r), c0 = Math.round(who.c), all = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => [r + a, c + b]).filter(([i, j]) => walkable(i, j) && !hutTile(i, j)), reach = all.filter(([i, j]) => (i === r0 && j === c0) || path(r0, c0, i, j)), nb = reach.length ? reach : all; // a side you can actually walk to
   const cost = ([i, j]) => Math.hypot(i - who.r, j - who.c) + (taken(i, j, who) ? 10 : 0) + (objAt(i, j) ? 5 : 0); // a free side beats a nearer, occupied one; a side with decor on it beats none at all
   const [tr, tc] = nb.length ? nb.sort((a, b) => cost(a) - cost(b))[0] : nearestWalkable(r, c);
   if (who.queue[0] && who.queue[0].idle) { who.working = false; who.swim = null; } who.queue = who.queue.filter(q => !q.idle); who.queue.push({ tr, tc, fn, face: [r, c], act: WORK[kind].t, kind });
@@ -340,7 +343,7 @@ function idle(a, dt) {
   if (roll < 0.35 && land(r0, c0)) { a.queue.push({ tr: r0, tc: c0, fn: () => {}, face: [r0 + (a.back ? -1 : 1), c0], act: WORK.sweep.t, kind: 'sweep', idle: true }); return; }
   if (roll < 0.7) { // fish or swim off any edge facing open water, lie down anywhere, mend the net beside a pen; somewhere nobody else is
     const kind = (CROC ? ['fish', 'rest', 'mend'] : ['fish', 'swim', 'rest', 'mend'])[Math.floor(Math.random() * (CROC ? 3 : 4))], spots = []; // nobody swims with a croc about
-    const open = (r, c) => inMap(r, c) && !solid(r, c) && !penTile(r, c) && !(r === BOAT.r && c === BOAT.c) && !(r === DOCK.r && c === DOCK.c);
+    const open = (r, c) => inMap(r, c) && !solid(r, c) && !penTile(r, c) && !underHouse(r, c) && !(r === BOAT.r && c === BOAT.c) && !(r === DOCK.r && c === DOCK.c);
     for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if ((land(r, c) || lane(r, c)) && walkable(r, c) && !objAt(r, c) && !hutTile(r, c) && !taken(r, c, a)) {
       const nb = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([dr, dc]) => [r + dr, c + dc]);
       const face = kind === 'fish' || kind === 'swim' ? nb.find(([i, j]) => open(i, j)) : kind === 'mend' ? nb.find(([i, j]) => penTile(i, j)) : nb.find(([i, j]) => walkable(i, j)) || nb[0];
@@ -391,7 +394,7 @@ function crocSpot() { // an empty edge plank beside open water, as far from ever
   const people = [F, ...WK, ...(DOG ? [DOG] : [])]; let best = null, bd = 0;
   for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) {
     if (!(land(r, c) || lane(r, c)) || hutTile(r, c) || objAt(r, c) || isBroken(r, c) || nutAt(r, c)) continue;
-    const sea = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => [r + a, c + b]).find(([i, j]) => inMap(i, j) && !solid(i, j) && !penTile(i, j) && !(i === BOAT.r && j === BOAT.c) && !(i === DOCK.r && j === DOCK.c)); if (!sea) continue;
+    const sea = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => [r + a, c + b]).find(([i, j]) => inMap(i, j) && !solid(i, j) && !penTile(i, j) && !underHouse(i, j) && !(i === BOAT.r && j === BOAT.c) && !(i === DOCK.r && j === DOCK.c)); if (!sea) continue;
     const d = Math.min(...people.map(p => Math.hypot(p.r - r, p.c - c))); if (d > bd) { bd = d; best = { r, c, sr: sea[0], sc: sea[1] }; }
   }
   return bd >= 4 ? best : null;
@@ -479,7 +482,7 @@ function drawSea(t) {
 // ---- a family of smooth-coated otters: they swim in, scamper along the walkway to a stocked fish cage and pinch a fish,
 // unless the dog gets there first or you tap them away. With no fish about they have a look round and leave. ----
 let OTTERS = null, otterWait = rnd(300, 700);
-const seaSide = (r, c) => [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => [r + a, c + b]).find(([i, j]) => inMap(i, j) && !solid(i, j) && !penTile(i, j) && !(i === BOAT.r && j === BOAT.c) && !(i === DOCK.r && j === DOCK.c));
+const seaSide = (r, c) => [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => [r + a, c + b]).find(([i, j]) => inMap(i, j) && !solid(i, j) && !penTile(i, j) && !underHouse(i, j) && !(i === BOAT.r && j === BOAT.c) && !(i === DOCK.r && j === DOCK.c));
 function edgeNear(r, c, who) { // the walkable edge plank beside open water nearest (r,c) that can be walked to from there
   let best = null, bd = 1e9; for (let i = 0; i < MAP; i++) for (let j = 0; j < MAP; j++) { if (!walkable(i, j) || hutTile(i, j) || objAt(i, j) || (who && taken(i, j, who))) continue; const sea = seaSide(i, j); if (!sea) continue; const d = Math.hypot(i - r, j - c); if (d < bd && path(i, j, Math.round(r), Math.round(c))) { bd = d; best = { r: i, c: j, sr: sea[0], sc: sea[1] }; } }
   return best;
@@ -640,8 +643,20 @@ function dogThink(d, dt, bed) {
   if (inMap(tr, tc) && walkable(tr, tc) && !hutTile(tr, tc) && (tr !== r0 || tc !== c0) && !taken(tr, tc, d) && path(r0, c0, tr, tc)) { d.queue.push({ tr, tc, fn: () => {}, act: 0, idle: true }); if (Math.random() < 0.15) SFX.woof(); }
 }
 // shortest tile path over land/deck/raft (BFS, 4-neighbour); null if unreachable
+const objTiles = () => new Set(S.objs.filter(o => item(o.id).on !== 'pen').map(o => o.r * MAP + o.c)); // tiles with something standing on them
+// would putting something on (r,c) cut part of the deck or walkways off from the rest? (planks count even if broken; memoised per layout)
+let wayKey = '', wayMemo = new Map();
+function blocksWay(r, c) {
+  const k = S.objs.map(o => o.r * MAP + o.c).join() + '|' + Object.keys(S.deck).length + '|' + S.farm.a + S.farm.b + '|' + TANK.r + TANK.c + up('bigshed'); if (k !== wayKey) { wayKey = k; wayMemo = new Map(); }
+  const id = r * MAP + c; if (wayMemo.has(id)) return wayMemo.get(id);
+  const stuff = objTiles(), free = (i, j) => inMap(i, j) && (land(i, j) || lane(i, j)) && !hutTile(i, j) && !stuff.has(i * MAP + j);
+  const reach = skip => { let st = null; for (let i = 0; i < MAP && !st; i++) for (let j = 0; j < MAP; j++) if (free(i, j) && i * MAP + j !== skip) { st = [i, j]; break; } if (!st) return 0;
+    const seen = new Set([st[0] * MAP + st[1]]), q = [st]; while (q.length) { const [i, j] = q.pop(); for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const n = (i + a) * MAP + j + b; if (n !== skip && !seen.has(n) && free(i + a, j + b)) { seen.add(n); q.push([i + a, j + b]); } } } return seen.size; };
+  let total = 0; for (let i = 0; i < MAP; i++) for (let j = 0; j < MAP; j++) if (free(i, j)) total++;
+  const res = free(r, c) && reach(id) < Math.min(total - 1, reach(-1)) ; wayMemo.set(id, res); return res;
+}
 function path(r0, c0, r1, c1) {
-  const ok = (r, c) => inMap(r, c) && walkable(r, c) && !hutTile(r, c) && !crocAt(r, c), key = (r, c) => r * MAP + c, prev = new Map([[key(r0, c0), null]]), q = [[r0, c0]];
+  const stuff = objTiles(), ok = (r, c) => inMap(r, c) && walkable(r, c) && !hutTile(r, c) && !crocAt(r, c) && (!stuff.has(r * MAP + c) || (r === r1 && c === c1)), key = (r, c) => r * MAP + c, prev = new Map([[key(r0, c0), null]]), q = [[r0, c0]];
   while (q.length) { const [r, c] = q.shift(); if (r === r1 && c === c1) { const out = []; for (let k = key(r, c); k !== null; k = prev.get(k)) out.unshift([Math.floor(k / MAP), k % MAP]); return out.slice(1); }
     for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nr = r + a, nc = c + b; if (ok(nr, nc) && !prev.has(key(nr, nc))) { prev.set(key(nr, nc), key(r, c)); q.push([nr, nc]); } } }
   return null;
@@ -649,7 +664,7 @@ function path(r0, c0, r1, c1) {
 function stepActor(dt, F) {
   if (!F.queue.length) { F.moving = false; return; }
   const q = F.queue[0];
-  if (!q.path) { const p = path(Math.round(F.r), Math.round(F.c), q.tr, q.tc); if (!p) { F.queue.shift(); float(CROC ? 'a crocodile is in the way' : 'fix the planks first', ...head(F), C.pink); SFX.nope(); return; } q.path = p; }
+  if (!q.path) { const p = path(Math.round(F.r), Math.round(F.c), q.tr, q.tc); if (!p) { F.queue.shift(); float(CROC ? 'a crocodile is in the way' : S.broken.length ? 'fix the planks first' : "something's in the way", ...head(F), C.pink); SFX.nope(); return; } q.path = p; }
   const [wr, wc] = q.path.length ? q.path[0] : [q.tr, q.tc], dr = wr - F.r, dc = wc - F.c, d = Math.hypot(dr, dc);
   if (d < 0.05 && q.path.length) { F.r = wr; F.c = wc; q.path.shift(); return; }
   if (d < 0.05) {
@@ -730,7 +745,7 @@ function canPlace(it, r, c) {
   if (!inMap(r, c) || hutTile(r, c) || deck(r, c) || (r === BOAT.r && c === BOAT.c)) return false;
   if (it.on === 'pen') { const p = penOf(r, c); return !!p && penEmpty(p); }
   if (it.on === 'sea') return canDeck(r, c);
-  return (land(r, c) || lane(r, c)) && !isBroken(r, c) && !objAt(r, c);
+  return (land(r, c) || lane(r, c)) && !isBroken(r, c) && !objAt(r, c) && !blocksWay(r, c);
 }
 // move mode: pick up a decoration, the generator, the tank or an empty pen's fittings, then put it down somewhere valid
 function canMoveTo(r, c) {
@@ -747,14 +762,14 @@ function moveTap(r, c) {
     S.moveSel = { o }; SFX.pop(); return;
   }
   if ((m.tank && r === TANK.r && c === TANK.c) || (m.o && objAt(r, c) === m.o)) { S.moveSel = null; SFX.chomp(); return; }
-  if (!canMoveTo(r, c)) { SFX.nope(); return float("can't go there", x, y - 20, C.pink); }
+  if (!canMoveTo(r, c)) { SFX.nope(); return float(m.o && !objAt(r, c) && (land(r, c) || lane(r, c)) && blocksWay(r, c) ? 'that would block the walkway' : "can't go there", x, y - 20, C.pink); }
   if (m.tank) { TANK.r = r; TANK.c = c; S.tankAt = { r, c }; }
   else { const p = item(m.o.id).on === 'pen' && penOf(r, c); m.o.r = p ? p.r0 : r; m.o.c = p ? p.c0 : c; }
   S.moveSel = null; pop(x, y, C.gold2, 8); SFX.stamp(); save();
 }
 function place(r, c) {
   const it = item(S.build), [x, y] = tilePos(r, c);
-  if (!canPlace(it, r, c)) { SFX.nope(); return float(it.on === 'land' ? 'needs a deck tile' : it.on === 'sea' ? deckWhy(r, c) : 'needs an empty pen', x, y - 10, C.pink); }
+  if (!canPlace(it, r, c)) { SFX.nope(); return float(it.on === 'land' ? (blocksWay(r, c) && !objAt(r, c) && (land(r, c) || lane(r, c)) ? 'that would block the walkway' : 'needs a deck tile') : it.on === 'sea' ? deckWhy(r, c) : 'needs an empty pen', x, y - 10, C.pink); }
   if (S.cash < it.cost) { SFX.nope(); return float("Not enough $", x, y - 10, C.pink); }
   if (full(it)) { SFX.nope(); S.build = null; return float('you already have that', x, y - 10, C.pink); }
   if (it.on === 'sea') { S.cash -= it.cost; S.deck[r * MAP + c] = 1; syncDock(); pop(x, y, '#d9b48a', 8); SFX.tok(); gainXp(it.xp); save(); return; } // stays in build mode: lay the next one
@@ -1026,12 +1041,19 @@ function stepTour(dt) {
   const k = TOUR; k.t += dt;
   if (k.phase === 'arrive' && k.t >= 4) { k.phase = 'wait'; k.t = 0; k.land = nearestWalkable(DOCK.r, DOCK.c); for (let i = 0; i < k.n; i++) k.guests.push(guest(i)); }
   if (k.phase === 'wait') { for (const v of k.guests) { if ((v.delay -= dt) > 0) continue; stepActor(dt, v); if (!v.queue.length && !v.gone) v.gone = true; }
-    if (k.guests.every(v => v.gone) || k.t > 100) { k.phase = 'leave'; k.t = 0; if (k.tips) { const w = center(DOCK.r, DOCK.c), [x, y] = scr(w.x, w.y); float(`visitors tipped S$${k.tips}`, x, y - 50, C.gold, 9); } } }
+    if (k.guests.every(v => v.gone) || k.t > 180) { k.phase = 'leave'; k.t = 0; if (k.tips) { const w = center(DOCK.r, DOCK.c), [x, y] = scr(w.x, w.y); float(`visitors tipped S$${k.tips}`, x, y - 50, C.gold, 9); } } }
   if (k.phase === 'leave' && k.t >= 5) TOUR = null;
 }
-function guest(i) { // a visitor's afternoon: one or two pieces of decor, the tank, back to the boat
-  const [lr, lc] = TOUR.land, v = actor({ r: lr, c: lc, id: `guest${1 + (i + Math.floor(Math.random() * 4)) % 4}`, speed: 0.75, delay: i * 0.9 }), sights = S.objs.filter(o => item(o.id).charm).sort(() => Math.random() - 0.5).slice(0, 1 + (Math.random() < 0.5));
-  for (const o of sights) goBeside(o.r, o.c, () => { const [x, y] = head(v); if (Math.random() < 0.6) float(SAYS[Math.floor(Math.random() * SAYS.length)], x, y, C.sand, 7); }, v, 'admire');
+const PEN_SAYS = { fishcage: ['so many fish!', 'look, they jump!', 'can fish here?'], crabpen: ['look at the crabs!', 'chilli crab later?', 'so big ah'], mussels: ['mussels on ropes, so cool', 'wah, so many'],
+  prawns: ['tiger prawns!', 'so fresh one'], lobsters: ['lobsters!!', 'lobster for dinner?'], cellar: ['wine under the sea?!', 'NILA crate! so cool'], oysters: ['fresh oysters!', 'the oysters smiling!', 'can eat raw?'] };
+function guest(i) { // a visitor's afternoon: out along the walkways to a pen or two and the oyster beds, a piece of decor, the tank, back to the boat
+  const [lr, lc] = TOUR.land, v = actor({ r: lr, c: lc, id: `guest${1 + (i + Math.floor(Math.random() * 4)) % 4}`, speed: 0.75, delay: i * 0.9 }), say = list => { const [x, y] = head(v); if (Math.random() < 0.75) float(list[Math.floor(Math.random() * list.length)], x, y, C.sand, 7); };
+  const farm = [...S.objs.filter(o => item(o.id).pen).map(o => ({ r: o.r, c: o.c, says: PEN_SAYS[o.id] || SAYS })), ...S.plots.flatMap((row, r) => row.map((pl, c) => pl ? { r, c, says: PEN_SAYS.oysters } : null)).filter(Boolean)];
+  const picks = farm.sort(() => Math.random() - 0.5).filter((p, k, a) => a.findIndex(q => Math.abs(q.r - p.r) < 2 && Math.abs(q.c - p.c) < 2) === k).slice(0, 1 + (Math.random() < 0.6)); // one or two, not side by side
+  const decor = S.objs.filter(o => item(o.id).charm).sort(() => Math.random() - 0.5).slice(0, 1);
+  const canSee = (r, c) => [[1, 0], [0, 1], [-1, 0], [0, -1]].some(([a, b]) => walkable(r + a, c + b) && !hutTile(r + a, c + b) && path(lr, lc, r + a, c + b));
+  for (const p of picks) if (canSee(p.r, p.c)) goBeside(p.r, p.c, () => say(p.says), v, 'admire');
+  for (const o of decor) if (canSee(o.r, o.c)) goBeside(o.r, o.c, () => say(SAYS), v, 'admire');
   goBeside(TANK.r, TANK.c, () => { const [x, y] = head(v), i2 = S.tank.findIndex(isClean);
     if (i2 < 0) return float('no oysters today :(', x, y, C.grey, 7); const o = S.tank.splice(i2, 1)[0], pay = Math.round(species(o.sp).sell * 1.5 * sellMul()); S.cash += pay; float(`slurp! so fresh +S$${pay}`, x, y, C.gold, 8); SFX.coin(); }, v, 'dine');
   go(lr, lc, () => { const tip = Math.round(3 + charm() * 0.4); S.cash += tip; TOUR.tips += tip; }, v, null);
@@ -1412,7 +1434,7 @@ function plank(x, y, flip) {
 }
 function drawEntity(e, x, y, t, D) {
   if (e.kind === 'hut') { // the blue plywood shed with a rusty tin roof; it grows with the Bigger shed upgrade
-    const tier = shedTier(), big = tier >= 2, [fx, fy] = scr(big ? 64 : 0, big ? 128 : 96), [nm, ax, ay, top] = [null, ['shed-small', 74, 135, 140], ['shed-big', 67, 154, 160], ['shed-tier3', 67, 199, 205], ['shed-tier4', 67, 194, 200]][tier], im = ready(nm);
+    const tier = shedTier(), big = tier >= 2, [fx, fy] = scr(big ? 64 : 0, big ? 128 : 96), [nm, ax, ay, top] = SHEDART[tier], im = ready(nm);
     if (tier === 4) glow(fx + 60, fy - 100, 80, '#ff7040', D.lamp * 0.55); // the lanterns along the eaves
     if (im) g.drawImage(im, Math.round(fx - ax), Math.round(fy - ay)); else sprite('hut-hut', x, y + 10, { scale: 2 });
     glow(fx + (big ? 0 : 24), fy - 48, 22 + 12 * D.lamp, '#f0c070', D.lamp);
