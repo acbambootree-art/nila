@@ -156,6 +156,12 @@ const FACTS = {
 };
 // real photos for the cards, from Wikimedia Commons (game/photos, credits in photos/CREDITS.md); loaded when a card first opens
 const PHOTO_BY = {
+  seastar: "Doreen · CC BY 4.0",
+  mudskipper: "George Berninger Jr. · CC BY-SA 3.0",
+  fiddler: "Kramthenik27 · CC BY-SA 4.0",
+  clam: "H. Zell · CC BY-SA 3.0",
+  seagrass: "Ria Tan · CC BY-SA 2.0",
+  seahorse: "Rickard Zerpe · CC BY-SA 2.0",
   belon: "H. Zell · CC BY-SA 3.0",
   coconut: "Shishirdasika · CC BY-SA 4.0",
   crabs: "Richard Pillans, CSIRO · CC BY 3.0",
@@ -705,9 +711,9 @@ const tideNow = () => Math.sin(S.t * Math.PI * 2 / TIDE + 1); // -1 lowest … 1
 const lowAmt = () => clamp((-tideNow() - 0.35) / 0.4, 0, 1); // how much mud is showing
 const tideText = () => tideNow() < -0.35 ? 'Low tide: mudflats are out by the shed.' : tideNow() > 0.4 ? 'High tide: the fish come closer.' : `The tide is ${Math.cos(S.t * Math.PI * 2 / TIDE + 1) > 0 ? 'coming in' : 'going out'}.`;
 let MUDT = null;
-function mudTiles() { // a band of sea along the top and left of the shed platform, where the shore would be
+function mudTiles() { // a band of sea along the open-water (left) side of the shed platform; the top side is the island backdrop, so no mud there
   if (MUDT) return MUDT; MUDT = [];
-  for (let r = -2; r <= 8; r++) for (let c = -2; c <= 6; c++) { const band = (r <= 0 && c >= -1) || (c <= 0 && r >= -1); if (!band || (inMap(r, c) && (solid(r, c) || farm(r, c))) || underHouse(r, c) || (r === BOAT.r && c === BOAT.c)) continue; MUDT.push([r, c]); }
+  for (let r = 2; r <= 9; r++) for (let c = -2; c <= 0; c++) { if ( (inMap(r, c) && (solid(r, c) || farm(r, c))) || underHouse(r, c) || (r === BOAT.r && c === BOAT.c)) continue; MUDT.push([r, c]); }
   return MUDT;
 }
 const hash2 = (r, c, n = 1) => { const v = Math.sin(r * 12.9898 + c * 78.233 + n * 37.719) * 43758.5453; return v - Math.floor(v); };
@@ -727,7 +733,7 @@ function drawMud(t) {
 }
 const MUD_SAYS = { seastar: 'a knobbly sea star: look, but leave it where it is', mudskipper: 'a mudskipper! a fish that walks on mud', fiddler: 'a fiddler crab waving its big claw' };
 function tapMud(sx, sy) {
-  if (lowAmt() < 0.5) return false; const m = ECO.mud.find(q => { const [x, y] = tilePos(q.r, q.c); return Math.hypot(sx - x - q.dx, sy - y - q.dy + 4) < 12; }); if (!m) return false; const [x, y] = tilePos(m.r, m.c);
+  if (lowAmt() < 0.5) return false; const tl = tileAt(sx, sy), onMud = tl && mudTiles().some(([r, c]) => r === tl.r && c === tl.c); const m = ECO.mud.find(q => { const [x, y] = tilePos(q.r, q.c); return Math.hypot(sx - x - q.dx, sy - y - q.dy + 4) < 12; }); if (!m) return onMud; // bare mud: nothing to walk to const [x, y] = tilePos(m.r, m.c);
   if (m.k === 'clam') { ECO.mud.splice(ECO.mud.indexOf(m), 1); S.cash += 5; collect('clam'); gainXp(2); float('dug up a big clam +S$5 · the small ones stay to grow', x, y - 20, C.gold2, 7); SFX.coin(); return true; }
   if (!m.seen) { m.seen = true; S.eco.shore++; gainXp(3); } collect(m.k); float(MUD_SAYS[m.k], x, y - 20, C.sand, 7); SFX.pop(); return true;
 }
