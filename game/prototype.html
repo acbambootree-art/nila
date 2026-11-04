@@ -667,7 +667,7 @@ function watchSea(k) {
 // ---- a rare visitor: an estuarine crocodile (they do turn up around Pulau Ubin) swims in every 5–15 minutes or so,
 // hauls out on a quiet edge of the deck far from everyone, basks a minute or two with its jaws open now and then,
 // then slides back into the sea. People and the dog give it a wide berth; nobody swims while it is about. ----
-let CROC = null, crocWait = rnd(300, 900);
+let CROC = null, crocWait = rnd(1200, 2400);
 function crocSpot() { // an empty edge plank beside open water, as far from everyone as possible, at least 4 tiles
   const people = [F, ...WK, ...(DOG ? [DOG] : [])]; let best = null, bd = 0;
   for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) {
@@ -682,7 +682,7 @@ function spawnCroc() { const s = crocSpot(); if (!s) return false; const w = cen
   for (const a of [F, ...WK]) for (const q of a.queue) if (q.kind === 'swim' || q.kind === 'kayak') q.act = Math.min(q.act, 4.4); // swimmers head back to the deck
   return true; }
 function stepCroc(dt) {
-  if (!CROC) { if ((crocWait -= dt) > 0) return; crocWait = rnd(300, 900); spawnCroc(); return; }
+  if (!CROC) { if (inTut() || (crocWait -= dt) > 0) return; crocWait = rnd(1500, 3000); spawnCroc(); return; }
   const k = CROC; k.t += dt;
   if (k.phase === 'in') { const u = Math.min(1, k.t / 9); k.x = k.ox + (k.wx - k.ox) * u; k.y = k.oy + (k.wy - k.oy) * u; if (u >= 1) { k.phase = 'up'; k.t = 0; SFX.splash(); } }
   else if (k.phase === 'up') { if (k.t >= 1.5) { k.phase = 'bask'; k.t = 0; const [x, y] = tilePos(k.r, k.c); float('a crocodile!', x, y - 34, C.pink, 9); if (!S.album.croc) float('New in album: Crocodile', W / 2, 120, C.gold, 9, true); collect('croc'); } }
@@ -704,16 +704,16 @@ function drawCroc(x0, y0, t) {
 // a blacktip reef shark (just the fin above its shadow), a pod of pink dolphins taking turns to leap, and, rarest,
 // a dugong up from the Chek Jawa seagrass rolling its back. Tap one to hear what it is. ----
 const SEALIFE = {
-  turtle:  { w: 35, v: 13, call: 'look, a turtle!', note: 'a hawksbill turtle: critically endangered, it nests on our southern islands' },
+  turtle:  { w: 44, v: 13, call: 'look, a turtle!', note: 'a hawksbill turtle: critically endangered, it nests on our southern islands' },
   shark:   { w: 30, v: 30, call: 'shark fin!', note: 'a blacktip reef shark: shy, and no danger to people' },
-  dolphin: { w: 20, v: 38, call: 'dolphins!!', note: 'pink dolphins! Indo-Pacific humpbacks turn pinker as they age' },
-  dugong:  { w: 15, v: 8,  call: 'is that... a dugong?!', note: 'a dugong, up from the Chek Jawa seagrass. very rare' },
+  dolphin: { w: 15, v: 38, call: 'dolphins!!', note: 'pink dolphins! Indo-Pacific humpbacks turn pinker as they age' },
+  dugong:  { w: 6,  v: 8,  call: 'is that... a dugong?!', note: 'a dugong, up from the Chek Jawa seagrass. very rare' },
 };
 const actorRC = a => { if (a.swim && (a.working === 'swim' || a.working === 'kayak')) { const [r, c] = rcOf(a.swim.x, a.swim.y - 8); return { r, c }; } return { r: a.r + (a.working === 'lounge' ? 0.02 : 0), c: a.c }; };
 const rcOf = (wx, wy) => { const u = wx / (TW / 2), v = (wy - TH / 2) / (TH / 2); return [(v - u) / 2, (v + u) / 2]; }; // world px to (fractional) tile
-let SEA = null, seaWait = rnd(90, 200);
+let SEA = null, seaWait = rnd(240, 420);
 function spawnSea(kind) {
-  if (!kind) { let n = Math.random() * 100; kind = Object.keys(SEALIFE).find(k => (n -= SEALIFE[k].w) < 0) || 'turtle'; if (Math.random() < 0.45) kind = SEA_WEEK; if (kind === 'dugong' && S.sea < (SEA_WEEK === 'dugong' ? 45 : 60)) kind = 'turtle'; if (up('p-seagrass') && S.sea >= 70 && Math.random() < 0.25) kind = 'dugong'; } // dugongs only come to a healthy strait
+  if (!kind) { let n = Math.random() * 100; kind = Object.keys(SEALIFE).find(k => (n -= SEALIFE[k].w) < 0) || 'turtle'; if (Math.random() < 0.3) kind = SEA_WEEK; if (kind === 'dugong' && S.sea < (SEA_WEEK === 'dugong' ? 45 : 60)) kind = 'turtle'; if (up('p-seagrass') && S.sea >= 70 && Math.random() < 0.25) kind = 'dugong'; } // dugongs only come to a healthy strait
   // past the south edge of everything, or down the west side of the platform: usually whichever passes nearer what you're looking at
   const R = Math.max(PR(), FR0 + 3 * S.farm.a, ...Object.keys(S.deck).map(k => Math.floor(k / MAP))) + 2.6, routes = [[center(R, -6), center(R, MAP + 5)], [center(-3, -2.6), center(MAP + 5, -2.6)]];
   const off = ([a, b]) => Math.abs((b.y - a.y) * cam.x - (b.x - a.x) * cam.y + b.x * a.y - b.y * a.x) / Math.hypot(b.x - a.x, b.y - a.y);
@@ -723,7 +723,7 @@ function spawnSea(kind) {
   return true;
 }
 function stepSea(dt) {
-  if (!SEA) { if ((seaWait -= dt) > 0) return; seaWait = rnd(120, 300) * (S.sea > 80 ? 0.6 : S.sea < 30 ? 2 : 1); spawnSea(); return; } // more visitors to a cleaner strait
+  if (!SEA) { if (inTut() || (seaWait -= dt) > 0) return; seaWait = rnd(360, 720) * (S.sea > 80 ? 0.6 : S.sea < 30 ? 2 : 1); spawnSea(); return; } // more visitors to a cleaner strait
   const k = SEA; k.t += dt; const u = k.t / k.len; if (u >= 1) { SEA = null; return; }
   k.x = k.x0 + (k.x1 - k.x0) * u; k.y = k.y0 + (k.y1 - k.y0) * u;
   const near = Math.abs(scr(k.x, k.y)[0] - W / 2) < W && Math.abs(scr(k.x, k.y)[1] - H / 2) < H; // only make noise when it's somewhere near the view
@@ -759,7 +759,7 @@ function drawSea(t) {
 
 // ---- a family of smooth-coated otters: they swim in, scamper along the walkway to a stocked fish cage and pinch a fish,
 // unless the dog gets there first or you tap them away. With no fish about they have a look round and leave. ----
-let OTTERS = null, otterWait = rnd(300, 700);
+let OTTERS = null, otterWait = rnd(900, 1500);
 const seaSide = (r, c) => [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => [r + a, c + b]).find(([i, j]) => inMap(i, j) && !solid(i, j) && !penTile(i, j) && !underHouse(i, j) && !(i === BOAT.r && j === BOAT.c) && !(i === DOCK.r && j === DOCK.c));
 function edgeNear(r, c, who) { // the walkable edge plank beside open water nearest (r,c) that can be walked to from there
   let best = null, bd = 1e9; for (let i = 0; i < MAP; i++) for (let j = 0; j < MAP; j++) { if (!walkable(i, j) || hutTile(i, j) || objAt(i, j) || (who && taken(i, j, who))) continue; const sea = seaSide(i, j); if (!sea) continue; const d = Math.hypot(i - r, j - c); if (d < bd && path(i, j, Math.round(r), Math.round(c))) { bd = d; best = { r: i, c: j, sr: sea[0], sc: sea[1] }; } }
@@ -779,7 +779,7 @@ function otterGo(o, i, r, c) { const nb = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, 
 function otterLeave(fast) { const k = OTTERS; if (!k || k.swim || k.phase === 'leave') return; k.phase = 'leave'; k.t = 0; k.pack.forEach(o => { o.speed = fast ? 2.3 : 1.5; o.queue = [{ tr: k.edge.r, tc: k.edge.c, fn: () => {}, act: 0 }]; }); }
 function shooOtters(who = F) { const k = OTTERS, [x, y] = head(k.pack[0]); if (k.phase === 'leave') return; float('shoo! shoo!', ...head(who), C.sand, 8); float('eek!', x, y + 10, C.pink, 7); SFX.chirp(); otterLeave(true); }
 function stepOtters(dt) {
-  if (!OTTERS) { if ((otterWait -= dt) > 0) return; otterWait = rnd(300, 700); spawnOtters(); return; }
+  if (!OTTERS) { if (inTut() || (otterWait -= dt) > 0) return; otterWait = rnd(1200, 2100); spawnOtters(); return; }
   const k = OTTERS; k.t += dt; const lead = k.pack[0];
   if (k.phase === 'in' || k.phase === 'out') { const u = Math.min(1, k.t / 7), [ax, ay, bx, by] = k.phase === 'in' ? [k.ox, k.oy, k.wx, k.wy] : [k.wx, k.wy, k.ox, k.oy]; k.x = ax + (bx - ax) * u; k.y = ay + (by - ay) * u;
     if (u >= 1) { if (k.phase === 'out') { OTTERS = null; return; } k.swim = false; k.phase = 'walk'; k.t = 0; SFX.splash(); SFX.chirp(); k.pack.forEach((o, i) => otterGo(o, i, k.tr, k.tc));
@@ -816,7 +816,7 @@ function tapOtters(sx, sy) { // in the water: learn about them; on the deck: sho
 
 // ---- a horseshoe crab wanders into an oyster pen now and then; whoever's free (or you, if you tap it) lifts it out and
 // carries it back to the sea. They're common on Ubin's mudflats, and older than the dinosaurs. ----
-let HCRAB = null, hcrabWait = rnd(200, 450);
+let HCRAB = null, hcrabWait = rnd(600, 1000);
 function spawnHcrab() {
   const pens = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) if (penTile(r, c) && !objAt(r, c)) pens.push([r, c]); if (!pens.length) return false;
   const [r, c] = pens[Math.floor(Math.random() * pens.length)]; HCRAB = { r, c, t: 0, phase: 'pen', who: null };
@@ -831,7 +831,7 @@ function rescueCrab(who) {
   }, who, 'collect'); who.queue[who.queue.length - 1].hc = true;
 }
 function stepHcrab(dt) {
-  if (!HCRAB) { if ((hcrabWait -= dt) > 0) return; hcrabWait = rnd(200, 450); spawnHcrab(); return; }
+  if (!HCRAB) { if (inTut() || (hcrabWait -= dt) > 0) return; hcrabWait = rnd(700, 1200); spawnHcrab(); return; }
   const k = HCRAB; k.t += dt;
   if (k.phase === 'pen' && k.t > 5) { const free = [F, ...WK].filter(a => a.working !== 'eat' && a.queue.every(q => q.idle)).sort((a, b) => Math.hypot(a.r - k.r, a.c - k.c) - Math.hypot(b.r - k.r, b.c - k.c))[0]; if (free) rescueCrab(free); }
   if ((k.phase === 'fetch' || k.phase === 'carried') && !k.who.queue.some(q => q.hc)) { k.who.crab = false; HCRAB = k.phase === 'fetch' ? Object.assign(k, { phase: 'pen', t: 0, who: null }) : null; } // job dropped: it waits, or slips back in by itself
@@ -1779,7 +1779,8 @@ const FESTS = {
   midautumn: { name: 'Mid-Autumn', hi: 'Happy Mid-Autumn Festival!', note: '+10% on all sales, lanterns at night', dates: { 2026: '09-25', 2027: '09-15', 2028: '10-03' }, from: -5, to: 2 },
   deepavali: { name: 'Deepavali', hi: 'Happy Deepavali!', note: '+10% on all sales, oil lamps on the deck', dates: { 2026: '11-08', 2027: '10-28', 2028: '10-17' }, from: -4, to: 3 },
 };
-const FEST = (() => { const q = new URLSearchParams(location.search).get('fest'); if (q && FESTS[q]) return q; const now = new Date(), y = now.getFullYear();
+const FESTS_ON = false; // festival decor and bonuses switched off for now; ?fest=<id> still previews one
+const FEST = (() => { const q = new URLSearchParams(location.search).get('fest'); if (q && FESTS[q]) return q; if (!FESTS_ON) return null; const now = new Date(), y = now.getFullYear();
   for (const [id, f] of Object.entries(FESTS)) { const d = f.dates[y]; if (!d) continue; const diff = (now - new Date(`${y}-${d}T00:00:00`)) / 864e5; if (diff >= f.from && diff < f.to + 1) return id; } return null; })();
 // market day: every Saturday one kind of stock sells for double (a different one each week). and each week one sea creature is
 // "in season" and passes the farm far more often
