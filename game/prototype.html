@@ -33,7 +33,7 @@ const ITEMS = [ // buildable: on land or sea; pens have a feed→wait→collect 
   { tab: 'decor', id: 'lantern',  name: 'Lantern',     cost: 60,   xp: 5,   lvl: 1, on: 'land', sprite: 'bld-lantern', note: 'wither -25%', desc: 'A ready oyster withers if left too long. A lantern gives you 25% more time to harvest it.' , charm: 2 },
   { tab: 'farm', id: 'plank',    name: 'Deck tile',   cost: 40,   xp: 2,   lvl: 1, on: 'sea',  sprite: 'shed-drum', note: '+1 tile', desc: 'A square of sun-bleached planks on blue drums. Lay them on any water touching the deck or a walkway, one at a time, to make room for decor.' },
   { tab: 'farm', id: 'fishcage', name: 'Fish cage',   cost: 150,  xp: 10,  lvl: 2, on: 'pen',  sprite: 'pen-fishcage', pen: { feed: 20, time: 20 * 60, sell: 110, xp: 15, what: 'fish' }, note: 'rear 4 fish', desc: 'Pick what to rear: seabass, pomfret, snapper or grouper. Stock it, wait, collect the catch. Goes in an empty pen.' },
-  { tab: 'decor', id: 'bench',    name: 'Bench',       cost: 80,   xp: 6,   lvl: 2, on: 'land', sprite: 'bld-bench', scale: 0.55, note: '+1 quest', desc: 'A fourth quest every day, so more coins and XP from the quest board.' , charm: 3 },
+  { tab: 'decor', id: 'bench',    name: 'Bench',       cost: 80,   xp: 6,   lvl: 2, on: 'land', sprite: 'bld-bench', note: '+1 quest', desc: 'A fourth quest every day, so more coins and XP from the quest board.' , charm: 3 },
   { tab: 'decor', id: 'palm',     name: 'Palm',        cost: 120,  xp: 10,  lvl: 2, on: 'land', sprite: 'bld-palm', note: '+5% sales', desc: 'Each palm adds 5% to every sale. Up to three palms count.' , charm: 4 },
   { tab: 'farm', id: 'crabpen',  name: 'Crab pen',    cost: 250,  xp: 15,  lvl: 3, on: 'pen',  sprite: 'pen-crabpen', pen: { feed: 40, time: 3600, sell: 420, xp: 35, what: 'crabs' }, note: 'crabs every 1h', desc: 'Feed it S$40, wait an hour, collect S$420 of crabs. Goes in an empty pen.' },
   { tab: 'farm', id: 'stall',    name: 'Market',      cost: 500,  xp: 40,  lvl: 3, on: 'land', sprite: 'bld-stall', note: '+10% sales', desc: 'Every oyster, fish and crab sale pays 10% more, and buyers can have a fourth order open.' },
@@ -47,8 +47,8 @@ ITEMS.push(
   { tab: 'decor', id: 'pot',     name: 'Bougainvillea', cost: 90,  xp: 6,  lvl: 1, on: 'land', sprite: 'dec-pot',     charm: 3, note: '+3 charm', desc: 'A pot of pink bougainvillea. Charm makes the farm nicer to visit: every charm point adds 0.5% to sales, up to +20%.' },
   { tab: 'decor', id: 'flowers', name: 'Papaya',        cost: 120, xp: 8,  lvl: 1, on: 'land', sprite: 'dec-flowers', charm: 3, note: '+3 charm', desc: 'A bucket of hibiscus and a potted papaya. +3 charm (0.5% sales each).' },
   { tab: 'decor', id: 'chimes',  name: 'Wind chimes',   cost: 140, xp: 8,  lvl: 2, on: 'land', sprite: 'dec-chimes',  charm: 4, note: '+4 charm', desc: 'Shell chimes that tinkle in the breeze. +4 charm (0.5% sales each).' },
-  { tab: 'decor', id: 'chair',   name: 'Deck chair',    cost: 160, xp: 10, lvl: 2, on: 'land', sprite: 'dec-chair',   scale: 1.35, charm: 4, note: '+4 charm', desc: 'A deck chair under a beach umbrella. +4 charm (0.5% sales each).' },
-  { tab: 'decor', id: 'hammock', name: 'Hammock',       cost: 220, xp: 12, lvl: 2, on: 'land', sprite: 'lounge-hammock-empty', scale: 1.35, charm: 6, note: '+6 charm', desc: 'A striped hammock between two posts. +6 charm (0.5% sales each).' },
+  { tab: 'decor', id: 'chair',   name: 'Deck chair',    cost: 160, xp: 10, lvl: 2, on: 'land', sprite: 'dec-chair', charm: 4, note: '+4 charm', desc: 'A deck chair under a beach umbrella. +4 charm (0.5% sales each).' },
+  { tab: 'decor', id: 'hammock', name: 'Hammock',       cost: 220, xp: 12, lvl: 2, on: 'land', sprite: 'lounge-hammock-empty', charm: 6, note: '+6 charm', desc: 'A striped hammock between two posts. +6 charm (0.5% sales each).' },
   { tab: 'decor', id: 'kayak',   name: 'Kayaks',        cost: 260, xp: 14, lvl: 3, on: 'land', sprite: 'dec-kayak',   charm: 6, note: '+6 charm', desc: 'Two kayaks on a rack, for paddling round the pens. +6 charm (0.5% sales each).' },
   // more to farm as you level: the stock Singapore kelongs actually grow
   { tab: 'farm',  id: 'mussels',  name: 'Mussel lines',  cost: 200, xp: 15, lvl: 4, on: 'pen', sprite: 'stock-mussels', icon: 'stock-mussels', pen: { feed: 20, time: 40 * 60, sell: 220, xp: 20, what: 'mussels' }, note: 'mussels 40m', desc: 'Ropes of green mussels hung from a bamboo frame, the way Singapore kelongs grow them. Seed it for S$20, wait 40 minutes, collect S$220.' },
@@ -67,8 +67,8 @@ ITEMS.push(
 const MAXN = { lantern: 1, bench: 1, flag: 1, cat: 1, dog: 1, stall: 1, shed: 1, palm: 3 };
 const full = it => MAXN[it.id] && count(it.id) >= MAXN[it.id];
 // how big each piece stands on the deck, against Darren as a 1.6 m grown-up (the art came in different batches at different scales)
-const SIZE = { palm: 1.35, lantern: 0.75, bench: 0.55, stall: 0.85, flag: 0.85, shed: 0.85, pot: 0.85, chair: 1.15, hammock: 1, kayak: 1.45, rack: 1.2, redlanterns: 1.35, mahjong: 1.4, sofa: 1.3, beacon: 1.45, neon: 1.3 };
-for (const [id, sz] of Object.entries(SIZE)) ITEMS.find(i => i.id === id).scale = sz;
+const ART = 3; // bump when sprite files change, so browsers fetch the new art
+// every decor sprite is cut from its hi-res sheet at the size it shows in game (judged against Darren), so all art is drawn 1:1 and shares one pixel size
 const LOOKS = [ // shed panel, third row: one-off touches that make the place nicer; each adds charm
   { id: 'railings', name: 'Railings',      cost: 300, lvl: 2, charm: 6, desc: 'Weathered timber railings round the shed platform. +6 charm.' },
   { id: 'bunting',  name: 'Bunting',       cost: 250, lvl: 2, charm: 5, desc: 'Strings of little flags over the platform. +5 charm.' },
@@ -224,7 +224,7 @@ const IMG = {};
   ...['carpenter', 'keeper', 'harvester'].flatMap(w => ['front-idle', 'front-walk', 'back-idle', 'back-walk', 'work-a', 'work-b', 'idle-fish', 'idle-rest', 'idle-mend', 'swim-a', 'swim-b', 'swim-play', 'swim-float'].map(f => `wk-${w}-${f}`)), 'farmer-idle-fish', 'farmer-idle-rest', 'farmer-idle-mend', 'farmer-swim-a', 'farmer-swim-b', 'farmer-swim-play', 'farmer-swim-float',
   'bld-stall', 'bld-shed', 'bld-lantern', 'bld-flag', 'bld-palm', 'bld-bench', 'bld-cat', 'pen-fishcage-empty', 'pen-fishcage-full', 'pen-crabpen-empty', 'pen-crabpen-full',
   'fish-seabass', 'fish-pomfret', 'fish-snapper', 'fish-grouper', 'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-gull-a', 'sea-gull-b', 'sea-jelly-a', 'sea-jelly-b', 'sc-cloud1', 'sc-cloud2', 'sc-cloud3',
-].forEach(n => { const im = new Image(); im.src = `sprites/${n}.png`; IMG[n] = im; });
+].forEach(n => { const im = new Image(); im.src = `sprites/${n}.png?v=${ART}`; IMG[n] = im; });
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 // backing store at an integer multiple of 640×360 so text renders sharp; sprites stay blocky via nearest sampling
 function fit() { const k = Math.min(4, Math.max(1, Math.ceil(cv.getBoundingClientRect().width * devicePixelRatio / W))); cv.width = W * k; cv.height = H * k; g.setTransform(k, 0, 0, k, 0, 0); g.imageSmoothingEnabled = false; }
@@ -234,6 +234,14 @@ const hit = (x, y, w, h, fn) => hits.push({ x, y, w, h, fn });
 const ready = n => { const im = IMG[n]; return im && im.complete && im.naturalWidth ? im : null; };
 function text(s, x, y, color = C.sand, size = 8, align = 'left') { size = Math.max(size, 7); g.font = `${size}px monospace`; g.textAlign = align; if (color !== C.ink) { g.fillStyle = '#0c0c0e'; g.fillText(s, x + 1, y + 1); } g.fillStyle = color; g.fillText(s, x, y); g.textAlign = 'left'; }
 function ell(x, y, rx, ry, color) { g.fillStyle = color; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill(); }
+// where a piece touches the deck: the spread of its lowest third (legs, base, trunk), as width, iso depth and centre offset
+const FOOT = new Map();
+function foot(it) {
+  if (FOOT.has(it.id)) return FOOT.get(it.id); const im = ready(it.sprite); if (!im) return { w: 30, d: 12, dx: 0 };
+  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const cx = c.getContext('2d'); cx.drawImage(im, 0, 0); const px = cx.getImageData(0, 0, im.width, im.height).data;
+  let lo = im.width, hi = -1; for (let y = Math.floor(im.height * 0.67); y < im.height; y++) for (let x = 0; x < im.width; x++) if (px[(y * im.width + x) * 4 + 3] > 128) { lo = Math.min(lo, x); hi = Math.max(hi, x); }
+  const w = hi < 0 ? 30 : hi - lo + 1, f = { w, d: Math.max(6, Math.min(w * 0.5, im.height * 0.4)), dx: hi < 0 ? 0 : (lo + hi + 1) / 2 - im.width / 2 }; FOOT.set(it.id, f); return f;
+}
 // a sprite with one rectangular part animated: the rest is drawn still, the part is redrawn by fn (in sprite-local pixels)
 function spritePart(name, x, y, part, fn) {
   const im = ready(name); if (!im) return false; const ox = Math.round(x - im.width / 2), oy = Math.round(y - im.height), [px, py, pw, ph] = part;
@@ -245,14 +253,14 @@ const swing = (pivx, pivy, amp, speed, ph) => (im, px, py, pw, ph2) => { g.trans
 const wave = (amp, speed) => (im, px, py, pw, ph2) => { const gust = 0.7 + 0.3 * Math.sin(S.t * 0.5); for (let i = 0; i < pw; i++) { const dy = Math.round(amp * gust * Math.sin(i * 0.28 - S.t * speed) * (i / pw)); g.drawImage(im, px + i, py, 1, ph2, px + i, py + dy, 1, ph2); } };
 // which part of each decoration moves, and how (palm fronds sway, flag waves, lantern and chimes swing, plants nod)
 const ANIM = {
-  palm:    (x, y, ph) => spritePart('bld-palm', x, y, [0, 0, 80, 52], sway(4, 1.1, ph, 1.1)), // a tall coconut palm
-  flag:    (x, y, ph) => spritePart('bld-flag', x, y, [19, 0, 25, 44], wave(4.5, 4)), // a big, slow billow that swells and eases with the breeze
-  lantern: (x, y, ph) => spritePart('bld-lantern', x, y, [14, 9, 23, 52], swing(26, 11, 0.07, 1.7, ph)),
+  palm:    (x, y, ph) => spritePart('bld-palm', x, y, [0, 0, 108, 70], sway(5, 1.1, ph, 1.5)), // a tall coconut palm
+  flag:    (x, y, ph) => spritePart('bld-flag', x, y, [16, 0, 21, 37], wave(3.8, 4)), // a big, slow billow that swells and eases with the breeze
+  lantern: (x, y, ph) => spritePart('bld-lantern', x, y, [10, 7, 18, 39], swing(20, 8, 0.07, 1.7, ph)),
   chimes:  (x, y, ph) => spritePart('dec-chimes', x, y, [8, 6, 13, 42], swing(15, 7, 0.12, 2.1, ph)),
   hammock: (x, y, ph) => spritePart('lounge-hammock-empty', x, y, [5, 6, 52, 30], swing(31, 6, 0.04, 1.3, ph)),
-  pot:     (x, y, ph) => spritePart('dec-pot', x, y, [0, 0, 34, 26], sway(0.8, 1.6, ph, 0.3)),
+  pot:     (x, y, ph) => spritePart('dec-pot', x, y, [0, 0, 29, 22], sway(0.8, 1.6, ph, 0.3)),
   flowers: (x, y, ph) => spritePart('dec-flowers', x, y, [0, 0, 41, 30], sway(1, 1.4, ph, 0.3)),
-  chair:   (x, y, ph) => spritePart('dec-chair', x, y, [0, 0, 33, 16], sway(0.6, 1.8, ph)),
+  chair:   (x, y, ph) => spritePart('dec-chair', x, y, [0, 0, 38, 18], sway(0.6, 1.8, ph)),
 };
 function sprite(name, x, y, { flip = false, alpha = 1, scale = 1 } = {}) {
   const im = typeof name === 'string' ? ready(name) : name; if (!im) return false;
@@ -269,6 +277,8 @@ function tinted(name, tint) {
 }
 function glow(x, y, r, color, a) { if (a <= 0) return; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, color); gr.addColorStop(1, 'transparent'); g.globalAlpha = a; g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); g.globalAlpha = 1; }
 function float(s, x, y, color = C.gold2, size = 8, ui = false) { A.floaters.push({ s, x, y, life: 1.6, color, size, ui }); }
+// a wake: foam that stays on the water line and drifts backwards (back = -1 or 1), so nothing seems to trickle off a swimmer
+const foam = (x, y, back, life = 0.7) => A.particles.push({ x: x + back * rnd(0, 6), y: y + rnd(-1.5, 1.5), vx: back * rnd(4, 10), vy: 0, gr: 0, life, color: '#cfe4f0' });
 function pop(x, y, color, n = 8) { for (let i = 0; i < n; i++) A.particles.push({ x, y, vx: rnd(-30, 30), vy: rnd(-60, 0), life: 0.6, color }); }
 function hop(im, x, y, s = 1) { if (im) A.hops.push({ im, x, y, s, vy: -90, life: 0.9 }); } // a sprite that jumps up and fades (harvest, crate)
 function collect(id, n = 1) { orderProgress(id); const first = !S.album[id]; S.album[id] = (S.album[id] || 0) + n; S.sets = S.sets || {};
@@ -362,7 +372,7 @@ function idle(a, dt) {
 }
 // off duty with the animals and the decor: pet the dog or the cat, nap in the hammock, lounge in the deck chair or on the bench,
 // water the plants, take a kayak out for a paddle
-const SEATS = { bench: { s: 0.55 }, chair: { s: 1.15 }, hammock: { s: 1, swing: true } }; // same sizes as the empty pieces (SIZE) // drawn as the piece with that person in it (lounge-<piece>-<who>)
+const SEATS = { bench: { s: 1 }, chair: { s: 1 }, hammock: { s: 1, swing: true } }; // lounge sprites are cut at the same size as the empty pieces // drawn as the piece with that person in it (lounge-<piece>-<who>)
 function besideFree(r, c, a) { const nb = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([i, j]) => [r + i, c + j]).filter(([i, j]) => walkable(i, j) && !hutTile(i, j) && !objAt(i, j) && !taken(i, j, a)); return nb.sort((p, q) => Math.hypot(p[0] - a.r, p[1] - a.c) - Math.hypot(q[0] - a.r, q[1] - a.c)).find(([i, j]) => path(Math.round(a.r), Math.round(a.c), i, j)); }
 function useSomething(a) {
   const r0 = Math.round(a.r), c0 = Math.round(a.c), near = (r, c) => Math.hypot(r - a.r, c - a.c) < 9, opts = [];
@@ -421,7 +431,7 @@ function drawCroc(x0, y0, t) {
   const k = CROC, w = center(k.r, k.c), [ps] = scr(w.x, w.y), [ws] = scr(k.wx, k.wy), toSea = ws > ps; // head points at the water while basking
   if (k.phase === 'in' || k.phase === 'out') { const [sx, sy] = scr(k.x, k.y), right = (k.phase === 'in' ? k.wx - k.ox : k.ox - k.wx) > 0, bob = Math.sin(t * 1.5) * 1;
     g.globalAlpha = 0.35; ell(sx, sy + 3, 34, 4, '#e8f4ff'); g.globalAlpha = 1; sprite('croc-swim', sx, sy + 4 + bob, { flip: right });
-    if (Math.random() < 0.3) A.particles.push({ x: sx + (right ? -1 : 1) * rnd(30, 40), y: sy + 3 + rnd(-2, 2), vx: (right ? -1 : 1) * rnd(4, 10), vy: 0, gr: 0, life: 0.9, color: '#cfe4f0' }); return; } // flat foam on the water line, no arc
+    if (Math.random() < 0.3) foam(sx + (right ? -30 : 30), sy + 3, right ? -1 : 1, 0.9); return; }
   const u = k.phase === 'up' ? Math.min(1, k.t / 1.5) : k.phase === 'down' ? 1 - Math.min(1, k.t / 1.5) : 1, px = k.wx + (w.x - k.wx) * u, py = k.wy + (w.y - k.wy) * u, [sx, sy] = scr(px, py), breathe = Math.sin(t * 0.8) * 0.5;
   ell(sx, sy + 4, 40, 6, '#00000033'); sprite(k.open > 0 ? 'croc-open' : 'croc-lie', sx, sy + 6 + breathe, { flip: toSea });
 }
@@ -471,7 +481,7 @@ function drawSea(t) {
     if (k.up > 0) { const rise = Math.min(1, k.up, 2.4 - k.up) ; g.globalAlpha = 0.5; ell(sx, sy + 3, 22, 6, '#e8f4ff'); g.globalAlpha = 1; sprite(fr, sx, sy + 6 - rise * 4, { flip, alpha: 0.6 + 0.4 * rise }); if (Math.random() < 0.15) A.particles.push({ x: sx + (flip ? 18 : -18), y: sy - 6, vx: rnd(-6, 6), vy: rnd(-20, -8), life: 0.4, color: '#e8f4ff' }); }
     else under(fr, sx, sy + 10 + Math.sin(t * 1.2) * 1.5, 0.55); return; }
   if (k.kind === 'shark') { under('sea2-shark', sx, sy + 12, 0.35); sprite('sea2-fin', sx + (flip ? 4 : -4), sy + Math.sin(t * 2) * 0.8, { flip });
-    if (Math.random() < 0.5) A.particles.push({ x: sx + (flip ? -6 : 6) + rnd(-2, 2), y: sy, vx: rnd(-6, 6), vy: rnd(-4, 1), life: 0.5, color: '#e8f4ff' }); return; }
+    if (Math.random() < 0.4) foam(sx + (flip ? -8 : 8), sy + 1, flip ? -1 : 1, 0.6); return; }
   if (k.kind === 'dugong') { if (k.up > 0) { const rise = Math.min(1, k.up, 3.2 - k.up); g.globalAlpha = 0.45; ell(sx, sy + 4, 30, 7, '#e8f4ff'); g.globalAlpha = 1; sprite('sea2-dugong', sx, sy + 10 - rise * 4, { flip, alpha: 0.5 + 0.45 * rise }); }
     else under('sea2-dugong', sx, sy + 14 + Math.sin(t * 0.8) * 1.5, 0.5); return; }
   const dir = flip ? 1 : -1; // dolphins: the pod trails behind the leader; a leaping one arcs out, nose up then nose down
@@ -991,21 +1001,22 @@ function orderProgress(id) {
 // while the needle is in the gold to land one (counts for orders and the album). Coconuts can be caught as they fall, too. ----
 let SPOT = null, spotWait = rnd(15, 30), MINI = null;
 function stepSpot(dt) {
-  if (MINI && (MINI.t += dt) > 6) { MINI.t = 99; MINI.a = 2; endMini(); } // too slow: it gets away
+  if (MINI && (MINI.t += dt) > BITE) { MINI.t = 99; MINI.a = 2; endMini(); } // too slow: it gets away
   if (SPOT) { if ((SPOT.t += dt) > 9) SPOT = null; return; }
   if ((spotWait -= dt) > 0 || CROC || (typeof STORM !== 'undefined' && STORM && STORM.on)) return; spotWait = rnd(25, 50);
   const cand = []; for (let r = 0; r < MAP; r++) for (let c = 0; c < MAP; c++) { if (!walkable(r, c) || hutTile(r, c)) continue; const sea = seaSide(r, c); if (!sea) continue; const w = center(sea[0], sea[1]), [sx, sy] = scr(w.x, w.y); if (sx > 70 && sx < W - 70 && sy > 60 && sy < H - 110) cand.push(w); }
   if (cand.length) { const w = cand[Math.floor(Math.random() * cand.length)]; SPOT = { x: w.x, y: w.y + 6, t: 0 }; }
 }
-function tapSpot(wx, wy) { if (!SPOT || Math.hypot(wx - SPOT.x, (wy - SPOT.y) * 1.6) > 28) return false; const w = 0.2 + Math.random() * 0.08; MINI = { t: 0, a: Math.random() * (1 - w), w, x: SPOT.x, y: SPOT.y }; SPOT = null; SFX.splash(); return true; }
+function tapSpot(wx, wy) { if (!SPOT || Math.hypot(wx - SPOT.x, (wy - SPOT.y) * 1.6) > 28) return false; const w = 0.2 + Math.random() * 0.08; const pool = FISH.filter(f => f.lvl <= S.level + 1); MINI = { t: 0, a: Math.random() * (1 - w), w, x: SPOT.x, y: SPOT.y, f: (pool[Math.floor(Math.random() * pool.length)] || FISH[0]).id }; SPOT = null; SFX.splash(); return true; }
+const BITE = 6; // seconds a fish stays on the hook before it gets away
 const needle = (m = MINI) => { const u = (m.t * 1.05) % 2; return u < 1 ? u : 2 - u; };
 // how a strike lands: dead centre (within 2.5%) is PERFECT, a huge fish; inside the gold the fish is bigger the closer you were;
 // just outside the gold a tiddler; any further and it gets away. Each species keeps your heaviest catch as a record.
 function endMini() {
   const m = MINI; MINI = null; const [x, y] = scr(m.x, m.y), mid = m.a + m.w / 2, d = Math.abs(needle(m) - mid); A.ripples.push({ x: m.x, y: m.y, r: 4, life: 1 });
   const tier = d <= 0.025 ? 'perfect' : d <= m.w / 2 ? 'good' : d <= m.w / 2 + 0.1 ? 'small' : 'miss';
-  if (tier === 'miss') { float('it got away…', x, y - 20, C.grey, 8); SFX.nope(); return; }
-  const pool = FISH.filter(f => f.lvl <= S.level + 1), f = pool[Math.floor(Math.random() * pool.length)] || FISH[0], [lo, hi, perKg] = KG[f.id], close = 1 - Math.max(0, d - 0.025) / Math.max(0.01, m.w / 2 - 0.025);
+  if (tier === 'miss') { float(`the ${fishOf(m.f).name.toLowerCase()} got away…`, x, y - 20, C.grey, 8); SFX.nope(); return; }
+  const f = fishOf(m.f), [lo, hi, perKg] = KG[f.id], close = 1 - Math.max(0, d - 0.025) / Math.max(0.01, m.w / 2 - 0.025);
   const kg = Math.round((tier === 'perfect' ? hi * rnd(1.05, 1.3) : tier === 'good' ? lo + (hi - lo) * (0.3 + 0.6 * close) * rnd(0.92, 1.05) : lo * rnd(0.5, 0.9)) * 10) / 10;
   const cash = Math.round((8 + kg * perKg) * (tier === 'perfect' ? 1.5 : 1)); S.cash += cash; collect(f.id); S.records = S.records || {};
   const rec = kg > (S.records[f.id] || 0); if (rec) S.records[f.id] = kg; hop(ready(`fish-${f.id}`), m.x, m.y, 0.45 + Math.min(1, kg / hi) * 0.55);
@@ -1022,14 +1033,20 @@ function drawSpot(t) {
     text('fish! tap', x, y - 18, C.sand, 7, 'center'); }
   if (MINI) { const [x, y] = scr(MINI.x, MINI.y); g.globalAlpha = 0.6; g.strokeStyle = '#ffffff'; g.beginPath(); g.ellipse(x, y, 14 + Math.sin(t * 8) * 2, 6, 0, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }
 }
-function drawMini() { // the strike meter: gold zone, a bright sweet spot in the middle of it, the needle
-  if (!MINI) return; const bw = 240, bx = W / 2 - bw / 2, by = H - 64, mid = MINI.a + MINI.w / 2;
-  panelBox(bx - 10, by - 24, bw + 20, 46); text('Stop the needle on the bright line for a PERFECT catch!', W / 2, by - 11, C.sand, 7, 'center');
+function drawMini() { // the bite pop-up: the fish on the line, how long before it gets away, and the strike meter
+  if (!MINI) return; const f = fishOf(MINI.f), [lo, hi] = KG[f.id], left = Math.max(0, BITE - MINI.t), pw = 300, px = W / 2 - pw / 2, py = H - 112, bw = 240, bx = W / 2 - bw / 2, by = H - 40, mid = MINI.a + MINI.w / 2;
+  g.fillStyle = '#0c0c0ee6'; g.fillRect(px, py, pw, 100); g.strokeStyle = C.gold; // no close button: any tap is the strike g.lineWidth = 1; g.strokeRect(px + 0.5, py + 0.5, pw - 1, 99);
+  g.fillStyle = '#16314a'; g.fillRect(px + 8, py + 8, 56, 46); g.strokeStyle = '#2b4a66'; g.strokeRect(px + 8.5, py + 8.5, 55, 45);
+  const im = ready(`fish-${f.id}`); if (im) { const sc = Math.min(48 / im.width, 36 / im.height); g.save(); g.translate(px + 36, py + 31 + Math.sin(S.t * 9) * 1.5); g.rotate(Math.sin(S.t * 14) * 0.12); g.drawImage(im, -im.width * sc / 2, -im.height * sc / 2, im.width * sc, im.height * sc); g.restore(); } // it thrashes on the line
+  text(`A ${f.name.toLowerCase()} is biting!`, px + 72, py + 18, C.gold, 9); text(`${lo}–${hi} kg · best: ${S.records && S.records[f.id] ? S.records[f.id] + ' kg' : 'none yet'}`, px + 72, py + 30, C.grey, 7);
+  const urgent = left < 2, tw = pw - 80; text(`gets away in ${Math.ceil(left)}s`, px + 72, py + 44, urgent ? C.pink : C.sand, 8);
+  g.fillStyle = '#1a2a40'; g.fillRect(px + 72, py + 49, tw, 4); g.fillStyle = urgent ? (Math.sin(S.t * 20) > 0 ? '#ff5a5a' : '#c03a3a') : '#9ad0e0'; g.fillRect(px + 72, py + 49, Math.round(tw * left / BITE), 4);
+  text('Stop the needle on the bright line for a PERFECT catch!', W / 2, by - 8, C.sand, 7, 'center');
   g.fillStyle = '#1a2a40'; g.fillRect(bx, by, bw, 10); g.fillStyle = '#4a5a6a'; g.fillRect(bx + Math.max(0, MINI.a - 0.1) * bw, by, (Math.min(1, MINI.a + MINI.w + 0.1) - Math.max(0, MINI.a - 0.1)) * bw, 10); // the tiddler fringe
   const grd = g.createLinearGradient(bx + MINI.a * bw, 0, bx + (MINI.a + MINI.w) * bw, 0); grd.addColorStop(0, '#8a6a30'); grd.addColorStop(0.5, '#f6d48a'); grd.addColorStop(1, '#8a6a30'); g.fillStyle = grd; g.fillRect(bx + MINI.a * bw, by, MINI.w * bw, 10);
   g.fillStyle = '#ffffff'; g.globalAlpha = 0.7 + 0.3 * Math.sin(S.t * 12); g.fillRect(Math.round(bx + (mid - 0.025) * bw), by - 1, Math.max(2, Math.round(0.05 * bw)), 12); g.globalAlpha = 1;
   g.fillStyle = '#0c0c0e'; g.fillRect(Math.round(bx + needle() * bw) - 2, by - 4, 5, 18); g.fillStyle = '#ff5a5a'; g.fillRect(Math.round(bx + needle() * bw) - 1, by - 3, 3, 16);
-  text('small', bx + Math.max(0.05, MINI.a - 0.05) * bw, by + 19, C.grey, 7, 'center'); text('PERFECT', bx + mid * bw, by + 19, C.gold, 7, 'center');
+  text('small', bx + Math.max(0.05, MINI.a - 0.05) * bw, by + 20, C.grey, 7, 'center'); text('PERFECT', bx + mid * bw, by + 20, C.gold, 7, 'center');
 }
 
 function nutAir(x, y) { return NUTS.find(n => { if (n.t >= 0.75) return false; const w = center(n.r, n.c), k = Math.min(1, n.t / 0.75), [sx, sy] = scr(n.x + (w.x - n.x) * k, n.y + (w.y - n.y) * k * k); return Math.hypot(sx - x, sy - y) < 16; }); }
@@ -1458,13 +1475,14 @@ function drawEntity(e, x, y, t, D) {
   if (e.kind === 'sea') { drawSea(t); return; }
   if (e.kind === 'guest') { drawGuest(e.v, x, y, t); return; }
   if (e.kind === 'tour') { const s = TOUR, ease = k => k * k * (3 - 2 * k), k = s.phase === 'arrive' ? 1 - ease(Math.min(1, s.t / 4)) : s.phase === 'leave' ? ease(Math.min(1, s.t / 5)) : 0, bx = x + 4 - k * 400, by = y + 4 + k * 160 - Math.sin(k * Math.PI) * 22, bob = Math.sin(t * 2) * 1.5;
-    if (k > 0.02 && Math.random() < 0.6) A.particles.push({ x: bx + (s.phase === 'leave' ? 40 : -40), y: by + 4, vx: rnd(-8, 8), vy: rnd(-6, 2), life: 0.6, color: '#e8f4ff' });
-    ell(bx, by + 4, 40, 7, '#00000044'); sprite('boat-bumboat', bx, by + 8 + bob, { flip: s.phase !== 'leave' }); if (s.phase === 'arrive') for (let i = 0; i < s.n; i++) sprite(`guest${1 + i % 4}-idle`, bx - 18 + i * 12, by - 2 + bob, { scale: 0.6 });
+    if (k > 0.02 && Math.random() < 0.6) foam(bx + (s.phase === 'leave' ? 54 : -54), by + 4, s.phase === 'leave' ? 1 : -1);
+    ell(bx, by + 4, 52, 8, '#00000044'); const fl = s.phase !== 'leave'; sprite('boat-bumboat', bx, by + 8 + bob, { flip: fl });
+    if (s.phase === 'arrive') { g.save(); g.beginPath(); g.rect(bx - 50, by - 27 + bob, 100, 18); g.clip(); for (let i = 0; i < s.n; i++) sprite(`guest${1 + i % 4}-idle`, bx + (fl ? -16 + i * 12 : 16 - i * 12), by - 5 + bob, { scale: 0.45, flip: fl }); g.restore(); } // seated between the rail and the canopy, the boatman at the stern
     if (s.phase === 'wait') text('tour boat', bx, by - 34, C.sand, 7, 'center'); return; }
   if (e.kind === 'otter' || e.kind === 'otterswim') { drawOtter(e, x, y, t); return; }
   if (e.kind === 'hcrab') { const wob = Math.sin(t * 0.4 + HCRAB.r) * 7; ell(x + wob, y + 3, 9, 3, '#00000033'); sprite(Math.floor(t * 1.5) % 2 ? 'hcrab-a' : 'hcrab-b', x + wob, y + 4, { flip: Math.cos(t * 0.4 + HCRAB.r) < 0 }); return; }
   if (e.kind === 'buyer') { const s = S.sale, ease = k => k * k * (3 - 2 * k), k = s.phase === 'arrive' ? 1 - ease(Math.min(1, s.t / 4)) : s.phase === 'leave' ? ease(Math.min(1, s.t / 5)) : 0, bx = x + 10 - k * 380, by = y + 6 + k * 150 - Math.sin(k * Math.PI) * 20, bob = Math.sin(t * 2) * 1.5;
-    if (k > 0.02 && Math.random() < 0.6) A.particles.push({ x: bx + (s.phase === 'leave' ? 24 : -24), y: by + 4, vx: rnd(-8, 8), vy: rnd(-6, 2), life: 0.6, color: '#e8f4ff' });
+    if (k > 0.02 && Math.random() < 0.6) foam(bx + (s.phase === 'leave' ? 24 : -24), by + 4, s.phase === 'leave' ? 1 : -1);
     ell(bx, by + 4, 20, 6, '#00000044'); sprite(s.phase === 'leave' ? 'customer-happy' : 'customer-wait', bx, by + 8 + bob, { flip: s.phase !== 'leave' });
     if (s.loaded || s.paid) sprite('shed-crates', bx + 8, by + 4 + bob, { scale: 0.55 });
     if (s.phase === 'wait' && !s.loaded) text('buyer waiting', bx, by - 34, C.sand, 7, 'center'); return; }
@@ -1523,11 +1541,11 @@ function drawEntity(e, x, y, t, D) {
   if (e.kind === 'boat') {
     const b = S.boat, left = boatLeft(), bob = Math.sin(t * 2) * 1.5;
     g.fillStyle = '#5c584f'; g.fillRect(x + 46, y - 14, 3, 18); // mooring post
-    const pos = boatPos(), boat = (bx, by, flip) => { ell(bx, by + 4, 44, 7, '#00000044'); sprite('boat-bumboat', bx, by + 8, { flip }); };
+    const pos = boatPos(), boat = (bx, by, flip) => { ell(bx, by + 4, 52, 8, '#00000044'); sprite('boat-bumboat', bx, by + 8, { flip }); };
     if (!b.out) { boat(x, y + bob, false); text('bumboat: tap', x, y - 34, C.sand, 7, 'center'); }
     else if (pos) { // motoring out or back along a curve to the lower left, with a wake
       const k = pos.k, e = k * k * (3 - 2 * k), bx = x - e * 420, by = y + e * 150 + Math.sin(e * Math.PI) * -30;
-      if (Math.random() < 0.6) A.particles.push({ x: bx + (pos.out ? 46 : -46) + rnd(-3, 3), y: by + 6, vx: rnd(-8, 8), vy: rnd(-6, 2), life: 0.6, color: '#e8f4ff' });
+      if (Math.random() < 0.6) foam(bx + (pos.out ? 54 : -54), by + 6, pos.out ? 1 : -1);
       boat(bx, by + bob, !pos.out); if (!pos.out) text('coming in', x, y - 34, C.grey, 7, 'center');
     }
     else if (left > 0) { text(`bumboat out · ${fmt(left)}`, x, y, C.grey, 7, 'center'); }
@@ -1536,7 +1554,7 @@ function drawEntity(e, x, y, t, D) {
     return;
   }
   if (e.kind === 'obj') {
-    const o = e.o, it = item(o.id); if (it.id !== 'cellar' && it.id !== 'crabpen' && !STOCK[it.id]) ell(x, y + 5, it.pen ? 30 : it.id === 'cat' || it.id === 'dog' ? 9 : 16 * Math.min(1.3, it.scale || 1), it.pen ? 12 : it.id === 'cat' || it.id === 'dog' ? 3 : 6 * Math.min(1.3, it.scale || 1), '#00000044');
+    const o = e.o, it = item(o.id); if (it.id !== 'cellar' && it.id !== 'crabpen' && !STOCK[it.id]) if (!it.pen && it.id !== 'cat' && it.id !== 'dog') { const f = foot(it); ell(x + f.dx, y + 10 - f.d / 2, f.w / 2 + 2, f.d / 2 + 1, '#00000044'); } else ell(x, y + 5, it.pen ? 30 : 9, it.pen ? 12 : 3, '#00000044');
     if (it.id === 'cellar') { // a crate of NILA bottles on a rope under a marker buoy: it sinks in, gathers barnacles and weed over the six months, then comes up
       const age = o.fed ? (Date.now() - o.fed) / 1000 : 0, mo = Math.min(6, Math.floor(age / 3600)), done = o.fed && mo >= 6, bob = Math.sin(t * 1.6 + o.c) * 1.2;
       const bx = x + 26, by = y - 4 + bob; // the buoy, off to one side of the pen
@@ -1570,14 +1588,14 @@ function drawEntity(e, x, y, t, D) {
     const sitter = SEATS[it.id] && [F, ...WK].find(a => a.working === 'lounge' && !a.moving && Math.round(a.r) === o.r && Math.round(a.c) === o.c);
     if (sitter) { const st = SEATS[it.id], ph = o.r * 1.7 + o.c * 2.3, sw = st.swing ? Math.sin(S.t * 1.3 + ph) * 1.2 : 0, im = ready(`lounge-${it.id}-${sitter.id || 'farmer'}`);
       if (im) { sprite(im, x + sw, y + 10, { scale: st.s }); if (Math.floor(sitter.walk / 3) % 3 === 1) mood(x + 12, y + 10 - im.height * st.s - 4, 'heart', (sitter.walk % 3) / 3); return; } }
-    const sc = it.scale || 1, ph = o.r * 1.7 + o.c * 2.3, lit = () => { // the lights' glows, placed for the object's size
-      if (it.id === 'lantern') glow(x + 8 * sc, y + 10 - 62 * sc, 20 + 14 * D.lamp, '#f0c070', D.lamp + 0.05);
-      if (it.id === 'redlanterns') glow(x, y + 10 - 26 * sc, 22 + 10 * D.lamp, '#ff5a3a', D.lamp * 0.8 + 0.05);
-      if (it.id === 'neon') glow(x, y + 10 - 24 * sc, 26, '#ff6ab0', (D.lamp * 0.7 + 0.08) * (Math.random() < 0.02 ? 0.3 : 1));
-      if (it.id === 'beacon') { const ly = y + 10 - 38 * sc; glow(x, ly, 12 + 8 * D.lamp, '#fff0a0', D.lamp + 0.1); if (D.lamp > 0.2) { const a = S.t * 0.8; g.save(); g.globalAlpha = 0.12 * D.lamp; g.fillStyle = '#fff6c0'; g.beginPath(); g.moveTo(x, ly); g.arc(x, ly, 140, a, a + 0.25); g.closePath(); g.fill(); g.restore(); } } };
-    if (ANIM[it.id]) { g.save(); g.translate(x, y + 10); g.scale(sc, sc); const ok = ANIM[it.id](0, 0, ph); g.restore(); if (ok) { lit(); return; } }
+    const ph = o.r * 1.7 + o.c * 2.3, lit = () => { // the lights' glows, placed for the object's size
+      if (it.id === 'lantern') glow(x + 6, y - 37, 20 + 14 * D.lamp, '#f0c070', D.lamp + 0.05);
+      if (it.id === 'redlanterns') glow(x, y - 25, 22 + 10 * D.lamp, '#ff5a3a', D.lamp * 0.8 + 0.05);
+      if (it.id === 'neon') glow(x, y - 21, 26, '#ff6ab0', (D.lamp * 0.7 + 0.08) * (Math.random() < 0.02 ? 0.3 : 1));
+      if (it.id === 'beacon') { const ly = y - 45; glow(x, ly, 12 + 8 * D.lamp, '#fff0a0', D.lamp + 0.1); if (D.lamp > 0.2) { const a = S.t * 0.8; g.save(); g.globalAlpha = 0.12 * D.lamp; g.fillStyle = '#fff6c0'; g.beginPath(); g.moveTo(x, ly); g.arc(x, ly, 140, a, a + 0.25); g.closePath(); g.fill(); g.restore(); } } };
+    if (ANIM[it.id] && ANIM[it.id](x, y + 10, ph)) { lit(); return; }
     if (it.id === 'cat') { sprite('dog-bed', x, y + 6, { scale: 0.7 }); return; } // her basket; the cat herself wanders
-    sprite(it.sprite, x, y + 10, { scale: sc }); lit(); return;
+    sprite(it.sprite, x, y + 10); lit(); return;
   }
   if (e.kind === 'plot') {
     const p = e.p, sp = species(p.sp), f = growth(p);
