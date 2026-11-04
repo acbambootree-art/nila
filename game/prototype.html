@@ -38,7 +38,7 @@ const ITEMS = [ // buildable: on land or sea; pens have a feed→wait→collect 
   { tab: 'farm', id: 'stall',    name: 'Market',      cost: 500,  xp: 40,  lvl: 3, on: 'land', sprite: 'bld-stall', note: '+10% sales', desc: 'Every oyster, fish and crab sale pays 10% more.' },
   { tab: 'decor', id: 'flag',     name: 'Flag',        cost: 200,  xp: 15,  lvl: 3, on: 'land', sprite: 'bld-flag', note: 'boat -20%', desc: 'Bumboat trips come back 20% sooner.' , charm: 3 },
   { tab: 'decor', id: 'cat',      name: 'Cat',         cost: 300,  xp: 25,  lvl: 4, on: 'land', sprite: 'cat-sleep', note: '2× rares', desc: 'Pearl and gold shell finds on harvest are twice as likely.' , charm: 3 },
-  { tab: 'decor', id: 'dog',      name: 'Dog',         cost: 350,  xp: 25,  lvl: 3, on: 'land', sprite: 'dog-sit', note: 'crew +20%', desc: 'A golden retriever who runs about the farm and keeps the crew cheerful: workers walk 20% faster. Place his bed on the platform.' , charm: 4 },
+  { tab: 'decor', id: 'dog',      name: 'Joji',         cost: 350,  xp: 25,  lvl: 3, on: 'land', sprite: 'dog-sit', note: 'crew +20%', desc: 'Joji, a golden retriever who runs about the farm and keeps the crew cheerful: workers walk 20% faster. Place his bed on the platform.' , charm: 4 },
   { tab: 'farm', id: 'shed',     name: 'Ice store',        cost: 800,  xp: 60,  lvl: 5, on: 'land', sprite: 'bld-shed', note: 'wither 2× slow', desc: 'Doubles the time a ready oyster waits before it withers.' },
   { tab: 'farm', id: 'cellar',   name: 'NILA cellar', cost: 400,  xp: 50,  lvl: 5, on: 'pen',  sprite: 'cellar', pen: { feed: 100, time: 6 * 3600, sell: 0, xp: 300, what: 'bottle', win: true }, note: 'age a bottle', desc: 'Lower a NILA bottle for S$100. Six real hours later it comes up sea-aged: the win.' },
 ];
@@ -330,7 +330,7 @@ function useSomething(a) {
   const pick = opts[Math.floor(Math.random() * opts.length)]; if (!pick) return false;
   if (pick === 'dog' || pick === 'cat') { const pet = pick === 'dog' ? DOG : CAT, spot = besideFree(Math.round(pet.r), Math.round(pet.c), a); if (!spot) return false;
     if (pet === DOG) { DOG.queue = []; DOG.pose = 'sit'; } pet.idle = Math.max(pet.idle || 0, 9); // stay put to be petted
-    a.queue.push({ tr: spot[0], tc: spot[1], face: [Math.round(pet.r), Math.round(pet.c)], act: WORK.pet.t, kind: 'pet', idle: true, fn: () => { if (pet === DOG) { SFX.woof(); float('good boy~', ...head(a), C.sand, 7); } else { SFX.mew(); float('purr~', ...head(a), C.sand, 7); } } }); return true; }
+    a.queue.push({ tr: spot[0], tc: spot[1], face: [Math.round(pet.r), Math.round(pet.c)], act: WORK.pet.t, kind: 'pet', idle: true, fn: () => { if (pet === DOG) { SFX.woof(); float('good boy, Joji~', ...head(a), C.sand, 7); } else { SFX.mew(); float('purr~', ...head(a), C.sand, 7); } } }); return true; }
   const o = pick;
   if (SEATS[o.id]) { if (!path(r0, c0, o.r, o.c)) return false; a.queue.push({ tr: o.r, tc: o.c, face: [o.r + 1, o.c], act: o.id === 'hammock' ? 18 : WORK.lounge.t, kind: 'lounge', idle: true, seat: { ...SEATS[o.id], ph: o.r * 1.7 + o.c * 2.3 }, fn: () => {} }); return true; }
   if (o.id === 'kayak') { const e = edgeNear(o.r, o.c, a); if (!e || !path(r0, c0, e.r, e.c)) return false; a.queue.push({ tr: e.r, tc: e.c, face: [e.sr, e.sc], act: WORK.kayak.t, kind: 'kayak', idle: true, fn: () => {} }); return true; }
@@ -476,7 +476,7 @@ function stepOtters(dt) {
   else if (k.phase === 'eat' && k.t > 7) { const loss = Math.min(S.cash, 10); S.cash -= loss; float(`otters pinched a fish! -S$${loss}`, ...head(lead), C.pink, 8); SFX.chirp(); otterLeave(false); }
   else if (k.phase === 'play' && k.t > 5) otterLeave(false);
   else if (k.phase === 'leave' && !k.pack.some(o => o.queue.length)) { k.phase = 'out'; k.swim = true; k.t = 0; SFX.splash(); const w = center(k.edge.sr, k.edge.sc); k.wx = w.x; k.wy = w.y; k.x = w.x; k.y = w.y; if (DOG) DOG.speed = 1.9; }
-  if (DOG && k.phase !== 'leave' && !k.swim && Math.hypot(DOG.r - lead.r, DOG.c - lead.c) < 1.6) { float('the dog chased them off!', ...head(DOG), C.gold, 8); SFX.woof(); SFX.chirp(); otterLeave(true); }
+  if (DOG && k.phase !== 'leave' && !k.swim && Math.hypot(DOG.r - lead.r, DOG.c - lead.c) < 1.6) { float('Joji chased them off!', ...head(DOG), C.gold, 8); SFX.woof(); SFX.chirp(); otterLeave(true); }
 }
 function drawOtter(e, x, y, t) {
   const k = OTTERS;
@@ -1296,6 +1296,8 @@ function drawWorld(t, D) {
   const pin = o => { if (!o.w) { o.x += cam.x - W / 2; o.y += cam.y - H / 2; o.w = 1; } };
   for (const p of A.particles) { pin(p); const [x, y] = scr(p.x, p.y); g.fillStyle = p.color; g.fillRect(x, y, 2, 2); }
   for (const h of A.hops) { const [x, y] = scr(h.x, h.y); g.globalAlpha = Math.min(1, h.life * 1.5); const s = h.s || 1; g.drawImage(h.im, Math.round(x - h.im.width * s / 2), Math.round(y - h.im.height * s), Math.round(h.im.width * s), Math.round(h.im.height * s)); } g.globalAlpha = 1;
+  if (hover && !S.panel) { const who = [[F, 'Darren', 46], ...WK.map(w => [w, WORKERS.find(k => k.id === w.id).name, 46]), ...(DOG ? [[DOG, 'Joji', 22]] : [])].find(([a, , h]) => { const [x, y] = tilePos(a.r, a.c); return Math.abs(hover.x - x) < 11 && hover.y < y + 4 && hover.y > y - h; });
+    if (who) { const [a, name, h] = who, [x, y] = tilePos(a.r, a.c); g.font = '7px monospace'; const tw = g.measureText(name).width + 8; g.fillStyle = '#0c0c0ecc'; g.fillRect(Math.round(x - tw / 2), Math.round(y - h - 16), Math.round(tw), 11); text(name, x, y - h - 8, C.gold2, 7, 'center'); } } // a name tag over whoever the mouse is on
   for (const f of A.floaters) if (!f.ui) { pin(f); const [x, y] = scr(f.x, f.y); g.globalAlpha = Math.min(1, f.life); text(f.s, x, y, f.color, f.size, 'center'); } g.globalAlpha = 1;
 }
 function closePanels() { S.panel = null; S.pick = null; S.pickFish = null; S.build = null; S.moveSel = null; }

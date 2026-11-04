@@ -8,6 +8,10 @@ You run the oyster farm on the kelong next to NILA's underwater cellar; the oyst
 
 Why it works: real sea-aged bottles come up crusted with oysters and barnacles. The game makes that the point. Every NILA fact on the site becomes a mechanic: 6 months, 15 m depth, 24 °C.
 
+## Cast
+
+**Darren** is the farmer you play. **Joji** is the golden retriever (Build › Decor › Joji, his bed; crew walk 20% faster, he chases otters off the fish cages). The crew go by their jobs: Harvester, Pen keeper, Carpenter. Hover over anyone for a name tag.
+
 ## Core loop (what the player does, over and over)
 
 Farm-sim, real clock, drag to look around, tap to act. Oysters grow while the tab is closed, so a visit is a minute or two and the game runs for days. Three earlier versions (turn-based grey-box, a real-time feed/bath/sell scene, a one-screen raft) tested as confusing, shallow or too thin (2026-11-03); this replaced them.
