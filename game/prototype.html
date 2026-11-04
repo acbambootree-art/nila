@@ -40,7 +40,7 @@ const ITEMS = [ // buildable: on land or sea; pens have a feed→wait→collect 
   { tab: 'decor', id: 'cat',      name: 'Cat',         cost: 300,  xp: 25,  lvl: 4, on: 'land', sprite: 'cat-sleep', note: '2× rares', desc: 'Pearl and gold shell finds on harvest are twice as likely.' , charm: 3 },
   { tab: 'decor', id: 'dog',      name: 'Joji',         cost: 350,  xp: 25,  lvl: 3, on: 'land', sprite: 'dog-sit', note: 'crew +20%', desc: 'Joji, a golden retriever who runs about the farm and keeps the crew cheerful: workers walk 20% faster. Place his bed on the platform.' , charm: 4 },
   { tab: 'farm', id: 'shed',     name: 'Ice store',        cost: 800,  xp: 60,  lvl: 5, on: 'land', sprite: 'bld-shed', note: 'wither 2× slow', desc: 'Doubles the time a ready oyster waits before it withers.' },
-  { tab: 'farm', id: 'cellar',   name: 'NILA cellar', cost: 400,  xp: 50,  lvl: 5, on: 'pen',  sprite: 'cellar', pen: { feed: 100, time: 6 * 3600, sell: 0, xp: 300, what: 'bottle', win: true }, note: 'age a bottle', desc: 'Lower a NILA bottle for S$100. Six real hours later it comes up sea-aged: the win.' },
+  { tab: 'farm', id: 'cellar',   name: 'NILA cellar', cost: 400,  xp: 50,  lvl: 5, on: 'pen',  sprite: 'cellar', pen: { feed: 100, time: 6 * 3600, sell: 0, xp: 300, what: 'bottle', win: true }, note: 'age a crate', desc: 'Lower a crate of NILA bottles under a marker buoy for S$100. Six real hours later it comes up barnacled and sea-aged: the win.' },
 ];
 ITEMS.push(
   { tab: 'decor', id: 'pot',     name: 'Bougainvillea', cost: 90,  xp: 6,  lvl: 1, on: 'land', sprite: 'dec-pot',     charm: 3, note: '+3 charm', desc: 'A pot of pink bougainvillea. Charm makes the farm nicer to visit: every charm point adds 0.5% to sales, up to +20%.' },
@@ -75,7 +75,7 @@ const UPGRADES = [ // shed upgrades, bought once each from the shed panel
 const up = id => !!(S.up && S.up[id]);
 const ALBUM = [ // collection book entries; counts live in S.album
   ...SP.map(s => ({ id: s.id, name: s.name, icon: () => tinted('oyster-fat-idle', s.tint) })),
-  ...FISH.map(f => ({ id: f.id, name: f.name, icon: () => ready(`fish-${f.id}`) })), { id: 'crabs', name: 'Crabs', icon: () => ready('sea-crab-a') }, { id: 'bottle', name: 'NILA', icon: () => ready('bottle-3') },
+  ...FISH.map(f => ({ id: f.id, name: f.name, icon: () => ready(`fish-${f.id}`) })), { id: 'crabs', name: 'Crabs', icon: () => ready('sea-crab-a') }, { id: 'bottle', name: 'NILA', icon: () => ready('cellar-crate-2') },
   { id: 'rarepearl', name: 'Pearl drop', icon: () => ready('sp-pearl'), rare: true }, { id: 'gold', name: 'Gold shell', icon: () => ready('sp-gold'), rare: true },
   { id: 'turtle', name: 'Hawksbill', icon: () => ready('sea2-turtle-a') }, { id: 'shark', name: 'Blacktip', icon: () => ready('sea2-shark') }, { id: 'dolphin', name: 'Pink dolphin', icon: () => ready('sea2-dolphin') },
   { id: 'dugong', name: 'Dugong', icon: () => ready('sea2-dugong'), rare: true }, { id: 'otter', name: 'Otters', icon: () => ready('otter-stand') }, { id: 'hcrab', name: 'Horseshoe crab', icon: () => ready('hcrab-a') },
@@ -179,7 +179,7 @@ function save() { try { const { t, pick, pickFish, build, panel, tab, moveSel, .
 // ---- sprites ----
 const IMG = {};
 ['oyster-baby-idle', 'oyster-baby-blink', 'oyster-medium-idle', 'oyster-medium-blink', 'oyster-fat-idle', 'oyster-fat-blink', 'sp-withered', 'sp-pearl', 'sp-gold', 'sea-crab-a', 'customer-wait', 'customer-happy',
-  'hut-hut', 'bbq-grill', 'bbq-table', 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'bottle-0', 'bottle-1', 'bottle-2', 'bottle-3', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
+  'hut-hut', 'bbq-grill', 'bbq-table', 'bbq-stool-red', 'bbq-stool-blue', 'cat-sleep', 'cat-sit', 'cat-walk-a', 'cat-walk-b', 'cat-pounce', 'cat-stretch', 'croc-lie', 'croc-open', 'croc-swim', 'nut', 'cellar-crate-0', 'cellar-crate-1', 'cellar-crate-2', 'cellar-buoy', 'sea2-turtle-a', 'sea2-turtle-b', 'sea2-shark', 'sea2-dugong', 'sea2-dolphin', 'sea2-fin', 'otter-walk-a', 'otter-walk-b', 'otter-stand', 'otter-swim', 'otter-eat', 'hcrab-a', 'hcrab-b', 'dec-pot', 'dec-hammock', 'dec-chair', 'dec-kayak', 'dec-flowers', 'dec-chimes', 'dog-run-a', 'dog-run-b', 'dog-sit', 'dog-lie', 'dog-sniff', 'dog-bed', 'tank-0', 'tank-1', 'tank-2', 'shed-small', 'shed-big', 'shed-gen', 'shed-drum', 'shed-crates', 'boat-bumboat', 'bg-ubin', 'win', 'farmer-front-idle', 'farmer-front-walk', 'farmer-back-idle', 'farmer-back-walk', 'farmer-work-hammer-a', 'farmer-work-hammer-b', 'farmer-work-feed-a', 'farmer-work-feed-b', 'farmer-work-harvest-a', 'farmer-work-harvest-b', 'farmer-work-plant', 'farmer-work-sweep',
   ...['carpenter', 'keeper', 'harvester'].flatMap(w => ['front-idle', 'front-walk', 'back-idle', 'back-walk', 'work-a', 'work-b', 'idle-fish', 'idle-rest', 'idle-mend', 'swim-a', 'swim-b', 'swim-play', 'swim-float'].map(f => `wk-${w}-${f}`)), 'farmer-idle-fish', 'farmer-idle-rest', 'farmer-idle-mend', 'farmer-swim-a', 'farmer-swim-b', 'farmer-swim-play', 'farmer-swim-float',
   'bld-stall', 'bld-shed', 'bld-lantern', 'bld-flag', 'bld-palm', 'bld-bench', 'bld-cat', 'pen-fishcage-empty', 'pen-fishcage-full', 'pen-crabpen-empty', 'pen-crabpen-full',
   'fish-seabass', 'fish-pomfret', 'fish-snapper', 'fish-grouper', 'sea-fish1-a', 'sea-fish1-b', 'sea-fish2-a', 'sea-fish2-b', 'sea-fish3-a', 'sea-fish3-b', 'sea-gull-a', 'sea-gull-b', 'sea-jelly-a', 'sea-jelly-b', 'sc-cloud1', 'sc-cloud2', 'sc-cloud3',
@@ -724,7 +724,7 @@ function tapObj(o, who = F) {
   if (!o.fed && it.id === 'fishcage') { S.pickFish = o; SFX.pop(); return; }
   if (!o.fed) {
     if (S.cash < pen.feed) { SFX.nope(); return float("Not enough $", x, y - 30, C.pink); }
-    S.cash -= pen.feed; SFX.pop(); goBeside(o.r, o.c, () => { o.fed = Date.now(); pop(x, y - 10, '#9ad0e0', 6); float(pen.win ? 'bottle lowered' : 'fed', x, y - 30, C.sand); SFX.splash(); }, who);
+    S.cash -= pen.feed; SFX.pop(); goBeside(o.r, o.c, () => { o.fed = Date.now(); pop(x, y - 10, '#9ad0e0', 6); float(pen.win ? 'crate lowered' : 'fed', x, y - 30, C.sand); SFX.splash(); }, who);
   } else if (left > 0) { float(fmt(left), x, y - 30, C.sand); SFX.chomp(); }
   else goBeside(o.r, o.c, () => {
     o.fed = null; const cash = Math.round(pen.sell * sellMul()), [hx, hy] = head(who); S.cash += cash; S.stats.collect++;
@@ -1225,11 +1225,18 @@ function drawEntity(e, x, y, t, D) {
   }
   if (e.kind === 'obj') {
     const o = e.o, it = item(o.id); if (it.id !== 'cellar' && it.id !== 'crabpen') ell(x, y + 5, it.pen ? 30 : it.id === 'cat' || it.id === 'dog' ? 9 : 16, it.pen ? 12 : it.id === 'cat' || it.id === 'dog' ? 3 : 6, '#00000044');
-    if (it.id === 'cellar') {
-      const mo = o.fed ? Math.min(6, Math.floor((Date.now() - o.fed) / 1000 / 3600)) : 0, done = o.fed && mo >= 6;
-      g.fillStyle = C.wood; g.fillRect(x - 14, y - 4, 28, 4); ell(x - 14, y - 2, 4, 3, '#c94a4a'); ell(x + 14, y - 2, 4, 3, '#c94a4a');
-      if (o.fed) { g.strokeStyle = '#3a2e22'; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 10); g.stroke(); glow(x, y + 36, 24, done ? '#f6d48a' : C.gold, done ? 0.5 + 0.2 * Math.sin(t * 4) : 0.2); sprite(`bottle-${Math.min(3, Math.floor(mo / 2))}`, x, y + 62, { alpha: 0.9 }); text(done ? 'ready! tap' : `${mo}/6 mo`, x, y + 74, done ? C.gold : C.gold2, 7, 'center'); }
-      else text('tap: lower bottle', x, y + 14, C.gold2, 7, 'center');
+    if (it.id === 'cellar') { // a crate of NILA bottles on a rope under a marker buoy: it sinks in, gathers barnacles and weed over the six months, then comes up
+      const age = o.fed ? (Date.now() - o.fed) / 1000 : 0, mo = Math.min(6, Math.floor(age / 3600)), done = o.fed && mo >= 6, bob = Math.sin(t * 1.6 + o.c) * 1.2;
+      const bx = x + 26, by = y - 4 + bob; // the buoy, off to one side of the pen
+      if (o.fed && !done) { const sink = Math.min(1, age / 3), cy = y + 8 + sink * 14 + Math.sin(t * 0.9 + o.r) * 1, n = `cellar-crate-${mo >= 5 ? 2 : mo >= 2 ? 1 : 0}`, sway = Math.sin(t * 0.7 + o.r) * 1.5;
+        g.strokeStyle = '#d8c8a0'; g.globalAlpha = 0.55; g.lineWidth = 1; g.beginPath(); g.moveTo(bx, by + 2); g.quadraticCurveTo(bx - 6, (by + cy) / 2, x + sway, cy - 40); g.stroke(); g.globalAlpha = 1;
+        ell(x, cy + 2, 22, 7, '#0a2a3a55'); sprite(n, x + sway, cy, { alpha: 0.75 - sink * 0.25 }); sprite(tinted(n, '#1b5a8a'), x + sway, cy, { alpha: 0.25 + sink * 0.35 }); // seen through the water: dimmer and bluer once it's down
+        if (Math.random() < 0.04) A.particles.push({ x: x + sway + rnd(-12, 12), y: cy - 30, vx: rnd(-2, 2), vy: rnd(-22, -12), gr: -6, life: 1, color: '#cfe8f5' });
+        text(`${mo}/6 mo`, x, y + 34, C.gold2, 7, 'center'); }
+      if (done) { const lift = Math.sin(t * 2) * 1.5; glow(x, y - 10, 30, '#f6d48a', 0.45 + 0.2 * Math.sin(t * 4)); g.globalAlpha = 0.45; ell(x, y + 4, 26, 7, '#e8f4ff'); g.globalAlpha = 1;
+        sprite('cellar-crate-2', x, y + 6 + lift); if (Math.random() < 0.1) A.particles.push({ x: x + rnd(-18, 18), y: y + 2, vx: rnd(-4, 4), vy: rnd(-10, -2), life: 0.5, color: '#e8f4ff' }); text('ready! tap', x, y - 66, C.gold, 7, 'center'); }
+      g.globalAlpha = 0.4; ell(bx, by + 2, 9, 3, '#e8f4ff'); g.globalAlpha = 1; sprite('cellar-buoy', bx, by + 4, { scale: 0.8 });
+      if (!o.fed) text('tap: lower a crate', x, y + 14, C.gold2, 7, 'center');
       return;
     }
     if (it.pen) { const done = o.fed && Date.now() - o.fed >= penSpec(o).time * 1000;
@@ -1330,7 +1337,7 @@ function drawBuild() {
   list.forEach((it, i) => {
     const x = x0 + i * w + w / 2, locked = S.level < it.lvl, sel = S.build === it.id;
     if (sel) { g.fillStyle = '#c9a96e33'; g.fillRect(x - w / 2, cy, w, 74); }
-    g.globalAlpha = locked ? 0.3 : 1; const nm = it.pen && !it.pen.win ? `${it.sprite}-full` : it.id === 'cellar' ? 'bottle-3' : it.sprite, im = ready(nm);
+    g.globalAlpha = locked ? 0.3 : 1; const nm = it.pen && !it.pen.win ? `${it.sprite}-full` : it.id === 'cellar' ? 'cellar-crate-0' : it.sprite, im = ready(nm);
     if (im) { const s = Math.min(1, 34 / im.height, (w - 8) / im.width); g.drawImage(im, Math.round(x - im.width * s / 2), Math.round(cy + 38 - im.height * s), Math.round(im.width * s), Math.round(im.height * s)); }
     text(it.name, x, cy + 49, locked ? C.grey : C.sand, 6, 'center'); text(locked ? `lv ${it.lvl}` : `S$${it.cost}`, x, cy + 59, locked ? C.grey : S.cash < it.cost ? C.pink : C.gold2, 6, 'center'); text(it.note, x, cy + 69, locked ? C.grey : '#9ad0e0', 6, 'center'); g.globalAlpha = 1;
     hit(x - w / 2, cy, w, 74, () => { if (locked) { SFX.nope(); return float(`level ${it.lvl}`, x, y0 - 6, C.pink, 8, true); } S.build = sel ? null : it.id; SFX.pop(); });
