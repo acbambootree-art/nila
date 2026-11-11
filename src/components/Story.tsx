@@ -11,8 +11,8 @@ export default function Story() {
           <div className="lg:col-span-7 space-y-6 lg:space-y-8">
             <div className="animate-on-scroll overflow-hidden">
               <img
-                src="/assets/island-overview.jpg"
-                alt="Golden sunset over NILA's island waters"
+                src="/assets/ubin-bumboat.jpg"
+                alt="A bumboat crossing to Pulau Ubin at sunset, past mangroves and a kelong"
                 className="w-full h-[280px] sm:h-[360px] lg:h-[520px] object-cover kenburns"
               />
             </div>
@@ -20,8 +20,8 @@ export default function Story() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8 items-center">
               <div className="animate-on-scroll animate-delay-1 overflow-hidden">
                 <img
-                  src="/assets/barrel-coast.jpeg"
-                  alt="Sea-aged barrel on a tropical island coastline"
+                  src="/assets/barrel-kelong.jpg"
+                  alt="Barnacle-crusted barrel hauled up onto a kelong off Pulau Ubin"
                   className="w-full h-[220px] lg:h-[260px] object-cover kenburns"
                   style={{ animationDelay: '-8s' }}
                 />
