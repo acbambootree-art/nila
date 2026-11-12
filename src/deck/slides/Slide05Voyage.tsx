@@ -8,7 +8,7 @@ export default function SlideVoyage({ idx, total, bubbles }: Props) {
   const active = useIsActive(ref)
   return (
     <div ref={ref} style={{ position: 'absolute', inset: 0 }}>
-      <Chrome index={idx} total={total} label="Chapter III — The Cellar" coords="01°24'N  103°57'E" />
+      <Chrome index={idx} total={total} label="Chapter III — The Cellar" coords="01°24'N  103°58'E" />
       <Bubbles count={10} enabled={bubbles} />
 
       <div className="slide-pad" style={{ flexDirection: 'row', gap: 80 }}>
@@ -41,12 +41,12 @@ export default function SlideVoyage({ idx, total, bubbles }: Props) {
               maxWidth: 580,
             }}
           >
-            Off the eastern coast of Pulau Ubin, where the strait holds quiet between mainland Singapore and Malaysia,
+            On a floating sea farm in the strait between Changi and Pulau Ubin,
             our cradles rest in fifteen metres of water — lowered by hand, by a six-person dive crew, every season.
           </p>
 
           <div className="fade-up d3" style={{ marginTop: 56, display: 'flex', gap: 48 }}>
-            <Stat label="Site" value="Pulau Ubin" />
+            <Stat label="Site" value="Changi · Ubin" />
             <Stat label="Depth" value="15 metres" />
             <Stat label="Crew" value="Six divers" />
           </div>
@@ -231,8 +231,8 @@ function UbinMap({ active }: { active: boolean }) {
           zIndex: 5,
         }}
       >
-        <span>PULAU UBIN · SINGAPORE</span>
-        <span>01°24'N · 103°57'E</span>
+        <span>CHANGI · PULAU UBIN · SINGAPORE</span>
+        <span>01°24'N · 103°58'E</span>
       </div>
     </div>
   )
