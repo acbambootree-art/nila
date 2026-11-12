@@ -7,7 +7,7 @@ import Collection from './components/Collection'
 import Process from './components/Process'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
-import IntroOverlay from './components/IntroOverlay'
+import EnterGate from './components/EnterGate'
 import FloatingWhatsApp from './components/FloatingWhatsApp'
 
 function App() {
@@ -16,7 +16,7 @@ function App() {
 
   return (
     <>
-      <IntroOverlay />
+      <EnterGate />
       <Navbar />
       <Hero />
       <Story />
