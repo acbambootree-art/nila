@@ -8,7 +8,7 @@ const products = [
     description:
       'A bold, full-bodied red aged six months in the waters between Changi and Pulau Ubin. Notes of dark cherry, sea salt, and ancient wood — a bottle that carries the pressure and patience of the deep.',
     details: '750ml · 14.5% ABV',
-    image: '/assets/wine-reserve.jpg',
+    image: '/assets/collection-reserve.jpg',
     number: 'N° 01',
   },
   {
@@ -17,7 +17,7 @@ const products = [
     description:
       'Crisp and luminous, with the ocean\'s mineral kiss. Honeyed citrus, white flowers, and a finish that lingers like a warm tide.',
     details: '750ml · 12.5% ABV',
-    image: '/assets/wine-blanc.png',
+    image: '/assets/collection-blanc.jpg',
     number: 'N° 02',
   },
   {
@@ -26,7 +26,7 @@ const products = [
     description:
       'Juniper and coastal botanicals, deepened by months at sea. Samphire, yuzu, and a whisper of brine that speaks of its origins.',
     details: '700ml · 43% ABV',
-    image: '/assets/gin-botanical.jpg',
+    image: '/assets/collection-gin.jpg',
     number: 'N° 03',
   },
 ]
@@ -65,7 +65,7 @@ export default function Collection() {
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="w-full h-[340px] sm:h-[440px] lg:h-[560px] object-cover object-center hover:scale-[1.01] transition-transform duration-[900ms] ease-out"
+                      className="w-full aspect-square object-cover object-center hover:scale-[1.01] transition-transform duration-[900ms] ease-out"
                     />
                   </div>
                 </div>
