@@ -18,7 +18,7 @@ const steps = [
     number: '03',
     title: 'Submersion',
     description:
-      'Lowered to the seabed off Singapore\'s southern coast, where constant temperatures and gentle currents work their quiet alchemy.',
+      'Lowered beneath our floating sea farm in the waters between Changi and Pulau Ubin, where constant temperatures and gentle currents work their quiet alchemy.',
   },
   {
     number: '04',

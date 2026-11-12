@@ -6,7 +6,7 @@ const products = [
     name: 'NILA Reserve',
     type: 'Sea-Aged Red Wine',
     description:
-      'A bold, full-bodied red aged six months beneath the South China Sea. Notes of dark cherry, sea salt, and ancient wood — a bottle that carries the pressure and patience of the deep.',
+      'A bold, full-bodied red aged six months in the waters between Changi and Pulau Ubin. Notes of dark cherry, sea salt, and ancient wood — a bottle that carries the pressure and patience of the deep.',
     details: '750ml · 14.5% ABV',
     image: '/assets/wine-reserve.jpg',
     number: 'N° 01',
